@@ -1,0 +1,22 @@
+extends layout
+
+block title
+	title= lingua.title_invite({name:receiver.nickname, title:title(receiver.title)})
+	
+block content
+	.container
+		if invitation
+			p: span.ts(_ts=invitation.ts)
+			
+		p
+			a(href='/u/#{receiver.id}')= receiver.nickname
+				span.title= title(receiver.title)
+		form(method='post', action='/invite')
+			input(type='hidden', name='receiver', value=receiver.id)
+			input(type='submit')
+		
+		p
+			if invitation
+				a(href='/invite/#{receiver.id}?cancel=1') cancel invitation
+			else
+				a(href='javascript:void(0);', onclick="window.close();") cancel

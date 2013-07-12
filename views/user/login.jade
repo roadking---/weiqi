@@ -1,0 +1,12 @@
+extends ../layout_sign
+
+block content
+	#form-signin.container
+		form(method='POST')
+			h2= lingua.please_sign_in
+			#form_body
+				input.input-block-level(type='email', name='email', autofocus='autofocus', placeholder=lingua.email_address)
+				input.input-block-level(type='password', name='password', placeholder=lingua.password)
+				input.btn.btn-large.btn-primary(type='submit', value=lingua.login)
+	script
+		$('nav #login').parent().addClass('active');

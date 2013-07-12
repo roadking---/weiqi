@@ -1,0 +1,29 @@
+{
+  "name": "go",
+  "version": "0.0.1",
+  "private": true,
+  "author": "Lu Wang <wa_ng_lu@163.com>",
+  "description": "Weiqi/Go game platform online.",
+  "scripts": {
+    "start": "node app"
+  },
+  "dependencies": {
+    "express": "3.x",
+    "jade": "*",
+    "stylus": "*",
+    "underscore": "*",
+    "lingua": "*",
+    "validator":"*",
+    "moment":"*",
+    "expiring-lru-cache": "*",
+    "socket.io": "*",
+    "redis": "*",
+    "ndir": "*",
+    "maxmind": "*",
+    "yamljs": "*"
+  },
+  "engines": {
+    "node": "0.10.*",
+    "npm":  "1.1.x"
+  }
+}

@@ -1,0 +1,13 @@
+extends ../layout_sign
+
+block content
+	#form-register
+		form(method='POST')
+			h2= lingua.please_register
+			#form_body
+				input.input-block-level(type='text', name='nickname', autofocus='autofocus', placeholder=lingua.nickname)
+				input.input-block-level(type='email', name='email', placeholder=lingua.email_address)
+				input.input-block-level(type='password', name='password', placeholder=lingua.password)
+				input.btn.btn-large.btn-primary(type='submit', value=lingua.register)
+	script
+		$('nav #register').parent().addClass('active');

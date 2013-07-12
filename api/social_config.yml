@@ -1,0 +1,68 @@
+levels:
+  - min: Number.MIN_VALUE
+    max: 199
+    chess_analog: 'Class J'
+    rate_diff: 36
+    title: J
+  - min: 200
+    max: 399
+    chess_analog: 'Class I'
+    rate_diff: 34
+    title: I
+  - min: 400
+    max: 599
+    chess_analog: 'Class H'
+    rate_diff: 32
+    title: H
+  - min: 600
+    max: 799
+    chess_analog: 'Class G'
+    rate_diff: 30
+    title: G
+  - min: 800
+    max: 999
+    chess_analog: 'Class F'
+    rate_diff: 28
+    title: F
+  - min: 1000
+    max: 1199
+    chess_analog: 'Class E'
+    rate_diff: 25
+    title: E
+  - min: 1200
+    max: 1399
+    chess_analog: 'Class D'
+    rate_diff: 23
+    title: D
+  - min: 1400
+    max: 1599
+    chess_analog: 'Class C'
+    rate_diff: 20
+    title: C
+  - min: 1600
+    max: 1799
+    chess_analog: 'Class B'
+    rate_diff: 18
+    title: B
+  - min: 1800
+    max: 1999
+    chess_analog: 'Class A'
+    rate_diff: 18
+    title: A
+  - min: 2000
+    max: 2199
+    chess_analog: 'Expert'
+    rate_diff: 16
+    title: expert
+  - min: 2200
+    max: 2399
+    chess_analog: 'National Master'
+    rate_diff: 16
+    title: national_master
+  - min: 2400
+    max: Number.MAX_VALUE
+    chess_analog: 'Original Life Master'
+    rate_diff: 16
+    title: origianl_life_master
+game_rate_classified:
+  super_bowl: 2

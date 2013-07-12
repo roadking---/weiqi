@@ -1,0 +1,219 @@
+window.weiqi = (board, option, cb)->
+	switch arguments.length
+		when 2
+			[board, cb] = arguments
+		when 3
+			[board, option, cb] = arguments
+
+	option = _.defaults option ? {}, size:600, margin:20
+	if option.title
+		$('<h2 class="title"></h2>').appendTo(board).text(option.title)
+	board.append('<canvas class="draw"><canvas/>')
+	if players = board.attr 'players'
+		players = JSON.parse players
+		if players.black or players.white
+			players.black?.title ?= ''
+			players.white?.title ?= ''
+			board.append """
+				<div class='players'>
+				<div class='black'><div class='player'>黑方：</div><a class='name' href='/u/#{players.black?.id}'>#{players.black?.nickname}</a><span class='title'>#{players.black?.title}</span></div>
+				<div class='white'><div class='player'>白方：</div><a class='name' href='/u/#{players.white?.id}'>#{players.white?.nickname}</a><span class='title'>#{players.white?.title}</span></div>
+				</div>
+				"""
+	board.append("<div class='discuss'><input type='text'/><input type='submit'/></div>")
+		
+	board.find('.players, .discuss').css 'height', option.size
+	
+	initial = JSON.parse board.attr 'game'
+	canvas = board.find('canvas.draw')
+	canvas.attr width:option.size, height:option.size
+	ctx = canvas[0].getContext("2d")
+	LINES = 19
+	interval = (option.size - 2 * option.margin)/(LINES-1)
+	locate = (n)-> option.margin + interval * n
+	circle = (ctx, x, y, radius, color)->
+		
+		ctx.fillStyle = color ? 'black'
+		ctx.strokeStyle = 'black'
+		ctx.lineWidth = 1
+		
+		ctx.beginPath()
+		ctx.arc x, y, radius, 0, Math.PI*2, false;
+		ctx.closePath()
+		ctx.fill()
+		ctx.stroke()
+	
+	update = (pos, player)-> circle ctx, locate(pos[0]), locate(pos[1]), 12, player
+	redraw = ->
+		ctx.lineCap = 'round'
+		ctx.lineJoin = 'round'
+		ctx.rect option.margin, option.margin, option.size - 2*option.margin, option.size - 2*option.margin
+		ctx.stroke()
+		ctx.fillStyle = 'white'
+		ctx.fillRect 0, 0, option.size, option.size
+		
+		ctx.beginPath()
+		
+		_.each [0..LINES-1], (n)->
+			ctx.moveTo locate(n), locate(0)
+			ctx.lineTo locate(n), locate(LINES-1)
+			ctx.stroke()
+			
+			ctx.moveTo locate(0), locate(n)
+			ctx.lineTo locate(LINES-1), locate(n)
+			ctx.stroke()
+		
+		_.each [
+			[3, 3]
+			[3, 9]
+			[3, 15]
+			[9, 9]
+			[9, 3]
+			[9, 15]
+			[15, 3]
+			[15, 9]
+			[15, 15]
+		], (x)-> circle ctx, locate(x[0]), locate(x[1]), 3
+		
+		_.each initial.moves, (x)-> update x.pos, x.player
+	redraw()
+	
+	change_to_next = (player)->
+			board.attr 'next', player
+			board.find(".players .next").removeClass 'next'
+			board.find(".players .#{player}").addClass 'next'
+	change_to_next board.attr 'next'
+	
+	
+	
+	game = 
+		option: option
+		initial: initial
+		socket: io.connect "http://localhost/weiqi/#{board.attr('socket')}"
+		withdraw: (pos, player)->
+			console.log @option
+			redraw()
+			
+		move: (pos, player)->
+			update pos, player
+			@socket?.emit 'move', {pos:pos, player:player}, (res)=>
+				console.log 'move: ' + JSON.stringify res
+				if res.fail
+					@withdraw pos, player
+				else
+					@initial.moves ?= []
+					@initial.moves.push {pos:pos, player:player}
+					change_to_next res.next if res.next
+		click: (pos)->
+			if board.attr('status') is 'started' and board.attr('iam') is 'player' and board.attr('next') is board.attr('seat')
+				@move pos, board.attr('seat'), board.attr('seat')
+		add_discuss: (item)->
+			board.find('.discuss').append """
+				<div class='item'>
+				<span class='author'>Me</span>
+				<a class='snapshot'>#{item.step}</a>
+				<a class='snapshot'>#{item.text}</a>
+				</div>
+			"""
+	canvas.click (e)->
+		if e.button is 0
+			[x, y] = _.map [e.offsetX, e.offsetY], (num)->
+				num = (num - option.margin) / interval
+			[xx, yy] = _.map [x, y], (num)->
+				num = 0 if num < 0
+				num = 18 if num > 18
+				if 2* num >= Math.ceil(num) + Math.floor(num) then Math.ceil num else Math.floor num
+			if Math.pow(x - xx, 2) + Math.pow(y - yy, 2) < Math.pow(.4, 2)
+				game.click [xx, yy]
+			else
+				1
+	
+	game.socket.emit 'auth', $.cookie('auth') ? 'anonymous', (res)->
+		console.log res
+	
+		game.socket.on 'discuss', (data)->
+			console.log 'discuss'
+			console.log data
+		game.socket.on 'attend', (res)-> console.log 'attend: ' + JSON.stringify res
+		game.socket.on 'quit', (res)-> console.log 'quit: ' + JSON.stringify res
+		game.discuss = (req)-> game.socket.emit 'discuss', req
+		
+		taking_seat = ->
+			$('#seats').show()
+			
+		if board.attr('status') is 'taking_seat' and board.attr('iam') is 'player'
+			taking_seat()
+			$('#seats .item a').click ->
+				if $(this).hasClass 'none'
+					1
+					$('#seats .item a.mine').removeClass('mine').addClass('none').text 'none'
+					board.attr 'seat', $(this).attr('seat')
+					game.socket.emit 'taking_seat', $(this).attr('seat'), (res)-> console.log 'taking_seat: ' + JSON.stringify res
+					$(this).removeClass('none').addClass('mine').text 'Me'
+		
+		game.socket.on 'taking_seat', (res)->
+			console.log 'taking_seat'
+			if res is 'start'
+				taking_seat()
+				board.attr 'status', 'taking_seat'
+			else
+				console.log res
+				$.each $('#seats .item a'), ->
+					seat = $(this).attr('seat')
+					if res[seat]
+						$(this).text res[seat].nickname
+						$(this).removeClass 'none'
+					else
+						$(this).text 'none'
+						$(this).addClass 'none'
+		
+		
+		game.socket.on 'start', (seats, next)->
+			console.log 'start: ' + JSON.stringify [seats, next]
+			board.attr 'status', 'started'
+			board.find('.players .black .name').text(seats.black.nickname).attr 'href', "/u/#{seats.black.id}"
+			board.find('.players .black .title').text seats.black.title
+			board.find('.players .white .name').text(seats.white.nickname).attr 'href', "/u/#{seats.black.id}"
+			board.find('.players .white .title').text seats.white.title
+			_.delay (->$('#seats').hide()), 5000
+			change_to_next next
+		
+		game.socket.on 'move', (moves, next)->
+			console.log 'move: ' + JSON.stringify(moves)
+			_.each moves, (m)->
+				update m.pos, m.player
+				game.initial.moves ?= []
+				game.initial.moves.push m
+				
+			change_to_next next
+		game.socket.on 'disconnect', -> console.log 'disconnect'
+		
+		board.find('.discuss input[type=submit]').click ->
+			if text = board.find('.discuss input[type=text]').val()
+				game.add_discuss
+					step: game.initial.moves?.length + 1
+					text: text
+		cb game
+	
+	
+$ ->
+	###
+	game =
+		title: 'XX大赛'
+		players: [
+			{name: 'xxx', title:'九段'}
+			{name: 'yyy', title:'九段'}
+		]
+		startup: null
+		main: [
+			{x: 3, y: 3, pawn: 'black'}
+			{x: 15, y: 3, pawn: 'white'}
+			{x: 3, y: 15, pawn: 'black'}
+			{x: 15, y: 15, pawn: 'white'}
+		]
+	###
+	weiqi $('.board'), (board)->
+		board.add_discuss {
+			step: '第7步'
+			text: 'text'
+		}

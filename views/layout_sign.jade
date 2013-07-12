@@ -1,0 +1,22 @@
+doctype 5
+html
+	head
+		if locals.title
+			title Move - #{title}
+		else
+			title Move
+		meta(name='viewport', content='width=device-width, initial-scale=1.0')
+		link(rel='stylesheet', href='/css/bootstrap.min.css')
+		link(rel='stylesheet', href='/css/bootstrap-responsive.min.css')
+		link(rel='stylesheet', href='/css/sign.css')
+		link(rel='stylesheet', href='/css/header.css')
+		
+		link(rel="shortcut icon", href="/img/favicon.ico", type="image/x-icon")
+		script(type='text/javascript', src='/js/jquery-1.9.1.min.js')
+		script(type='text/javascript', src='/js/underscore-min.js')
+		script(type='text/javascript', src='/js/jquery.cookie.min.js')
+		script(type='text/javascript', src='/js/bootstrap.min.js')
+	body
+		include header
+		block content
+		footer

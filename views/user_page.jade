@@ -1,0 +1,99 @@
+extends layout
+
+block title
+	title= lingua.title_user_page({name:me.nickname, title:lingua['title_' + me.title]})
+
+block append scripts
+	script(type='text/javascript', src='/js/board.js')
+	script(type='text/javascript', src='/js/thumbnail.js')
+	script(type='text/javascript', src='/js/user_page.js')
+
+block content
+	include widget/history_list
+	
+	- var status_text = function(status){var key = 'status_' + status; console.log(key); return lingua[key] ? lingua[key] : key;}
+	//- console.log(me);
+	#profile.container(_uid=me.id)
+		.row
+			
+			.span2.offset1
+				h4= me.nickname
+					span.title= lingua['title_' + me.title]
+			p
+				span= lingua.rate
+				span(title=lingua.rate)= me.rate ? me.rate : 'N/A'
+			p #{lingua.total_games({num:me.total_games})}, #{lingua.win({num:me.wins})}, #{lingua.loss({num:me.losses})}
+			
+			if user && me.id != user.id
+				if isFollowed != null
+					if isFollowed
+						a#follow.btn.offset1: i.icon-star.icon-white
+					else
+						a#follow.btn.offset1: i.icon-star
+				a.span1.offset3(href='/invite/#{me.id}')= lingua.challenge_you
+			
+	if user && me.id == user.id
+		.row
+			h6 invite sent
+		.row-fluid
+			each x in sent_invites
+				.span2
+					a(href='/invite/#{x.receiver}', target='_blank')= refs[x.receiver].nickname
+						span.title= title(refs[x.receiver].title)
+		.row
+			h6 invite received
+		.row-fluid
+			each x in received_invites
+				.span2
+					a(href='/receive_invite/#{x.sender}', target='_blank')= refs[x.sender].nickname
+						span.title= title(refs[x.sender].title)
+			
+			
+	#recent-history.container
+		each item in games.recent_history
+			mixin history_list(item)
+		a.view-all(href='/history/#{me.id}')= lingua.view_all_history
+	
+	#user-games.container
+		- var rows = _.chain(games.current).groupBy(function(x, i){ return Math.floor(i/3); }).values().value();
+		each row in rows
+			.row
+				each item in row
+					.span4.item
+						if item.title
+							a(href='/game/weiqi/#{item.id}')= item.title
+							span.status= status_text(item.status)
+						else
+							a.ts(href='/game/weiqi/#{item.id}', _ts=item.init_ts)
+							span.status= status_text(item.status)
+						if me.id == user.id && item.players.length == 1
+							a(href='/delete/#{item.id}')= lingua.delete
+						
+						- var opponent = _.without(item.players, me.id)[0];
+						if opponent
+							.opponent
+								- var seat = item.seats ? _.invert(item.seats)[me.id] : null;
+								if seat
+									span= lingua['seat_' + seat]
+								span= lingua.with
+								a.ref_user(href='/u/#{opponent}')= refs[opponent].nickname
+									span.title= title(refs[opponent].title)
+						
+							figure.thumb(game=JSON.stringify(item))
+								a(href='/game/weiqi/#{item.socket || item.id}')
+						
+						if user && user.id == me.id
+							if item.status == 'taking_seat' && (!item.seats || !_.invert(item.seats)[user.id])	
+								#notice.text-warning= lingua.notice_take_seat
+							else if item.status == 'started' && item.seats && item.next && item.seats[item.next] == me.id
+								#notice.text-warning= lingua.notice_my_turn
+	
+					
+	#blogs.container
+		.row
+			.span10.offset1
+				include widget/publish_blog
+				include widget/blog
+	script.
+		$('nav #mine').parent().addClass('active');
+	

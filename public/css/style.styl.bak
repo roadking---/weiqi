@@ -1,0 +1,137 @@
+body
+	font: 14px "Lucida Grande", Helvetica, Arial, sans-serif, "Î¢ÈíÑÅºÚ"
+	background-color #fff
+	color #333
+	margin 0
+	padding 0
+
+custom_button(fore_color, back_color, back_color2, border_color)
+	-webkit-appearance none
+	cursor pointer
+	vertical-align middle
+	border-bottom-color #c5c5c5
+	border 1px solid border_color
+	border-radius 3px
+	background-repeat repeat-x
+	background-image linear-gradient(back_color2, back_color)
+	background-image -webkit-linear-gradient(back_color2, back_color)
+	background-image -moz-linear-gradient(back_color2, back_color)
+	background-color back_color
+	white-space nowrap
+	color fore_color
+	font-weight bold
+	font-size 13px
+	padding 7px 15px
+	display inline-block
+	outline none
+	box-shadow 0 1px 0 #fff
+	text-decoration none
+	
+custom_input()
+	//min-height 34px
+	padding 7px 8px
+	outline none
+	color #333
+	background-color #fff
+	background-repeat no-repeat
+	background-position right center
+	border 1px solid #ccc
+	border-radius 3px
+	box-shadow inset 0 1px 2px rgba(0,0,0,.075)
+	box-sizing border-box
+	transition all 0.15s ease-in
+	-webkit-transition all 0.15s ease-in 0
+	vertical-align middle
+	
+#search.center
+	form
+		input[type=text]
+			custom_input()
+			width 40%
+		input[type=submit]
+			//custom_button(#333, #eaeaea, #fafafa, #ddd) //gray
+			//custom_button(#fff, #3072b3, #599bcd, #2a65a0) //blue
+			custom_button(#fff, #5ba740, #82db63, #4a993e) //green
+
+header
+	text-shadow 0 1px 0 #fff
+	background none
+	height 35px
+	padding 10px 0
+	border-bottom 1px solid #e5e5e5
+	
+	nav
+		margin 0 auto
+		width 80%
+		#logo
+			font-size 20px
+			text-decoration none
+			color #333
+			margin-right 20px
+		a.item
+			margin-left 10px
+			text-decoration none
+			color #222
+			font-weight bold
+			padding 5px
+			display inline-block
+			
+			&:hover
+				background-color #999
+				color white
+				font-weight bold
+		#buttons
+			float right
+			a + a
+				margin-left 10px
+			a#login, a#logout, a#mine
+				text-shadow 0 1px 0 rgba(255, 255, 255, .9)
+				custom_button(#333, #eaeaea, #fafafa, #ddd)
+				&:hover
+					custom_button(#fff, #3072b3, #599bcd, #2a65a0)
+			a#register
+				custom_button(#fff, #5ba740, #82db63, #4a993e)
+				text-shadow 0 -1px 0 rgba(0, 0, 0, .25)
+			a#register
+				margin-left 10px
+		
+
+.board
+	width 80%
+	margin 0 auto
+	input.title
+		display block
+		width 20%
+	canvas
+		border 1px solid gray
+	.players
+		display inline-block
+		vertical-align top
+		.next
+			font-weight bold
+			border 2px solid #94537b
+		.black, .white
+			.title
+				margin-left 5px
+		.white
+			margin-top 30px
+	.discuss
+		width 20%
+		display inline-block
+		vertical-align top
+		border 1px solid black
+		margin-left 10px
+
+#seats
+	display none
+	.item
+		display inline-block
+		a,span
+			display inline-block
+			border 1px solid black
+			width 100px
+			height 50px
+
+
+#live
+	display none

@@ -1,0 +1,332 @@
+body {
+  background-color: #a8ceff;
+}
+.player {
+  font-weight: bold;
+}
+.title {
+  margin-left: 2px;
+  font-style: italic;
+  font-size: 70%;
+}
+#game-notice {
+  text-decoration: underline;
+  font-size: 18px;
+}
+a.ref_user {
+  color: #3542f2;
+  margin: 0 4px;
+  font-weight: bold;
+}
+a.ref_user:before {
+  content: '@';
+}
+input.showable {
+  border: 0;
+  background-color: rgba(0,0,0,0);
+  border-bottom: 1px dotted rgba(0,0,0,0.3);
+  -webkit-border-radius: 0;
+  -moz-border-radius: 0;
+  border-radius: 0;
+  -webkit-box-shadow: rgba(0,0,0,0) 0 0 0 0 inset;
+  -moz-box-shadow: rgba(0,0,0,0) 0 0 0 0 inset;
+  box-shadow: rgba(0,0,0,0) 0 0 0 0 inset;
+}
+input.showable:focus {
+  border: 0;
+}
+#game-result {
+  margin-left: 60px;
+}
+#seats {
+  color: #483c32;
+  margin-bottom: 30px;
+}
+#seats #black,
+#seats #white {
+  height: 40px;
+  -webkit-border-radius: 10px;
+  -moz-border-radius: 10px;
+  border-radius: 10px;
+  line-height: 40px;
+  text-align: center;
+}
+#seats #black .nickname,
+#seats #white .nickname {
+  margin-left: 10%;
+  margin-right: 5px;
+}
+#seats .vacant {
+  border: 4px solid #86bdaa;
+}
+#seats .taken {
+  border: 4px solid rgba(0,0,0,0.3);
+}
+#seats #black {
+  background: url("/img/black.svg") no-repeat;
+  background-position: 30% 10px;
+}
+#seats #white {
+  background: url("/img/white.svg") no-repeat;
+  background-position: 30% 10px;
+}
+.board {
+  margin-top: 20px;
+}
+.board .title .seat {
+  font-size: 60%;
+}
+.board .title .seat:before {
+  content: '(';
+}
+.board .title .seat:after {
+  content: ')';
+}
+.board #num_btn i {
+  padding: 0px 16px;
+  background: url("/img/icons.svg") no-repeat;
+  background-position: 0 -16px;
+}
+.board #num_btn i.show-number {
+  background-position: 0 0;
+}
+.board canvas {
+  border: 1px solid #000;
+  -webkit-tap-highlight-color: rgba(0,0,0,0);
+}
+.board canvas.your_turn {
+  border: 1px solid #f00;
+}
+.board .players {
+  margin: 5px 0;
+}
+.board .players .player {
+  -webkit-border-radius: 10px;
+  -moz-border-radius: 10px;
+  border-radius: 10px;
+  font-weight: bold;
+  padding: 10px;
+}
+.board .players .player.black:before {
+  content: ' ';
+  height: 30px;
+  width: 30px;
+  background: url("/img/black.svg") no-repeat;
+}
+.board .players .player.white:before {
+  content: ' ';
+  height: 30px;
+  width: 30px;
+  background: url("/img/white.svg") no-repeat;
+}
+.board .players .next {
+  color: #94537b;
+  background-color: rgba(69,203,170,0.3);
+}
+.board #btn-group-row {
+  margin-top: 10px;
+}
+#pendings {
+  margin-top: 30px;
+  margin-bottom: 30px;
+}
+#pendings .view {
+  display: block;
+  background-color: rgba(0,0,0,0.4);
+  color: #fff;
+  border-top-left-radius: 5px;
+  border-top-right-radius: 5px;
+  padding: 5px;
+  text-align: center;
+  height: 40px;
+  text-decoration: none;
+}
+#pendings .view:hover {
+  outline: #0f0 dotted 1px;
+}
+#pendings .attend {
+  color: #fff;
+  text-decoration: none;
+  padding: 5px;
+  font-weight: bold;
+  height: 20px;
+  display: block;
+  background-color: rgba(0,0,0,0.2);
+  text-align: center;
+  border-bottom-left-radius: 5px;
+  border-bottom-right-radius: 5px;
+}
+#pendings .attend:hover {
+  color: #008573;
+}
+#user-games {
+  margin-top: 30px;
+  margin-bottom: 30px;
+  padding-bottom: 10px;
+  border-bottom: 10px solid #fff4b0;
+}
+#user-games .item {
+  padding: 5px;
+  -webkit-border-radius: 5px;
+  -moz-border-radius: 5px;
+  border-radius: 5px;
+}
+#user-games .item:hover {
+  background-color: #fff4b0;
+}
+#user-games .item .status {
+  margin-left: 10px;
+  font-style: italic;
+}
+#live #live_board {
+  display: none;
+}
+#comments .step {
+  color: #a39383;
+  margin: 0 4px;
+}
+#comments .step:before {
+  content: "&";
+}
+#comments .ts {
+  color: #c7cca9;
+}
+#comments .text .snapshot {
+  cursor: pointer;
+  text-decoration: none;
+  margin: 0 3px;
+}
+#blogs {
+  padding-top: 20px;
+  padding-bottom: 20px;
+  background-color: #fffcf7;
+}
+#blogs .blog + .blog {
+  margin-top: 20px;
+}
+#blogs .blog {
+  padding: 10px 30px;
+  -webkit-border-radius: 5px;
+  -moz-border-radius: 5px;
+  border-radius: 5px;
+  border: 1px solid rgba(0,0,0,0);
+}
+#blogs .blog:hover {
+  border: 1px solid #c3d5de;
+}
+#blogs .blog:hover .author {
+  color: #62759e;
+}
+#blogs .blog:hover .del {
+  color: #0f1926;
+  display: inline-block;
+  padding: 2px 8px;
+  cursor: pointer;
+  -webkit-border-radius: 30px;
+  -moz-border-radius: 30px;
+  border-radius: 30px;
+}
+#blogs .blog:hover .del:hover {
+  background-color: #aaa;
+  color: #fff;
+}
+#blogs .blog .text {
+  font-size: 16px;
+}
+#blogs .blog .ts {
+  font-size: 8px;
+  color: #999;
+}
+#blogs .blog .author {
+  font-size: 14px;
+  font-weight: bold;
+  color: #0f1926;
+  margin-bottom: 5px;
+  display: inline-block;
+}
+#blogs .blog .forwarded_blog {
+  margin: 5px 20px;
+  padding: 5px;
+  -webkit-border-radius: 5px;
+  -moz-border-radius: 5px;
+  border-radius: 5px;
+  background-color: rgba(238,232,171,0.4);
+  -webkit-box-shadow: 3px 3px 1px 1px #c3d5de;
+}
+#blogs .blog .step {
+  margin: 0 5px;
+  font-weight: bold;
+}
+#blogs .blog .step:before {
+  content: '&';
+}
+#blogs .blog .snapshots {
+  display: inline-block;
+}
+#blogs .blog .snapshots .thumb {
+  display: inline-block;
+  margin-left: 10px;
+}
+#blogs #prev_blogs_btn {
+  margin-top: 20px;
+}
+a#go2top {
+  display: block;
+  position: fixed;
+  left: 90%;
+  padding: 15px;
+  top: 80%;
+  cursor: pointer;
+  background-color: rgba(222,166,129,0.5);
+  -webkit-border-radius: 5px 20px;
+  -moz-border-radius: 5px 20px;
+  border-radius: 5px 20px;
+}
+.thumb .title {
+  font-size: 12px;
+  font-style: italic;
+  color: #62759e;
+}
+.history[result=win] {
+  background-color: #eee8ab;
+}
+.history[result=loss] {
+  background-color: #d9d9d9;
+}
+.history {
+  padding: 5px;
+}
+.history .total_moves {
+  margin: 0 5px;
+}
+.history .case {
+  margin-left: 10px;
+}
+.history .seat {
+  margin-left: 3px;
+}
+.history .seat:before {
+  content: '(';
+}
+.history .seat:after {
+  content: ')';
+}
+.history .result {
+  float: right;
+  margin-right: 20%;
+}
+.history .ts {
+  margin-left: 10px;
+  color: #fff;
+}
+#rate-chart {
+  height: 250px;
+  margin-bottom: 30px;
+}
+#profile {
+  border: 2px dashed #d9eef2;
+  -webkit-border-radius: 100px;
+  -moz-border-radius: 100px;
+  border-radius: 100px;
+  background-color: #fffcf7;
+}

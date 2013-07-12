@@ -1,0 +1,9 @@
+extends layout
+
+block title
+	title= lingua.title_receive_invite({name:sender.nickname, title:title(sender.title)})
+	
+block content
+	.container
+		p: a(href='/receive_invite/#{sender.id}?accept=1') accept
+		

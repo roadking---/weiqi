@@ -1,0 +1,32 @@
+#header_banner
+	nav.container
+		.row
+			.span10.offset1
+				ul.nav.nav-pills.inline
+					li
+						a#home(href='/', title='Home'): i.icon-home
+					
+					if !user || !user.my_new_game
+						li
+							a.item(href='/new', title=lingua.new_game)
+								i.icon-plus
+								span= lingua.new_game
+					li
+						a.item(href='/dapu', title=lingua.dapu)
+							i.icon-th
+							span= lingua.dapu
+					if user
+						li
+							a.item(href='/history/#{user.id}', title=lingua.history)
+								i.icon-flag
+								span= lingua.history
+					
+					if user
+						li.pull-right
+							a#logout(href='/logout', title=lingua.logout): i.icon-off
+						li.pull-right
+							a#mine(href='/u/#{user.id}', title=lingua.my_page): i.icon-user
+					else
+						li.pull-right: a#register(href='/register')= lingua.register
+						li.pull-right: a#login(href='/login')= lingua.login
+						

@@ -1,0 +1,35 @@
+extends layout
+
+block title
+	title= lingua.title_home_page
+	
+block append scripts
+	script(type='text/javascript', src='/socket.io/socket.io.js')
+	script(type='text/javascript', src='/js/board.js')
+	script(type='text/javascript', src='/js/thumbnail.js')
+	
+block content
+	if games.pendings && games.pendings.length
+		section#pendings.container
+			h4= lingua.pending_head
+			- var rows = _.chain(games.pendings).groupBy(function(x, i){ return Math.floor(i/4); }).values().value();
+			each row in rows
+				.row
+					each item in row
+						.span3
+							- var p = item.players[0]
+							a.view(title=lingua.view_game, href='/game/weiqi/#{item.id}')
+								span.nickname= refs[p].nickname
+								if refs[p].title
+									span.title= lingua['title_'+refs[p].title]
+							a.attend(title=lingua.start_game, href='/attend/#{item.id}') Attend
+	if user
+		#blogs.container(blog_id=blog_id)
+			.row
+				.span10.offset1
+					//include widget/publish_blog
+					//button#recent_blogs_btn.btn update
+					include widget/blog
+					button#prev_blogs_btn.btn.btn-block= lingua.prev_blogs
+	script.
+		$('nav #home').parent().addClass('active');

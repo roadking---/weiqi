@@ -1,0 +1,27 @@
+extends layout
+
+block append scripts
+	script(src='/js/board.js')
+	script(src='/js/thumbnail.js')
+	script(src='/js/weiqi_rule.js')
+	script(src='/js/publish.js')
+	script(src='/js/dapu.js')
+
+block content
+	.row-fluid
+		.span8
+			a#undo.btn(title=lingua.undo): i.icon-hand-left
+			a#discard.btn(title= lingua.discard): i.icon-trash
+			
+			#tabs.nav.nav-tabs
+				li.active: a#gaming(href='#')= lingua.gaming
+				li: a#trying(href='#')= lingua.tring
+			include board
+			mixin board('gaming-board', opts)
+		
+		.span4
+			.row
+				.span6.offset1
+					include widget/publish
+			#comments(_terms=JSON.stringify(_.pick(lingua, 'me')))
+			

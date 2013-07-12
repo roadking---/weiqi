@@ -1,0 +1,49 @@
+mixin show_snapshots(blog)
+	if blog.snapshots && blog.snapshots.length
+		- from = _.max(blog.snapshots, function(x){return x.from}).from;
+		if blog.gid && refs[blog.gid]
+			.snapshots(_ss=JSON.stringify(blog.snapshots), gid=blog.gid, game_moves=JSON.stringify(refs[blog.gid].moves.slice(0, from+1)))
+		else
+			.snapshots(_ss=JSON.stringify(blog.snapshots))
+	
+
+mixin show_blog(blog, forwarded)
+	if blog.author
+		a.author(href='/u/#{blog.author}')= refs[blog.author].nickname
+			span.title= lingua["title_" + refs[blog.author].title]
+	else if blog.gid
+		a.author(href='/game/weiqi/#{blog.gid}') #{refs[blog.gid] && refs[blog.gid].title ? refs[blog.gid].title : 'Game'}
+	
+	if !forwarded && user && user.id == blog.author
+		span.hide.del.pull-right &times;
+	
+	if blog.type == 'init_game' && refs[blog.gid]
+		.text
+			a(href='/game/weiqi/#{blog.gid}')= lingua.init_game_blog
+		mixin show_snapshots(blog)
+	else if blog.type == 'player_attend' && refs[blog.uid]
+		.text
+			a.ref_user(href='/u/#{blog.uid}', title='#{refs[blog.uid].nickname} #{lingua["title_" + refs[blog.uid].title]}')= refs[blog.uid].nickname
+			| #{lingua.player_attend_blog}
+		mixin show_snapshots(blog)
+	else if blog.type == 'forward'
+		.text= blog.comment
+		mixin show_snapshots(blog)
+		.forwarded_blog
+			mixin show_blog(blog.original_blog, true)
+	else if blog.type == 'game_comment'
+		.text= blog.text
+		mixin show_snapshots(blog)
+		a.step(_step=blog.step, href='/game/weiqi/#{blog.gid}?step=#{blog.step}')=blog.step+1
+	else
+		.text= blog.text
+		mixin show_snapshots(blog)
+	
+	if blog.ts
+		span.ts(_ts=blog.ts)
+		
+each blog in blogs
+	- var type = 'plain';
+	
+	.blog.row(_type=blog.type?blog.type:'plain', id=blog.id)
+		mixin show_blog(blog, false)
