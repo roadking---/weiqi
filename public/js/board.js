@@ -43,7 +43,7 @@
     __extends(CanvasBoard, _super);
 
     function CanvasBoard(board, opts) {
-      var _base, _ref,
+      var _base, _base1, _base2, _ref, _ref1, _ref2,
         _this = this;
 
       this.board = board;
@@ -51,6 +51,12 @@
       CanvasBoard.__super__.constructor.call(this, this.board, this.opts);
       if ((_ref = (_base = this.opts).click) == null) {
         _base.click = true;
+      }
+      if ((_ref1 = (_base1 = this.opts).black) == null) {
+        _base1.black = '#0f1926';
+      }
+      if ((_ref2 = (_base2 = this.opts).white) == null) {
+        _base2.white = '#fffcf7';
       }
       this.canvas = this.board.find('canvas.draw');
       this.canvas.attr({
@@ -67,16 +73,16 @@
       this.show_steps_to = null;
       if (this.opts.click) {
         this.canvas.click(function(e) {
-          var offset, x, xx, y, yy, _ref1, _ref2, _ref3, _ref4;
+          var offset, x, xx, y, yy, _ref3, _ref4, _ref5, _ref6;
 
           if (e.button === 0) {
             offset = $(e.target).offset();
-            x = (_ref1 = e.offsetX) != null ? _ref1 : e.pageX - offset.left - .5;
-            y = (_ref2 = e.offsetY) != null ? _ref2 : e.pageY - offset.top - .5;
-            _ref3 = _.map([x, y], function(num) {
+            x = (_ref3 = e.offsetX) != null ? _ref3 : e.pageX - offset.left - .5;
+            y = (_ref4 = e.offsetY) != null ? _ref4 : e.pageY - offset.top - .5;
+            _ref5 = _.map([x, y], function(num) {
               return num = (num - _this.opts.margin) / _this.interval;
-            }), x = _ref3[0], y = _ref3[1];
-            _ref4 = _.map([x, y], function(num) {
+            }), x = _ref5[0], y = _ref5[1];
+            _ref6 = _.map([x, y], function(num) {
               if (num < 0) {
                 num = 0;
               }
@@ -88,7 +94,7 @@
               } else {
                 return Math.floor(num);
               }
-            }), xx = _ref4[0], yy = _ref4[1];
+            }), xx = _ref6[0], yy = _ref6[1];
             if (Math.pow(x - xx, 2) + Math.pow(y - yy, 2) < Math.pow(.4, 2)) {
               return _this.on_click([xx, yy]);
             } else {
@@ -123,12 +129,12 @@
     CanvasBoard.prototype.draw_pawn = function(pos, player, style) {
       var adjust;
 
-      this.circle(this.locate(pos[0]), this.locate(pos[1]), this.opts.PAWN_RADIUS, player);
+      this.circle(this.locate(pos[0]), this.locate(pos[1]), this.opts.PAWN_RADIUS, (player === 'black' ? this.opts.black : this.opts.white), this.opts.black);
       if (style === 'wreath') {
-        return this.circle(this.locate(pos[0]), this.locate(pos[1]), this.opts.PAWN_RADIUS * .75, null, (player === 'black' ? 'white' : 'black'));
+        return this.circle(this.locate(pos[0]), this.locate(pos[1]), this.opts.PAWN_RADIUS * .75, null, (player === 'black' ? this.opts.white : this.opts.black));
       } else if (_.isObject(style) && style.text) {
         this.ctx.font = '12px Arial';
-        this.ctx.strokeStyle = player === 'black' ? 'white' : 'black';
+        this.ctx.strokeStyle = player === 'black' ? this.opts.white : this.opts.black;
         if (_.isNumber(style.text)) {
           adjust = style.text < 10 ? [-3, 4] : [-7, 4];
         }
@@ -180,7 +186,9 @@
         return _this.ctx.stroke();
       });
       return _.each([[3, 3], [3, 9], [3, 15], [9, 9], [9, 3], [9, 15], [15, 3], [15, 9], [15, 15]], function(x) {
-        return _this.circle(_this.locate(x[0]), _this.locate(x[1]), _this.opts.NINE_POINTS_RADIUS, 'black');
+        var _ref3, _ref4;
+
+        return _this.circle(_this.locate(x[0]), _this.locate(x[1]), _this.opts.NINE_POINTS_RADIUS, (_ref3 = _this.opts.NINE_POINTS_COLOR) != null ? _ref3 : 'black', (_ref4 = _this.opts.NINE_POINTS_COLOR) != null ? _ref4 : 'black');
       });
     };
 

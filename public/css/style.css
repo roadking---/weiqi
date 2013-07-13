@@ -9,10 +9,6 @@ body {
   font-style: italic;
   font-size: 70%;
 }
-#game-notice {
-  text-decoration: underline;
-  font-size: 18px;
-}
 a.ref_user {
   color: #3542f2;
   margin: 0 4px;
@@ -70,6 +66,10 @@ input.showable:focus {
   background: url("/img/white.svg") no-repeat;
   background-position: 30% 10px;
 }
+#game-view {
+  background-color: #fffcf7;
+  padding: 20px 0;
+}
 .board {
   margin-top: 20px;
 }
@@ -91,8 +91,9 @@ input.showable:focus {
   background-position: 0 0;
 }
 .board canvas {
-  border: 1px solid #000;
+  border: 1px solid rgab(0, 0, 0, 0);
   -webkit-tap-highlight-color: rgba(0,0,0,0);
+  background-color: #e6d4c0;
 }
 .board canvas.your_turn {
   border: 1px solid #f00;
@@ -106,6 +107,17 @@ input.showable:focus {
   border-radius: 10px;
   font-weight: bold;
   padding: 10px;
+  text-align: right;
+}
+.board .players .player a {
+  color: #acaaaf;
+}
+.board .players .player .title {
+  display: block;
+}
+.board .players .player:hover a {
+  color: #0d2b52;
+  text-decoration: none;
 }
 .board .players .player.black:before {
   content: ' ';
@@ -120,11 +132,51 @@ input.showable:focus {
   background: url("/img/white.svg") no-repeat;
 }
 .board .players .next {
-  color: #94537b;
   background-color: rgba(69,203,170,0.3);
+}
+.board .players .next a {
+  color: #0f1926;
 }
 .board #btn-group-row {
   margin-top: 10px;
+}
+.board #game-notice {
+  text-decoration: underline;
+  font-size: 18px;
+  background-color: rgba(237,190,200,0.8);
+  -webkit-border-radius: 10px;
+  -moz-border-radius: 10px;
+  border-radius: 10px;
+  text-align: center;
+  height: 120px;
+  margin-bottom: 50px;
+  width: 100%;
+  display: table;
+}
+.board #game-notice p {
+  vertical-align: middle;
+  display: table-cell;
+}
+.board #toolbox {
+  -webkit-border-radius: 10px;
+  -moz-border-radius: 10px;
+  border-radius: 10px;
+  background-color: #f8efd8;
+  text-align: right;
+  margin-top: 20px;
+  padding: 5px;
+}
+.board #toolbox a {
+  display: inline-block;
+  padding: 15px;
+  cursor: pointer;
+  -webkit-border-radius: 10px;
+  -moz-border-radius: 10px;
+  border-radius: 10px;
+}
+.board #toolbox a:hover {
+  background-color: #a8ceff;
+  text-decoration: none;
 }
 #pendings {
   margin-top: 30px;
@@ -163,16 +215,20 @@ input.showable:focus {
   margin-top: 30px;
   margin-bottom: 30px;
   padding-bottom: 10px;
-  border-bottom: 10px solid #fff4b0;
 }
 #user-games .item {
-  padding: 5px;
+  padding: 5px 0;
+  border: 5px solid rgba(0,0,0,0);
   -webkit-border-radius: 5px;
   -moz-border-radius: 5px;
   border-radius: 5px;
 }
+#user-games .item .ts,
+#user-games .item .opponent {
+  margin-left: 10px;
+}
 #user-games .item:hover {
-  background-color: #fff4b0;
+  border-color: #c3d5de;
 }
 #user-games .item .status {
   margin-left: 10px;
@@ -317,16 +373,26 @@ a#go2top {
 }
 .history .ts {
   margin-left: 10px;
-  color: #fff;
+  color: #e5e7e6;
 }
 #rate-chart {
   height: 250px;
   margin-bottom: 30px;
 }
-#profile {
+.piece {
+  padding: 10px 0;
   border: 2px dashed #d9eef2;
-  -webkit-border-radius: 100px;
-  -moz-border-radius: 100px;
-  border-radius: 100px;
   background-color: #fffcf7;
+  margin-top: 40px;
+}
+footer {
+  height: 40px;
+  line-height: 40px;
+  background-color: #74b3b8;
+  text-align: center;
+  margin-top: 40px;
+}
+footer a {
+  display: inline-block;
+  color: #fff;
 }

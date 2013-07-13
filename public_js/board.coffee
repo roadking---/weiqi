@@ -19,6 +19,8 @@ class window.CanvasBoard extends BasicBoard
 	constructor: (@board, @opts)->
 		super @board, @opts
 		@opts.click ?= true
+		@opts.black ?= '#0f1926'
+		@opts.white ?= '#fffcf7'
 		@canvas = @board.find('canvas.draw')	
 		@canvas.attr width: @opts.size, height: @opts.size
 		@canvas.css width: @opts.size, height: @opts.size
@@ -61,12 +63,12 @@ class window.CanvasBoard extends BasicBoard
 		@ctx.stroke() if stroke_color
 	
 	draw_pawn: (pos, player, style)->
-		@circle @locate(pos[0]), @locate(pos[1]), @opts.PAWN_RADIUS, player
+		@circle @locate(pos[0]), @locate(pos[1]), @opts.PAWN_RADIUS, (if player is 'black' then @opts.black else @opts.white), @opts.black
 		if style is 'wreath'
-			@circle @locate(pos[0]), @locate(pos[1]), @opts.PAWN_RADIUS*.75, null, (if player is 'black' then 'white' else 'black')
+			@circle @locate(pos[0]), @locate(pos[1]), @opts.PAWN_RADIUS*.75, null, (if player is 'black' then @opts.white else @opts.black)
 		else if _.isObject(style) and style.text
 			@ctx.font = '12px Arial'
-			@ctx.strokeStyle = if player is 'black' then 'white' else 'black'
+			@ctx.strokeStyle = if player is 'black' then @opts.white else @opts.black
 			if _.isNumber style.text
 				adjust = if style.text < 10
 					[-3, 4]
@@ -117,7 +119,7 @@ class window.CanvasBoard extends BasicBoard
 			[15, 3]
 			[15, 9]
 			[15, 15]
-		], (x)=> @circle @locate(x[0]), @locate(x[1]), @opts.NINE_POINTS_RADIUS, 'black'
+		], (x)=> @circle @locate(x[0]), @locate(x[1]), @opts.NINE_POINTS_RADIUS, @opts.NINE_POINTS_COLOR ? 'black', @opts.NINE_POINTS_COLOR ? 'black'
 		
 	status_quo: ->
 		step: @show_steps_to ? @initial.moves.length - 1

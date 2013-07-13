@@ -187,7 +187,11 @@
         }
       }
     });
-    b = new Weiqi($('#gaming-board'));
+    b = new Weiqi($('#gaming-board'), {
+      LINE_COLOR: '#53595e',
+      NINE_POINTS_COLOR: '#53595e',
+      size: 550
+    });
     if (b.board.attr('status') === 'taking_seat') {
       players = JSON.parse(b.board.attr('players'));
       if (players) {

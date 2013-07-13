@@ -20,7 +20,9 @@
     });
     return $('#user-games .thumb').each(function() {
       return thumbnail(JSON.parse($(this).attr('game')).moves, {
-        size: 300
+        size: 300,
+        LINE_COLOR: '#aaa',
+        NINE_POINTS_COLOR: '#53595e'
       }).appendTo($(this).find('a'));
     });
   });

@@ -13,9 +13,8 @@ block content
 	
 	- var status_text = function(status){var key = 'status_' + status; console.log(key); return lingua[key] ? lingua[key] : key;}
 	//- console.log(me);
-	#profile.container(_uid=me.id)
+	#profile.container.piece(_uid=me.id)
 		.row
-			
 			.span2.offset1
 				h4= me.nickname
 					span.title= lingua['title_' + me.title]
@@ -33,28 +32,36 @@ block content
 				a.span1.offset3(href='/invite/#{me.id}')= lingua.challenge_you
 			
 	if user && me.id == user.id
-		.row
-			h6 invite sent
-		.row-fluid
-			each x in sent_invites
-				.span2
-					a(href='/invite/#{x.receiver}', target='_blank')= refs[x.receiver].nickname
-						span.title= title(refs[x.receiver].title)
-		.row
-			h6 invite received
-		.row-fluid
-			each x in received_invites
-				.span2
-					a(href='/receive_invite/#{x.sender}', target='_blank')= refs[x.sender].nickname
-						span.title= title(refs[x.sender].title)
+		#invites-of-user.container.piece
+			.row
+				.span2.offset1
+					h6= lingua.invite_received
+			.row
+				.span10
+					.row-fluid
+						each x in received_invites
+							.span2
+								a(href='/receive_invite/#{x.sender}', target='_blank')= refs[x.sender].nickname
+									span.title= title(refs[x.sender].title)
+			.row
+				.span2.offset1
+					h6= lingua.invite_sent
+			.row
+				.span10.offset1
+					.row-fluid
+						each x in sent_invites
+							.span2
+								a(href='/invite/#{x.receiver}', target='_blank')= refs[x.receiver].nickname
+									span.title= title(refs[x.receiver].title)
 			
 			
-	#recent-history.container
+	#user-recent-history.container.piece
 		each item in games.recent_history
-			mixin history_list(item)
+			.span10.offset1
+				mixin history_list(item)
 		a.view-all(href='/history/#{me.id}')= lingua.view_all_history
 	
-	#user-games.container
+	#user-games.container.piece
 		- var rows = _.chain(games.current).groupBy(function(x, i){ return Math.floor(i/3); }).values().value();
 		each row in rows
 			.row

@@ -104,7 +104,7 @@ $ ->
 			else
 				$('#detail-view').hide()
 	
-	b = new Weiqi $('#gaming-board')
+	b = new Weiqi $('#gaming-board'), {LINE_COLOR: '#53595e', NINE_POINTS_COLOR: '#53595e', size: 600}
 	
 	if b.board.attr('status') is 'taking_seat'
 		players = JSON.parse b.board.attr('players')

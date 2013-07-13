@@ -1,0 +1,45 @@
+mixin draft_players(players)
+	.span5.player.black
+		span.span2= lingua.black
+		input.span7(
+			type='text'
+			value='#{players && players.black && players.black.nickname ? players.black.nickname : ""}',
+			placeholder=lingua.player_name
+			_player='black'
+			_type='nickname')
+		input.span3(
+			type='text'
+			value='#{players && players.black && players.black.title ? players.black.title : ""}'
+			placeholder=lingua.player_title
+			_player='black'
+			_type='title')
+	.span5.offset1.player.white
+		span.span2= lingua.white
+		input.span7(
+			type='text'
+			value='#{players && players.white && players.white.nickname ? players.white.nickname : ""}'
+			placeholder=lingua.player_name
+			_player='white'
+			_type='nickname')
+		input.span3(
+			type='text'
+			value='#{players && players.white && players.white.title ? players.white.title : ""}'
+			placeholder=lingua.player_title
+			_player='white'
+			_type='title')
+
+mixin show_players(players, seats)
+	.player.black
+		if players.black
+			a.nickname(title=players.black.nickname, href='/u/#{seats.black}')= players.black.nickname
+				span.title= title(players.black.title)
+		else
+			span.nickname
+			span.title
+	.player.white
+		if players.white
+			a.nickname(title=players.white.nickname, href='/u/#{seats.white}')= players.white.nickname
+				span.title= title(players.white.title)
+		else
+			span.nickname
+			span.title

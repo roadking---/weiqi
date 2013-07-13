@@ -13,6 +13,6 @@ $ ->
 	$('#user-games .thumb').each ->
 		thumbnail(
 			JSON.parse($(this).attr('game')).moves,
-			{size: 300}
+			{size: 300, LINE_COLOR: '#aaa', NINE_POINTS_COLOR: '#53595e'}
 		).appendTo $(this).find('a')
 	

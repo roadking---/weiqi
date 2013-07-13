@@ -2,27 +2,6 @@
 body
 	background-color #a8ceff
 	
-
-.player
-	font-weight bold
-
-.title
-	margin-left 2px
-	font-style italic
-	font-size 70%
-
-#game-notice
-	text-decoration underline
-	font-size 18px
-	
-a.ref_user
-	color #3542f2
-	margin 0 4px
-	font-weight bold
-	&:before
-		content '@'
-
-
 border-radius()
 	-webkit-border-radius arguments
 	-moz-border-radius arguments
@@ -32,6 +11,23 @@ box-shadow()
 	-webkit-box-shadow arguments
 	-moz-box-shadow arguments
 	box-shadow arguments
+
+
+.player
+	font-weight bold
+
+.title
+	margin-left 2px
+	font-style italic
+	font-size 70%
+
+a.ref_user
+	color #3542f2
+	margin 0 4px
+	font-weight bold
+	&:before
+		content '@'
+
 
 input.showable
 	border 0
@@ -70,6 +66,10 @@ input.showable
 		background url(/img/white.svg) no-repeat
 		background-position 30% 10px
 
+#game-view
+	background-color #fffcf7
+	padding 20px 0
+	
 .board
 	margin-top 20px
 	.title
@@ -87,17 +87,27 @@ input.showable
 		i.show-number
 			background-position 0 0
 	canvas
-		border 1px solid black
+		border 1px solid rgab(0,0,0,0)
 		-webkit-tap-highlight-color rgba(0,0,0,0)
+		background-color #e6d4c0 //#eee8aa
 	canvas.your_turn
 		border 1px solid red
-	
+		
 	.players
 		margin 5px 0
 		.player
-			border-radius 10px
+			border-radius(10px)
 			font-weight bold
-			padding 10px 
+			padding 10px
+			text-align right
+			a
+				color #acaaaf
+			.title
+				display block
+			&:hover
+				a
+					color #0d2b52
+					text-decoration none
 		.player.black
 			&:before
 				content: ' '
@@ -113,11 +123,39 @@ input.showable
 				background url(/img/white.svg) no-repeat
 			
 		.next
-			color #94537b
 			background-color rgba(69,203,170,.3)
+			a
+				color #0f1926
 	#btn-group-row
 		margin-top 10px
-	
+	#game-notice
+		text-decoration underline
+		font-size 18px
+		background-color rgba(237, 190, 200, .8)
+		border-radius(10px)
+		text-align center
+		height 120px
+		margin-bottom 50px
+		width 100%
+		display table
+		p
+			vertical-align middle
+			display table-cell
+	#toolbox
+		border-radius(10px)
+		background-color #f8efd8
+		text-align right
+		margin-top 20px
+		padding 5px
+		a
+			display inline-block
+			padding 15px
+			cursor pointer
+			border-radius(10px)
+			&:hover
+				background-color #a8ceff
+				text-decoration none
+
 #pendings
 	margin-top 30px
 	margin-bottom 30px
@@ -151,12 +189,15 @@ input.showable
 	margin-top 30px
 	margin-bottom 30px
 	padding-bottom 10px
-	border-bottom 10px solid #fff4b0
 	.item
-		padding 5px
+		padding 5px 0
+		border 5px solid rgba(0,0,0,0)
 		border-radius 5px
+		.ts, .opponent
+			margin-left 10px
 		&:hover
-			background-color #fff4b0
+			//background-color #fff4b0
+			border-color #c3d5de
 		.status
 			margin-left 10px
 			font-style italic
@@ -279,13 +320,25 @@ a#go2top
 		margin-right 20%
 	.ts
 		margin-left 10px
-		color white
+		color #e5e7e6
 
 #rate-chart
 	height 250px
 	margin-bottom 30px
 
-#profile
+.piece
+	padding 10px 0
 	border 2px dashed #d9eef2
-	border-radius 100px
+	//border-radius 100px
 	background-color #fffcf7
+	margin-top 40px
+
+footer
+	height 40px
+	line-height 40px
+	background-color #74b3b8
+	text-align center
+	margin-top 40px
+	a
+		display inline-block
+		color #fff

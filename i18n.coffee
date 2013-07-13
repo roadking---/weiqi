@@ -107,6 +107,8 @@ all =
 		loss: '负{num}'
 		draw: '平{num}'
 		total_games: '共{num}局'
+		invite_sent: '您送出的手谈约请：'
+		invite_received: '约您手谈：'
 	zh_TW:
 		contact_us: '聯繫我們'
 

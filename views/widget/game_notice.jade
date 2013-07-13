@@ -1,0 +1,27 @@
+#game-notice(_text=JSON.stringify(_.pick(lingua, 'started_please_move', 'started_please_wait')))
+	if opts.status == 'init'
+		if user && user.my_new_game == opts.id
+			p.text-warning= lingua.init_waiting
+		else
+			p.text-warning= lingua.init_attending
+				a.btn.btn-primary(href='/attend/#{gid}')= lingua.start_game
+	else if opts.status == 'taking_seat'
+		if user && _.contains(opts.players, user.id)
+			if opts.seats && _.chain(opts.seats).values().contains(user.id).value()
+				p.text-warning= lingua.taking_seat_waiting_opponent
+			else
+				p.text-warning= lingua.taking_seat_please
+		else
+			p.text-warning= lingua.taking_seat_waiting
+	else if opts.status == 'started'
+		if user && _.contains(opts.players, user.id)
+			if opts.next == _.invert(opts.seats)[user.id]
+				p.text-warning= lingua.started_please_move
+			else
+				p.text-success= lingua.started_please_wait
+	else if opts.status == 'need_player'
+		if user && _.contains(opts.players, user.id)
+			p.text-warning= lingua.need_player_wait
+		else
+			p.text-warning= lingua.need_player_invite
+				a.btn.btn-primary(href='/attend/#{gid}')= lingua.start_game

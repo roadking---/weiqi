@@ -20,34 +20,6 @@ block append scripts
 	script(src='/js/weiqi.js')
 
 block content
-	#game-notice.row(_text=JSON.stringify(_.pick(lingua, 'started_please_move', 'started_please_wait')))
-		if opts.status == 'init'
-			if user && user.my_new_game == opts.id
-				p.text-warning.offset3= lingua.init_waiting
-			else
-				p.text-warning.offset3= lingua.init_attending
-					a.btn.btn-primary(href='/attend/#{gid}')= lingua.start_game
-		else if opts.status == 'taking_seat'
-			if user && _.contains(opts.players, user.id)
-				if opts.seats && _.chain(opts.seats).values().contains(user.id).value()
-					p.text-warning.offset3= lingua.taking_seat_waiting_opponent
-				else
-					p.text-warning.offset3= lingua.taking_seat_please
-			else
-				p.text-warning.offset3= lingua.taking_seat_waiting
-		else if opts.status == 'started'
-			if user && _.contains(opts.players, user.id)
-				if opts.next == _.invert(opts.seats)[user.id]
-					p.text-warning.offset3= lingua.started_please_move
-				else
-					p.text-success.offset3= lingua.started_please_wait
-		else if opts.status == 'need_player'
-			if user && _.contains(opts.players, user.id)
-				p.text-warning.offset3= lingua.need_player_wait
-			else
-				p.text-warning.offset3= lingua.need_player_invite
-					a.btn.btn-primary(href='/attend/#{gid}')= lingua.start_game
-	
 	if opts.status == 'taking_seat'
 		#seats(_text=lingua.me).row
 			#black.span6.vacant
@@ -57,8 +29,8 @@ block content
 				span.nickname ?
 				span.title
 	
-	.row-fluid
-		.span8
+	#game-view.row-fluid
+		.span9
 			#tabs.nav.nav-tabs
 				li.active: a#gaming(href='#')= lingua.gaming
 				li: a#trying(href='#')= lingua.tring
@@ -77,7 +49,7 @@ block content
 						h3#game-result= lingua.black_won_without_number
 					else if opts.result.case == 'black surrenders'
 						h3#game-result= lingua.white_won_without_number
-			
+	
 			include board
 			mixin board('gaming-board', opts)
 			#surrender-view.hide
@@ -89,9 +61,9 @@ block content
 					.row-fluid
 						.span2.offset1: a(href='/u/#{x}')= refs[x].nickname
 						.span2.offset1: span.rate= refs[x].rate
-		.span4
+		.span3
 			.row
 				.span6.offset1
 					include widget/publish
-			aside#blogs.container(_me=user?user.nickname:'anonymous')
+			aside#blogs(_me=user?user.nickname:'anonymous')
 				include widget/blog

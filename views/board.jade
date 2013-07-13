@@ -1,3 +1,5 @@
+include widget/players
+
 mixin board(id, data)
 	- var iam = user && _.contains(data.players, user.id) ? 'player' : 'witness';
 	- var seat = iam == 'player' && data.seats ? _.invert(data.seats)[user.id] : null;
@@ -5,98 +7,62 @@ mixin board(id, data)
 	
 	.board.container-fluid(id=id, socket=data.socket||data.id, status=data.status, iam=iam, seat=seat, uid='#{user ? user.id : ""}', next=data.next, players=JSON.stringify(players), game=JSON.stringify(data))
 		.row-fluid
-			if data.status == 'draft'
-				input.title.showable.span4.offset2(type='text', placeholder=lingua.dapu, value='#{data.title ? data.title : ""}', _text=lingua.dapu)
-			else if data.title
-				h4.title= data.title
-			else
-				if data.seats
-					- var tmp = _.difference(data.players, _.values(data.seats))[0]
-					h4.title
-						if data.seats.black
-							a.player(href='/u/#{data.seats.black}')= refs[data.seats.black].nickname
-							span.seat= lingua.black_short
-						else if tmp
-							a.player(href='/u/#{tmp}')= refs[tmp].nickname
-						else
-							span.player ?
-						span  vs 
-						if data.seats.white
-							a.player(href='/u/#{data.seats.white}')= refs[data.seats.white].nickname
-							span.seat= lingua.white_short
-						else if tmp
-							a.player(href='/u/#{tmp}')= refs[tmp].nickname
-						else
-							span.player ?
-						
-					- console.log(data.seats);
-					- console.log(tmp);
-				else if data.players
-					h4.title
-						a.player(href='/u/#{data.players[0]}')= refs[data.players[0]].nickname
-						span  vs 
-						if data.players[1]
-							a.player(href='/u/#{data.players[1]}')= refs[data.players[1]].nickname
-						else
-							span.player ?
-
-		.players.row-fluid
+			.span5.offset3
 				if data.status == 'draft'
-					.span5.player.black
-						span.span2= lingua.black
-						input.span7(
-							type='text'
-							value='#{players && players.black && players.black.nickname ? players.black.nickname : ""}',
-							placeholder=lingua.player_name
-							_player='black'
-							_type='nickname')
-						input.span3(
-							type='text'
-							value='#{players && players.black && players.black.title ? players.black.title : ""}'
-							placeholder=lingua.player_title
-							_player='black'
-							_type='title')
-					.span5.offset1.player.white
-						span.span2= lingua.white
-						input.span7(
-							type='text'
-							value='#{players && players.white && players.white.nickname ? players.white.nickname : ""}'
-							placeholder=lingua.player_name
-							_player='white'
-							_type='nickname')
-						input.span3(
-							type='text'
-							value='#{players && players.white && players.white.title ? players.white.title : ""}'
-							placeholder=lingua.player_title
-							_player='white'
-							_type='title')
-				else if players && (players.black || players.white)
-					.span5.player.black
-						if players.black
-							a.nickname(title=players.black.nickname, href='/u/#{data.seats.black}')= players.black.nickname
-							span.title= lingua['title_'+players.black.title]
-						else
-							span.nickname
-							span.title
-					.span5.offset1.player.white
-						if players.white
-							a.nickname(title=players.white.nickname, href='/u/#{data.seats.white}')= players.white.nickname
-							span.title= lingua['title_'+players.white.title]
-						else
-							span.nickname
-							span.title
-		
-		.row-fluid
+					input.title.showable.span4.offset2(type='text', placeholder=lingua.dapu, value='#{data.title ? data.title : ""}', _text=lingua.dapu)
+				else if data.title
+					h4.title= data.title
+				else
+					if data.seats
+						- var tmp = _.difference(data.players, _.values(data.seats))[0]
+						h4.title
+							if data.seats.black
+								a.player(href='/u/#{data.seats.black}')= refs[data.seats.black].nickname
+									span.title= title(refs[data.seats.black].title)
+								span.seat= lingua.black_short
+							else if tmp
+								a.player(href='/u/#{tmp}')= refs[tmp].nickname
+									span.title= title(refs[tmp].title)
+							else
+								span.player ?
+							span  vs 
+							if data.seats.white
+								a.player(href='/u/#{data.seats.white}')= refs[data.seats.white].nickname
+									span.title= title(refs[data.seats.white].title)
+								span.seat= lingua.white_short
+							else if tmp
+								a.player(href='/u/#{tmp}')= refs[tmp].nickname
+									span.title= title(refs[tmp].title)
+							else
+								span.player ?
+					else if data.players
+						h4.title
+							a.player(href='/u/#{data.players[0]}')= refs[data.players[0]].nickname
+								span.title= title(refs[data.players[0]].title)
+							span  vs 
+							if data.players[1]
+								a.player(href='/u/#{data.players[1]}')= refs[data.players[1]].nickname
+									span.title= title(refs[data.players[1]].title)
+							else
+								span.player ?
+
+		.row
+			.span3
+				include widget/game_notice
+				.players
+					if data.status == 'draft'
+						mixin draft_players(players)
+					else if players && (players.black || players.white)
+						mixin show_players(players, data.seats)
+				#toolbox
+					div
+						a#num_btn(status='show_num', _text=JSON.stringify(_.pick(lingua, 'show_num', 'hide_num')), title=lingua.show_num): i.show-number
+					div
+						a#back: i.icon-chevron-left
+						a#forward: i.icon-chevron-right
+					div
+						a#beginning: i.icon-step-backward
+						a#ending: i.icon-step-forward
+					div
+						a#retract= lingua.retract
 			canvas.draw.span4
-		.row-fluid#btn-group-row
-			.span1
-				i.icon-wrench
-			.span10
-				.btn-group
-					a#num_btn.btn(status='show_num', _text=JSON.stringify(_.pick(lingua, 'show_num', 'hide_num')), title=lingua.show_num): i.show-number
-					a#beginning.btn: i.icon-step-backward
-					a#back.btn: i.icon-chevron-left
-					a#forward.btn: i.icon-chevron-right
-					a#ending.btn: i.icon-step-forward
-					a#retract.btn= lingua.retract
-			
