@@ -8,8 +8,13 @@ reset_seat = (seat, player)->
 	s.find('.nickname').text '?'
 	s.find('.title').text ''
 
+show_notice = (msg, style)->
+	text = JSON.parse $('#game-notice').attr('_text')
+	$('#game-notice').empty().append "<p class='#{style} offset3'>#{text[msg]}</p>"
+	
 class Weiqi extends ConnectedBoard
 	on_connect: -> 
+		#show_notice 'connected', 'text-warning'
 		super()
 		console.log 'connected'
 	on_start_taking_seat: -> 
@@ -25,23 +30,20 @@ class Weiqi extends ConnectedBoard
 	on_start: -> 
 		_.delay (->$('#seats').hide()), 5000
 		if $('.board').attr('iam') is 'player'
-			text = JSON.parse $('#game-notice').attr('_text')
 			if $('.board').attr('next') is $('.board').attr('seat')
-				$('#game-notice').empty().append "<p class='text-warning offset3'>#{text.started_please_move}</p>"
+				show_notice 'started_please_move', 'text-warning'
 			else
-				$('#game-notice').empty().append "<p class='text-success offset3'>#{text.started_please_wait}</p>"
+				show_notice 'started_please_wait', 'text-success'
 	on_click: (pos)->
 		if @board.attr('status') is 'started' and @board.attr('iam') is 'player' and @board.attr('next') is @board.attr('seat')
 			super pos
-			
-			text = JSON.parse($('#game-notice').attr('_text')).started_please_wait
-			$('#game-notice').empty().append "<p class='text-success offset3'>#{text}</p>"
-	on_disconnect: -> 
-		$('#game-notice').empty().append "<p class='text-warning offset3'>Connection Lost! Pls reload the page.</p>"
+			show_notice 'started_please_wait', 'text-success'
+	on_disconnect: => 
+		show_notice 'connection_lost', 'text-warning'
+		@connect()
 	on_move: (moves, next)->
 		if @board.attr('status') is 'started' and @board.attr('iam') is 'player' and next is @board.attr('seat')
-			text = JSON.parse($('#game-notice').attr('_text')).started_please_move
-			$('#game-notice').empty().append "<p class='text-warning offset3'>#{text}</p>"
+			show_notice 'started_please_move', 'text-warning'
 	on_show_steps: (step)->
 		step ?= @initial.moves?.length - 1
 		return if not step?

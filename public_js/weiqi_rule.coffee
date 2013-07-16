@@ -5,7 +5,7 @@ find_block = (items, pos)->
 	return null if not item
 	
 	block = [item]
-	vacant = []
+	liberty = []
 	opposite = []
 	newly_found = [item]
 	while newly_found.length
@@ -19,26 +19,27 @@ find_block = (items, pos)->
 		).flatten(true).filter((x)->
 			x[0] >= 0 and x[0] <= 18 and x[1] >= 0 and x[1] <= 18
 		).uniq().reject((x)->
-			_.chain([block, vacant, opposite]).flatten().some((y)-> y.pos[0] is x[0] and y.pos[1] is x[1]).value()
+			_.chain([block, liberty, opposite]).flatten().some((y)-> y.pos[0] is x[0] and y.pos[1] is x[1]).value()
 		).map((x)->
 			find(items, x) ? {pos:x, player:'none'}
 		).value()
 		if adjacent.length
 			newly_found = _.filter adjacent, (x)-> x.player is item.player
-			vacant.push _.filter adjacent, (x)-> x.player is 'none'
+			liberty.push _.filter adjacent, (x)-> x.player is 'none'
 			opposite.push _.filter adjacent, (x)-> x.player isnt 'none' and x.player isnt item.player
 			block = _.flatten [block, newly_found]
 		else
 			newly_found = []
 	
 	block: block
-	vacant: _.chain(vacant).flatten().pluck('pos').groupBy((x)-> x.join ',').values().pluck(0).value()
+	liberty: _.chain(liberty).flatten().pluck('pos').groupBy((x)-> x.join ',').values().pluck(0).value()
 	opposite: _.chain(opposite).flatten().groupBy((x)-> x.pos.join ',').values().pluck(0).value()
 	
 move = (items, step, test=false)->
 	if find items, step.pos
 		return new Error "already exists in #{step.pos}"
-		
+	
+	step.n ?= items.length
 	items.push step
 	rlt = find_block items, step.pos
 	target_block = _.chain(rlt.opposite).map((x, i)->
@@ -47,13 +48,13 @@ move = (items, step, test=false)->
 		block = find_block items, x.pos
 		@target_block.push block
 		block
-	).compact().reject((x)-> x.vacant.length).value()
+	).compact().reject((x)-> x.liberty.length).value()
 	
 	items.pop() if test
 	
 	if target_block.length
 		target_block
-	else if rlt.vacant.length
+	else if rlt.liberty.length
 		null
 	else
 		items.pop() if not test
@@ -76,20 +77,28 @@ move_step = (items, step)->
 	last = if items?.length > 1 then items[items.length-1] else null
 	blocks = try_move()
 	
-	#检查打劫
+	#check the ko rule
 	taken = _.pluck blocks, 'block'
 	if last and taken.length is 1 and taken[0].length is 1
 		taken = taken[0][0]
 		if taken.player is last.player and _.every([0..1], (i)->last.pos[i] is taken.pos[i])
-			if taken = last.taken
-				if taken.length is 1 and taken[0].length is 1
-					taken = taken[0][0]
+			if taken = _.where(items, repealed: last.n)
+				if taken.length is 1
+					taken = taken[0]
 					if taken.player is step.player and _.every([0..1], (i)->step.pos[i] is taken.pos[i])
 						deprecated = items.pop()
 						_.each items, (x)-> delete x.repealed if x.repealed is deprecated.n
 						throw new Error "dajie: not allowed in #{step.pos} #{step.player}"
-	blocks
 	
+	blocks
 
 exports?.move_step = move_step
 window?.move_step = move_step
+
+retract = (items)->
+	return items if not items.length
+	last_step = items.pop()
+	_.chain(items).where(repealed: last_step.n).each (x)-> delete x.repealed
+	items
+exports?.retract = retract
+window?.retract = retract

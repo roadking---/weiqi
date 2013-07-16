@@ -2,24 +2,21 @@ mixin history_list(item)
 	.history
 		span.ts(_ts=item.init_ts)
 		span.total_moves= lingua.total_moves({moves:item.moves.length})
-		if item.result.win
-			if item.result.win == 'black'
-				span= lingua.seat_black
-			else
-				span= lingua.seat_white
-			if me.id == item.seats[item.result.win]
-				span= lingua.win_vs
-				- var loser = item.result.win == 'black' ? 'white' : 'black'
-				a.player(href='/u/#{item.seats[loser]}')= refs[item.seats[loser]].nickname
-					span.title= lingua['title_' + refs[item.seats[loser]].title]
-			else
-				span= lingua.fail_vs
-				a.player(href='/u/#{item.seats[item.result.win]}')= refs[item.seats[item.result.win]].nickname
-					span.title= lingua['title_' + refs[item.seats[item.result.win]].title]
+		span.case
+			if item.result.win
+				if item.result.win == 'black'
+					span= lingua.seat_black
+				else
+					span= lingua.seat_white
+				if me.id == item.seats[item.result.win]
+					span= lingua.win_vs
+					- var loser = item.result.win == 'black' ? 'white' : 'black'
+					a.player(href='/u/#{item.seats[loser]}')= refs[item.seats[loser]].nickname
+						span.title= lingua['title_' + refs[item.seats[loser]].title]
+				else
+					span= lingua.fail_vs
+					a.player(href='/u/#{item.seats[item.result.win]}')= refs[item.seats[item.result.win]].nickname
+						span.title= lingua['title_' + refs[item.seats[item.result.win]].title]
 			
-			if item.result.case == 'white surrenders'
-				span.case= lingua.black_won_without_number
-			else if item.result.case == 'black surrenders'
-				span.case= lingua.white_won_without_number
 			
-			a(href='/game/weiqi/#{item.id}') >>
+		a(href='/game/weiqi/#{item.id}') >>

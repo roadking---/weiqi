@@ -109,6 +109,8 @@ all =
 		total_games: '共{num}局'
 		invite_sent: '您送出的手谈约请：'
 		invite_received: '约您手谈：'
+		connection_lost: '连接断开'
+		connected: '连接建立'
 	zh_TW:
 		contact_us: '聯繫我們'
 

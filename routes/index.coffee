@@ -4,7 +4,7 @@ api = require '../api'
 flow = require '../api/flow'
 live = require './live'
 jade = require 'jade'
-exports.io = null
+
 
 _.each 'user'.split(' '), (x)->
 	exports[x] = require './' + x
@@ -59,25 +59,25 @@ exports.new = (req, res, next)->
 			res.redirect "/game/weiqi/#{gid}"
 		
 exports.game = (req, res, next)->
-	api.get_game gid=req.params.id, (err, data)->
-		api.get_comments gid, api.COMMENTS, (err, comments)->
+	gid=req.params.gid
+	api.get_comments gid, api.COMMENTS, (err, comments)->
+		return next err if err
+		api.get_blogs gid, (err, blogs)->
 			return next err if err
-			api.get_blogs gid, (err, blogs)->
+			api.get_refs {blogs:blogs, games:[gid]}, (err, refs)->
 				return next err if err
-				api.get_refs {blogs:blogs, games:[gid]}, (err, refs)->
-					return next err if err
-					_.chain(comments).values().flatten().each (x)-> x.nickname = refs[x.author].nickname
-					res.render 'weiqi', 
-						gid: req.params.id
-						opts:data
-						refs: refs
-						comments: comments
-						blogs: blogs
-		if not (data.status in ['ended'])
-			if not api.cache.get gid + '_socket'
-				console.info "listen to /weiqi/#{gid}"
-				exports.io.of("/weiqi/#{gid}").on 'connection',  (socket)->
-					live.start exports.io, socket, gid
+				_.chain(comments).values().flatten().each (x)-> x.nickname = refs[x.author].nickname
+				res.render 'weiqi', 
+					gid: req.params.id
+					opts:req.game
+					refs: refs
+					comments: comments
+					blogs: blogs
+	if not (req.game.status in ['ended'])
+		if not api.cache.get gid + '_socket'
+			console.info "listen to /weiqi/#{gid}"
+			exports.io.of("/weiqi/#{gid}").on 'connection',  (socket)->
+				live.start exports.io, socket, gid
 									
 exports.attend = (req, res, next)->
 	return res.redirect '/login' if not req.session.user
@@ -93,18 +93,17 @@ exports.attend = (req, res, next)->
 
 exports.delete = (req, res, next)->
 	return res.redirect '/login' if not req.session.user
-	console.log req.params.id
-	api.get_game req.params.id, (err, game)->
+	
+	return next err if err
+	if req.game.players.length > 1
+		return next new Error "should not delete"		
+	api.discard_game req.params.id, (err)->
 		return next err if err
-		if game.players.length > 1
-			return next new Error "should not delete"		
-		api.discard_game req.params.id, (err)->
-			return next err if err
-			multi = api.client.multi()
-			multi.zrem 'weiqi_pending', req.params.id
-			multi.zrem 'weiqi_started', req.params.id
-			multi.exec()
-			res.redirect "/u/#{req.session.user.id}"
+		multi = api.client.multi()
+		multi.zrem 'weiqi_pending', req.params.id
+		multi.zrem 'weiqi_started', req.params.id
+		multi.exec()
+		res.redirect "/u/#{req.session.user.id}"
 	
 exports.quit = (req, res, next)->
 	return res.redirect '/login' if not req.session.user
@@ -141,6 +140,8 @@ exports.user_page = (req, res, next)->
 			total_games: (m)-> m.get [uid, 'total_games'].join('|')
 			wins: (m)-> m.get [uid, 'wins'].join('|')
 			losses: (m)-> m.get [uid, 'losses'].join('|')
+			followed: (m)-> m.srandmember [uid, 'followed'].join('|'), 5
+			friends: (m)-> m.srandmember [uid, 'friends'].join('|'), 5
 			
 		if req.session.user
 			query.is_friend = (m)-> m.sismember [req.session.user.id, api.RELATED.FRIENDS].join('|'), uid
@@ -150,7 +151,7 @@ exports.user_page = (req, res, next)->
 		_.chain(query).values().each (fn)-> fn m
 		m.exec (err, replies)->
 			return next err if err
-			query = _.chain(query).keys().zip(replies).object().value()
+			console.log query = _.chain(query).keys().zip(replies).object().value()
 			console.log new Date().getTime() + " 3"
 			flow.group [
 				(cb)->
@@ -181,7 +182,7 @@ exports.user_page = (req, res, next)->
 				api.get_refs {
 					blogs: blogs
 					games: _.chain(games).values().flatten().pluck('id').value()
-					users: _.chain([uid, query.invite_sent]).flatten().uniq().value()
+					users: _.chain([uid, query.invite_sent, query.followed, query.friends]).flatten().uniq().value()
 				}, (err, refs)->
 					console.log new Date().getTime() + " 5"
 					res.render 'user_page', 
@@ -257,15 +258,15 @@ exports.unfollow = (req, res, next)->
 exports.surrender = (req, res, next)->
 	if not req.session.user
 		return res.json {error:'please login'}
-	api.get_game req.params.gid, (err, game)->
-		return next err if err or not (req.session.user.id in game.players)
-		api.surrender req.params.gid, req.session.user.id, (err, rlt)->
+	
+	return next err if err or not (req.session.user.id in req.game.players)
+	api.surrender req.params.gid, req.session.user.id, (err, rlt)->
+		return next err if err
+		api.game_rating rlt, (err, players)->
 			return next err if err
-			api.game_rating rlt, (err, players)->
-				return next err if err
-				console.log players
-				exports.io.of("/weiqi/#{req.params.gid}").emit 'surrender', req.session.user.id
-				res.redirect "/game/weiqi/#{req.params.gid}"
+			console.log players
+			exports.io.of("/weiqi/#{req.params.gid}").emit 'surrender', req.session.user.id
+			res.redirect "/game/weiqi/#{req.params.gid}"
 
 exports.delete_blog = (req, res, next)->
 	if not req.session.user
@@ -307,20 +308,18 @@ exports.send_invite = (req, res, next)->
 	if not req.session.user
 		return res.redirect '/login'
 	if req.method is 'GET'
-		api.get_user req.params.receiver, (err, receiver)->
-			return next err if err
-			console.log req.params
-			if req.query.cancel
-				api.cancel_invite req.session.user.id, req.params.receiver, (err)->
-					if err
-						next err
-					else
-						res.redirect '/u'
-			else
-				api.get_invitation req.session.user.id, req.params.receiver, (err, invitation)->
-					res.render 'send_invite',
-						receiver: receiver
-						invitation: invitation
+		receiver = req.ref_user
+		if req.query.cancel
+			api.cancel_invite req.session.user.id, receiver.id, (err)->
+				if err
+					next err
+				else
+					res.redirect '/u'
+		else
+			api.get_invitation req.session.user.id, receiver.id, (err, invitation)->
+				res.render 'send_invite',
+					receiver: receiver
+					invitation: invitation
 	else if req.method is 'POST'
 		console.log req.body
 		api.invite req.session.user.id, req.body.receiver, (err, invite_id)->
@@ -329,17 +328,16 @@ exports.send_invite = (req, res, next)->
 
 
 exports.receive_invite = (req, res, next)->
-	if not req.session.user
-		return res.redirect '/login'
-	api.get_user req.params.sender, (err, sender)->
-		return next err if err
-		if req.query.accept
-			api.take_invitation req.params.sender, req.session.user.id, (err, gid)->
-				return next err if err
-				res.redirect "/game/weiqi/#{gid}"
-		else
-			api.get_invitation req.params.sender, req.session.user.id, (err, invitation)->
-				return next err if err
-				res.render 'receive_invite',
-					sender: sender
-					invitation: invitation
+	return res.redirect '/login' if not req.session.user
+	
+	sender = req.ref_user
+	if req.query.accept
+		api.take_invitation sender.id, req.session.user.id, (err, gid)->
+			return next err if err
+			res.redirect "/game/weiqi/#{gid}"
+	else
+		api.get_invitation sender.id, req.session.user.id, (err, invitation)->
+			return next err if err
+			res.render 'receive_invite',
+				sender: sender
+				invitation: invitation

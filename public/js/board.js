@@ -126,7 +126,7 @@
       }
     };
 
-    CanvasBoard.prototype.draw_pawn = function(pos, player, style) {
+    CanvasBoard.prototype.draw_stone = function(pos, player, style) {
       var adjust;
 
       this.circle(this.locate(pos[0]), this.locate(pos[1]), this.opts.PAWN_RADIUS, (player === 'black' ? this.opts.black : this.opts.white), this.opts.black);
@@ -149,13 +149,13 @@
         text = move.n + 1;
       }
       if (text) {
-        return this.draw_pawn(move.pos, move.player, {
+        return this.draw_stone(move.pos, move.player, {
           text: text
         });
       } else if (move.n === this.status_quo().step) {
-        return this.draw_pawn(move.pos, move.player, 'wreath');
+        return this.draw_stone(move.pos, move.player, 'wreath');
       } else {
-        return this.draw_pawn(move.pos, move.player);
+        return this.draw_stone(move.pos, move.player);
       }
     };
 
@@ -242,59 +242,79 @@
       Board.__super__.constructor.call(this, this.board, this.opts);
       this.try_mode = false;
       this.board.find('#num_btn').click(function() {
-        _this.show_num = _this.board.find('#num_btn i').hasClass('show-number');
         _this.board.find('#num_btn i').toggleClass('show-number');
-        return _this.redraw();
+        return _this.toggle_num_shown();
       });
       this.board.find('#beginning').click(function() {
-        var num, _ref;
-
-        num = (_ref = _this.show_steps_to) != null ? _ref : _this.initial.moves.length - 1;
-        if (num < 0) {
-          return;
-        }
-        _this.show_steps_to = -1;
-        _this.redraw();
-        return _this.on_show_steps(_this.show_steps_to);
+        return _this.go_to_beginning();
       });
       this.board.find('#ending').click(function() {
-        var num, _ref;
-
-        num = (_ref = _this.show_steps_to) != null ? _ref : _this.initial.moves.length - 1;
-        if (num >= _this.initial.moves.length - 1) {
-          return;
-        }
-        _this.show_steps_to = null;
-        _this.redraw();
-        return _this.on_show_steps(_this.initial.moves.length - 1);
+        return _this.go_to_ending();
       });
       this.board.find('#back').click(function() {
-        var num, _ref;
-
-        num = (_ref = _this.show_steps_to) != null ? _ref : _this.initial.moves.length - 1;
-        if (num < 0) {
-          return;
-        }
-        _this.show_steps_to = num - 1;
-        _this.redraw();
-        return _this.on_show_steps(_this.show_steps_to);
+        return _this.go_back();
       });
       this.board.find('#forward').click(function() {
-        var num, _ref, _ref1;
-
-        num = (_ref = _this.show_steps_to) != null ? _ref : _this.initial.moves.length - 1;
-        if (num >= _this.initial.moves.length - 1) {
-          return _this.show_steps_to = null;
-        } else {
-          _this.show_steps_to = num + 1;
-          _this.redraw();
-          if (num >= _this.initial.moves.length - 1) {
-            _this.show_steps_to = null;
-          }
-          return _this.on_show_steps((_ref1 = _this.show_steps_to) != null ? _ref1 : _this.initial.moves.length - 1);
-        }
+        return _this.go_forward();
       });
     }
+
+    Board.prototype.go_to_beginning = function() {
+      var num, _ref;
+
+      num = (_ref = this.show_steps_to) != null ? _ref : this.initial.moves.length - 1;
+      if (num < 0) {
+        return;
+      }
+      this.show_steps_to = -1;
+      this.redraw();
+      return this.on_show_steps(this.show_steps_to);
+    };
+
+    Board.prototype.go_to_ending = function() {
+      var num, _ref;
+
+      num = (_ref = this.show_steps_to) != null ? _ref : this.initial.moves.length - 1;
+      if (num >= this.initial.moves.length - 1) {
+        return;
+      }
+      this.show_steps_to = null;
+      this.redraw();
+      return this.on_show_steps(this.initial.moves.length - 1);
+    };
+
+    Board.prototype.go_back = function() {
+      var num, _ref;
+
+      num = (_ref = this.show_steps_to) != null ? _ref : this.initial.moves.length - 1;
+      if (num < 0) {
+        return;
+      }
+      this.show_steps_to = num - 1;
+      this.redraw();
+      return this.on_show_steps(this.show_steps_to);
+    };
+
+    Board.prototype.go_forward = function() {
+      var num, _ref, _ref1;
+
+      num = (_ref = this.show_steps_to) != null ? _ref : this.initial.moves.length - 1;
+      if (num >= this.initial.moves.length - 1) {
+        return this.show_steps_to = null;
+      } else {
+        this.show_steps_to = num + 1;
+        this.redraw();
+        if (num >= this.initial.moves.length - 1) {
+          this.show_steps_to = null;
+        }
+        return this.on_show_steps((_ref1 = this.show_steps_to) != null ? _ref1 : this.initial.moves.length - 1);
+      }
+    };
+
+    Board.prototype.toggle_num_shown = function() {
+      this.show_num = !this.show_num;
+      return this.redraw();
+    };
 
     Board.prototype.get_moves = function() {
       var _ref;
@@ -331,7 +351,9 @@
     PlayBoard.prototype.on_click = function(pos, player) {
       var m;
 
-      console.log(player != null ? player : player = this.board.attr('next'));
+      if (player == null) {
+        player = this.board.attr('next');
+      }
       m = {
         pos: pos,
         player: player,
@@ -351,14 +373,39 @@
     __extends(ConnectedBoard, _super);
 
     function ConnectedBoard(board, opts) {
-      var _ref1,
-        _this = this;
+      var _this = this;
 
       this.board = board;
       this.opts = opts;
       ConnectedBoard.__super__.constructor.call(this, this.board, this.opts);
+      this.connect();
+      this.board.find('#retract').click(function() {
+        return _this.retract();
+      });
+      if (this.board.attr('status') === 'taking_seat' && this.board.attr('iam') === 'player') {
+        $('#seats').show();
+        $('#seats .item a').click(function() {
+          if ($(_this).hasClass('none')) {
+            $('#seats .item a.mine').removeClass('mine').addClass('none').text('none');
+            _this.board.attr('seat', $(_this).attr('seat'));
+            _this.socket.emit('taking_seat', $(_this).attr('seat'), function(res) {
+              return console.log('taking_seat: ' + JSON.stringify(res));
+            });
+            return $(_this).removeClass('none').addClass('mine').text('Me');
+          }
+        });
+      }
+      if (this.board.attr('iam') === 'player' && this.board.attr('next') === this.board.attr('seat')) {
+        this.canvas.addClass('your_turn');
+      }
+    }
+
+    ConnectedBoard.prototype.connect = function() {
+      var _ref1,
+        _this = this;
+
       this.socket = io.connect("http://" + location.hostname + "/weiqi/" + (this.board.attr('socket')));
-      this.socket.emit('auth', (_ref1 = $.cookie('auth')) != null ? _ref1 : 'anonymous', function(res) {
+      return this.socket.emit('auth', (_ref1 = $.cookie('auth')) != null ? _ref1 : 'anonymous', function(res) {
         console.log(res);
         if (typeof _this.on_connect === "function") {
           _this.on_connect();
@@ -409,62 +456,24 @@
         if (_this.on_disconnect) {
           _this.socket.on('disconnect', _this.on_disconnect);
         }
-        _this.socket.on('player_disconnect', function() {
-          return console.log('player_disconnect');
+        _this.socket.on('player_disconnect', function(player) {
+          return console.log('player_disconnect ' + player);
         });
         _this.socket.on('comment', _this.on_comment);
         _this.socket.on('retract', function(uid) {
           console.log('retract ' + uid);
-          _this.initial.moves.pop();
+          retract(_this.initial.moves);
           _this.change_to_next(_this.board.attr('next') === 'black' ? 'white' : 'black');
           _this.redraw();
           _this.canvas.removeClass('your_turn');
           return typeof _this.on_retract === "function" ? _this.on_retract(uid) : void 0;
         });
-        _this.socket.on('surrender', function(uid) {
+        return _this.socket.on('surrender', function(uid) {
           console.log('surrender ' + uid);
           return typeof this.on_surrender === "function" ? this.on_surrender(uid) : void 0;
         });
-        _this.board.find('#retract').click(function() {
-          if (_this.board.attr('iam') === 'player' && _this.initial.moves.length && _this.board.attr('next') !== _this.board.attr('seat')) {
-            return _this.socket.emit('retract', function(data) {
-              if (data === 'success') {
-                _this.initial.moves.pop();
-                _this.change_to_next(_this.board.attr('next') === 'black' ? 'white' : 'black');
-                _this.redraw();
-                return _this.canvas.addClass('your_turn');
-              }
-            });
-          }
-        });
-        if (_this.board.attr('status') === 'taking_seat' && _this.board.attr('iam') === 'player') {
-          $('#seats').show();
-          $('#seats .item a').click(function() {
-            if ($(_this).hasClass('none')) {
-              $('#seats .item a.mine').removeClass('mine').addClass('none').text('none');
-              _this.board.attr('seat', $(_this).attr('seat'));
-              _this.socket.emit('taking_seat', $(_this).attr('seat'), function(res) {
-                return console.log('taking_seat: ' + JSON.stringify(res));
-              });
-              return $(_this).removeClass('none').addClass('mine').text('Me');
-            }
-          });
-        }
-        if (_this.board.attr('iam') === 'player' && _this.board.attr('next') === _this.board.attr('seat')) {
-          _this.canvas.addClass('your_turn');
-        }
-        return _this.board.find('.discuss input[type=submit]').click(function() {
-          var text, _ref2;
-
-          if (text = _this.board.find('.discuss input[type=text]').val()) {
-            return _this.add_discuss({
-              step: ((_ref2 = game.initial.moves) != null ? _ref2.length : void 0) + 1,
-              text: text
-            });
-          }
-        });
       });
-    }
+    };
 
     ConnectedBoard.prototype.taking_seat = function(seat, cb) {
       var _ref1,
@@ -526,10 +535,28 @@
 
     ConnectedBoard.prototype.on_retract = null;
 
+    ConnectedBoard.prototype.retract = function() {
+      var _this = this;
+
+      if (this.board.attr('iam') === 'player' && this.initial.moves.length && this.board.attr('next') !== this.board.attr('seat')) {
+        return this.socket.emit('retract', function(data) {
+          if (data === 'success') {
+            retract(_this.initial.moves);
+            _this.change_to_next(_this.board.attr('next') === 'black' ? 'white' : 'black');
+            _this.redraw();
+            return _this.canvas.addClass('your_turn');
+          }
+        });
+      }
+    };
+
     ConnectedBoard.prototype.on_surrender = null;
 
     ConnectedBoard.prototype.on_click = function(pos, player) {
       if (this.board.attr('status') === 'started' && this.board.attr('iam') === 'player' && this.board.attr('next') === this.board.attr('seat')) {
+        if (!this.connected) {
+          throw new Error("failed for connection absence");
+        }
         ConnectedBoard.__super__.on_click.call(this, pos, player);
         this.move(pos, this.board.attr('seat'));
         return this.canvas.removeClass('your_turn');

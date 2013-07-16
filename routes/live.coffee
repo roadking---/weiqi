@@ -14,7 +14,7 @@ exports.start = (io, socket, gid)->
 				if data.players and uid in data.players
 					console.info "disconnect: player #{uid} left #{#gid}"
 					api.disconnect uid, gid
-					socket.broadcast.emit 'player_disconnect'
+					socket.broadcast.emit 'player_disconnect', uid
 				else
 					console.info "disconnect: witness #{uid ? 'anonymous'} left #{#gid}"
 		

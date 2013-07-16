@@ -1,0 +1,3 @@
+mixin user_title(user)
+	a(href='/u/#{user.id}')= user.nickname
+		span.title= title(user.title)

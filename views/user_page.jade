@@ -10,6 +10,7 @@ block append scripts
 
 block content
 	include widget/history_list
+	include widget/user_title	
 	
 	- var status_text = function(status){var key = 'status_' + status; console.log(key); return lingua[key] ? lingua[key] : key;}
 	//- console.log(me);
@@ -21,7 +22,7 @@ block content
 			p
 				span= lingua.rate
 				span(title=lingua.rate)= me.rate ? me.rate : 'N/A'
-			p #{lingua.total_games({num:me.total_games})}, #{lingua.win({num:me.wins})}, #{lingua.loss({num:me.losses})}
+			p #{lingua.total_games({num:me.total_games||0})}, #{lingua.win({num:me.wins||0})}, #{lingua.loss({num:me.losses||0})}
 			
 			if user && me.id != user.id
 				if isFollowed != null
@@ -31,35 +32,48 @@ block content
 						a#follow.btn.offset1: i.icon-star
 				a.span1.offset3(href='/invite/#{me.id}')= lingua.challenge_you
 			
-	if user && me.id == user.id
+	if user && me.id == user.id && (received_invites.length || sent_invites.length)
 		#invites-of-user.container.piece
+			if received_invites.length
+				.row
+					.span2.offset1
+						h6= lingua.invite_received
+				.row
+					.span10
+						.row-fluid
+							each x in received_invites
+								.span2
+									a(href='/receive_invite/#{x.sender}', target='_blank')= refs[x.sender].nickname
+										span.title= title(refs[x.sender].title)
+			if sent_invites.length
+				.row
+					.span2.offset1
+						h6= lingua.invite_sent
+				.row
+					.span10.offset1
+						.row-fluid
+							each x in sent_invites
+								.span2
+									a(href='/invite/#{x.receiver}', target='_blank')= refs[x.receiver].nickname
+										span.title= title(refs[x.receiver].title)
+	
+	if games.recent_history.length
+		#user-recent-history.container.piece
+			each item in games.recent_history
+				.span10.offset1
+					mixin history_list(item)
+			a.view-all(href='/history/#{me.id}')= lingua.view_all_history
+	
+	if query.followed || query.friends
+		#user-followed.container.piece
 			.row
 				.span2.offset1
-					h6= lingua.invite_received
-			.row
-				.span10
-					.row-fluid
-						each x in received_invites
-							.span2
-								a(href='/receive_invite/#{x.sender}', target='_blank')= refs[x.sender].nickname
-									span.title= title(refs[x.sender].title)
-			.row
-				.span2.offset1
-					h6= lingua.invite_sent
+					h6 followed
 			.row
 				.span10.offset1
 					.row-fluid
-						each x in sent_invites
-							.span2
-								a(href='/invite/#{x.receiver}', target='_blank')= refs[x.receiver].nickname
-									span.title= title(refs[x.receiver].title)
-			
-			
-	#user-recent-history.container.piece
-		each item in games.recent_history
-			.span10.offset1
-				mixin history_list(item)
-		a.view-all(href='/history/#{me.id}')= lingua.view_all_history
+						each x in _.flatten([query.followed, query.friends])
+							mixin user_title(refs[x])
 	
 	#user-games.container.piece
 		- var rows = _.chain(games.current).groupBy(function(x, i){ return Math.floor(i/3); }).values().value();
@@ -73,7 +87,7 @@ block content
 						else
 							a.ts(href='/game/weiqi/#{item.id}', _ts=item.init_ts)
 							span.status= status_text(item.status)
-						if me.id == user.id && item.players.length == 1
+						if user && me.id == user.id && item.players.length == 1
 							a(href='/delete/#{item.id}')= lingua.delete
 						
 						- var opponent = _.without(item.players, me.id)[0];
@@ -83,9 +97,8 @@ block content
 								if seat
 									span= lingua['seat_' + seat]
 								span= lingua.with
-								a.ref_user(href='/u/#{opponent}')= refs[opponent].nickname
-									span.title= title(refs[opponent].title)
-						
+								mixin user_title(refs[opponent])
+								
 							figure.thumb(game=JSON.stringify(item))
 								a(href='/game/weiqi/#{item.socket || item.id}')
 						

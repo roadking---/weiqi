@@ -1,9 +1,8 @@
 express = require('express')
-routes = require('./routes')
 http = require('http')
 path = require('path')
 lingua  = require('lingua')
-
+routes = require('./routes')
 require './compile'
 require './i18n'
 
@@ -21,7 +20,12 @@ app.configure ->
 	app.use(express.methodOverride())
 	app.use(express.cookieParser('nav_secret'))
 	app.use(express.session())
-	app.use routes.user.auth_user
+	app.use require('./routes/user').auth_user
+	app.use express.csrf()
+	app.use (req, res, next)->
+		res.locals.csrf = req.session?._csrf
+		res.locals.title = (t)-> res.locals.lingua['title_' + t] ? ''
+		next()
 	app.use(app.router)
 	app.use(require('stylus').middleware(__dirname + '/public'))
 	app.use (req, res, next)->
@@ -39,31 +43,9 @@ fs = require 'fs'
 app.locals
 	_: require 'underscore'
 	moment: require 'moment'
-	title: (t)-> @lingua['title_' + t]
+	
 
-app.get '/', routes.index
-app.all '/login', routes.user.login
-app.all '/register', routes.user.register
-app.get '/logout', routes.user.logout
-app.get '/new', routes.new
-app.get '/game/:game/:id', routes.game
-app.get '/attend/:id', routes.attend
-app.get '/quit/:id', routes.quit
-app.get '/test', (req, res)-> res.render 'test'
-app.get '/u/:id', routes.user_page
-app.get '/u', routes.user_page
-app.get '/delete/:id', routes.delete
-app.get '/dapu', routes.dapu
-app.all '/comment', routes.comment
-app.all '/blog', routes.blog
-app.get '/follow/:uid', routes.follow
-app.get '/unfollow/:uid', routes.unfollow
-app.get '/surrender/:gid', routes.surrender
-app.get '/delete_blog/:blog_id', routes.delete_blog
-app.get '/history/:id', routes.history
-app.get '/invite/:receiver', routes.send_invite
-app.post '/invite', routes.send_invite
-app.get '/receive_invite/:sender', routes.receive_invite
+require('./routes/routes').set app
 
 
 server = http.createServer(app).listen app.get('port'), ->

@@ -62,7 +62,7 @@ class window.CanvasBoard extends BasicBoard
 		@ctx.fill() if fill_color
 		@ctx.stroke() if stroke_color
 	
-	draw_pawn: (pos, player, style)->
+	draw_stone: (pos, player, style)->
 		@circle @locate(pos[0]), @locate(pos[1]), @opts.PAWN_RADIUS, (if player is 'black' then @opts.black else @opts.white), @opts.black
 		if style is 'wreath'
 			@circle @locate(pos[0]), @locate(pos[1]), @opts.PAWN_RADIUS*.75, null, (if player is 'black' then @opts.white else @opts.black)
@@ -79,11 +79,11 @@ class window.CanvasBoard extends BasicBoard
 	place: (move)->
 		text = move.n + 1 if @show_num
 		if text
-			@draw_pawn move.pos, move.player, {text:text}
+			@draw_stone move.pos, move.player, {text:text}
 		else if move.n is @status_quo().step
-			@draw_pawn move.pos, move.player, 'wreath'
+			@draw_stone move.pos, move.player, 'wreath'
 		else
-			@draw_pawn move.pos, move.player
+			@draw_stone move.pos, move.player
 			
 	draw_board: ->
 		@ctx.lineCap = 'round'
@@ -145,39 +145,46 @@ class window.Board extends CanvasBoard
 		super @board, @opts
 		@try_mode = false
 		
-		@board.find('#num_btn').click =>
-			@show_num = @board.find('#num_btn i').hasClass 'show-number'
+		@board.find('#num_btn').click => 
 			@board.find('#num_btn i').toggleClass 'show-number'
-			@redraw()
-		
-		@board.find('#beginning').click => 
-			num = @show_steps_to ? @initial.moves.length - 1
-			return if num < 0
-			@show_steps_to = -1
-			@redraw()
-			@on_show_steps @show_steps_to
-		@board.find('#ending').click => 
-			num = @show_steps_to ? @initial.moves.length - 1
-			return if num >= @initial.moves.length - 1
+			@toggle_num_shown()
+		@board.find('#beginning').click => @go_to_beginning()
+		@board.find('#ending').click => @go_to_ending()
+		@board.find('#back').click => @go_back()
+		@board.find('#forward').click => @go_forward()
+			
+	
+	go_to_beginning: ->
+		num = @show_steps_to ? @initial.moves.length - 1
+		return if num < 0
+		@show_steps_to = -1
+		@redraw()
+		@on_show_steps @show_steps_to
+	go_to_ending: ->
+		num = @show_steps_to ? @initial.moves.length - 1
+		return if num >= @initial.moves.length - 1
+		@show_steps_to = null
+		@redraw()
+		@on_show_steps @initial.moves.length - 1
+	go_back: ->
+		num = @show_steps_to ? @initial.moves.length - 1
+		return if num < 0
+		@show_steps_to = num - 1
+		@redraw()
+		@on_show_steps @show_steps_to
+	go_forward: ->
+		num = @show_steps_to ? @initial.moves.length - 1
+		if num >= @initial.moves.length - 1
 			@show_steps_to = null
+		else
+			@show_steps_to = num + 1
 			@redraw()
-			@on_show_steps @initial.moves.length - 1
-		@board.find('#back').click => 
-			num = @show_steps_to ? @initial.moves.length - 1
-			return if num < 0
-			@show_steps_to = num - 1
-			@redraw()
-			@on_show_steps @show_steps_to
-		@board.find('#forward').click =>
-			num = @show_steps_to ? @initial.moves.length - 1
-			if num >= @initial.moves.length - 1
-				@show_steps_to = null
-			else
-				@show_steps_to = num + 1
-				@redraw()
-				@show_steps_to = null if num >= @initial.moves.length - 1
-				@on_show_steps @show_steps_to ? @initial.moves.length - 1
-		
+			@show_steps_to = null if num >= @initial.moves.length - 1
+			@on_show_steps @show_steps_to ? @initial.moves.length - 1
+	toggle_num_shown: ->
+		@show_num = not @show_num
+		@redraw()
+	
 	get_moves: ->
 		current: @initial.moves
 		step: @show_steps_to ? @initial.moves.length - 1
@@ -191,8 +198,7 @@ class window.PlayBoard extends window.Board
 			m.taken = _.pluck blocks, 'block'
 	
 	on_click: (pos, player)->
-		console.log player ?= @board.attr('next')
-		
+		player ?= @board.attr('next')
 		m =
 			pos: pos
 			player: player
@@ -205,9 +211,23 @@ class window.PlayBoard extends window.Board
 class window.ConnectedBoard extends window.PlayBoard
 	constructor: (@board, @opts)->
 		super @board, @opts
+		@connect()
 		
+		@board.find('#retract').click => @retract()
+		if @board.attr('status') is 'taking_seat' and @board.attr('iam') is 'player'
+			$('#seats').show()
+			$('#seats .item a').click =>
+				if $(this).hasClass 'none'
+					$('#seats .item a.mine').removeClass('mine').addClass('none').text 'none'
+					@board.attr 'seat', $(this).attr('seat')
+					@socket.emit 'taking_seat', $(this).attr('seat'), (res)=> console.log 'taking_seat: ' + JSON.stringify res
+					$(this).removeClass('none').addClass('mine').text 'Me'
+		
+		if @board.attr('iam') is 'player' and @board.attr('next') is @board.attr('seat')
+			@canvas.addClass 'your_turn'
+
+	connect: ->
 		@socket = io.connect "http://#{location.hostname}/weiqi/#{@board.attr('socket')}"
-		
 		@socket.emit 'auth', $.cookie('auth') ? 'anonymous', (res)=>
 			console.log res
 			@on_connect?()
@@ -244,11 +264,11 @@ class window.ConnectedBoard extends window.PlayBoard
 				@canvas.addClass 'your_turn' if @board.attr('iam') is 'player'
 				@on_move? moves, next
 			@socket.on 'disconnect', @on_disconnect if @on_disconnect
-			@socket.on 'player_disconnect', => console.log 'player_disconnect'
+			@socket.on 'player_disconnect', (player)=> console.log 'player_disconnect ' + player
 			@socket.on 'comment', @on_comment
 			@socket.on 'retract', (uid)=> 
 				console.log 'retract ' + uid
-				@initial.moves.pop()
+				retract @initial.moves
 				@change_to_next if @board.attr('next') is 'black' then 'white' else 'black'
 				@redraw()
 				@canvas.removeClass 'your_turn'
@@ -256,35 +276,7 @@ class window.ConnectedBoard extends window.PlayBoard
 			@socket.on 'surrender', (uid)->
 				console.log 'surrender ' + uid
 				@on_surrender? uid
-			
-			@board.find('#retract').click =>
-				if @board.attr('iam') is 'player' and @initial.moves.length and @board.attr('next') isnt @board.attr('seat')
-					#$.get "/retract/#{@initial.id}", (data)->console.log data
-					@socket.emit 'retract', (data)=> 
-						if data is 'success'
-							@initial.moves.pop()
-							@change_to_next if @board.attr('next') is 'black' then 'white' else 'black'
-							@redraw()
-							@canvas.addClass 'your_turn'
-						
-			
-			if @board.attr('status') is 'taking_seat' and @board.attr('iam') is 'player'
-				$('#seats').show()
-				$('#seats .item a').click =>
-					if $(this).hasClass 'none'
-						$('#seats .item a.mine').removeClass('mine').addClass('none').text 'none'
-						@board.attr 'seat', $(this).attr('seat')
-						@socket.emit 'taking_seat', $(this).attr('seat'), (res)=> console.log 'taking_seat: ' + JSON.stringify res
-						$(this).removeClass('none').addClass('mine').text 'Me'
-			
-			if @board.attr('iam') is 'player' and @board.attr('next') is @board.attr('seat')
-				@canvas.addClass 'your_turn'
-			
-			@board.find('.discuss input[type=submit]').click =>
-				if text = @board.find('.discuss input[type=text]').val()
-					@add_discuss
-						step: game.initial.moves?.length + 1
-						text: text
+	
 	taking_seat: (seat, cb)->
 		@socket?.emit 'taking_seat', seat, (res)=>
 			console.log 'taking_seat: ' + JSON.stringify res
@@ -316,13 +308,24 @@ class window.ConnectedBoard extends window.PlayBoard
 	on_resume: null
 	on_move: null
 	on_retract: null
+	retract: ->
+		if @board.attr('iam') is 'player' and @initial.moves.length and @board.attr('next') isnt @board.attr('seat')
+			@socket.emit 'retract', (data)=> 
+				if data is 'success'
+					retract @initial.moves
+					@change_to_next if @board.attr('next') is 'black' then 'white' else 'black'
+					@redraw()
+					@canvas.addClass 'your_turn'
+
 	on_surrender: null
 	on_click: (pos, player)->
 		if @board.attr('status') is 'started' and @board.attr('iam') is 'player' and @board.attr('next') is @board.attr('seat')
+			if not @connected
+				throw new Error "failed for connection absence"
+				
 			super pos, player
 			@move pos, @board.attr('seat')
 			@canvas.removeClass 'your_turn'
-			
 	send_comment: (gid, comment, cb)->
 		console.log comment
 		@socket?.emit 'comment', gid, comment, cb

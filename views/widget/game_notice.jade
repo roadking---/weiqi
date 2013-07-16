@@ -1,4 +1,4 @@
-#game-notice(_text=JSON.stringify(_.pick(lingua, 'started_please_move', 'started_please_wait')))
+#game-notice(_text=JSON.stringify(_.pick(lingua, 'started_please_move', 'started_please_wait', 'connection_lost', 'connected')))
 	if opts.status == 'init'
 		if user && user.my_new_game == opts.id
 			p.text-warning= lingua.init_waiting
