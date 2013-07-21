@@ -17,6 +17,9 @@ class Weiqi extends ConnectedBoard
 		#show_notice 'connected', 'text-warning'
 		super()
 		console.log 'connected'
+	on_next_player: (player)->
+		$("#players .next").removeClass 'next'
+		$("#players .#{player}").addClass 'next'
 	on_start_taking_seat: -> 
 		location.reload()
 	on_seats_update: (seats)->
@@ -40,6 +43,7 @@ class Weiqi extends ConnectedBoard
 			show_notice 'started_please_wait', 'text-success'
 	on_disconnect: => 
 		show_notice 'connection_lost', 'text-warning'
+		console.log 'disconnect'
 		@connect()
 	on_move: (moves, next)->
 		if @board.attr('status') is 'started' and @board.attr('iam') is 'player' and next is @board.attr('seat')
@@ -57,19 +61,28 @@ class Weiqi extends ConnectedBoard
 		comment.ts = moment(Number comment.ts).format('YYYY/MM/DD HH:mm')
 		update_comment comment
 
-window.show_trying_board = (game)->
-	delete $('#trying-board').data 'data'
-	delete $('#trying-board').data 'game'
-	$('#trying-board').remove()
-	$('#tabs li').removeClass 'active'
-	$('#tabs li a#trying').parent().addClass('active')
-	$('#gaming-board').hide()
-	next = game.next
-	board = $('#gaming-board').clone().insertAfter($('#gaming-board')).attr('id', 'trying-board').show().data('game', game)
-	tb = new PlayBoard board
-	tb.change_to_next next
-	
 $ ->
+	b = new Weiqi $('#gaming-board'), {LINE_COLOR: '#53595e', NINE_POINTS_COLOR: '#53595e', size: 600}
+	
+	$('#toolbox #num_btn').click -> 
+		$(this).toggleClass 'show-number'
+		$('#gaming-board:visible, #trying-board:visible').data('data')?.toggle_num_shown()
+	$('#toolbox #beginning').click -> 
+		$('#gaming-board:visible, #trying-board:visible').data('data')?.go_to_beginning()
+	$('#toolbox #ending').click -> 
+		$('#gaming-board:visible, #trying-board:visible').data('data')?.go_to_ending()
+	$('#toolbox #back').click -> 
+		$('#gaming-board:visible, #trying-board:visible').data('data')?.go_back()
+	$('#toolbox #forward').click -> 
+		$('#gaming-board:visible, #trying-board:visible').data('data')?.go_forward()
+	
+	refresh_view = ->
+		show_num = $('#gaming-board:visible, #trying-board:visible').data('data')?.show_num
+		if show_num
+			$('#toolbox #num_btn').removeClass 'show-number'
+		else
+			$('#toolbox #num_btn').addClass 'show-number'
+	
 	$('#tabs a').click ->
 		if $(this).parent().hasClass('active')
 			return
@@ -79,18 +92,20 @@ $ ->
 			if $(this).attr('id') is 'gaming'
 				$('#gaming-board').show()
 				clear_pub_input()
+				refresh_view()
 			else
 				$('#gaming-board').hide()
+			
 			if $(this).attr('id') is 'trying'
 				final_step = $('#gaming-board').data('data').get_moves().step
 				game = _.clone $('#gaming-board').data('data').initial
 				game.moves = _.chain(game.moves).filter((x, i)-> i <= final_step).map((x)-> _.clone x).value()
 				board = $('#gaming-board').clone().insertAfter($('#gaming-board')).attr('id', 'trying-board').show().data('game', game)
 				board.data 'final_step', final_step
-				console.log 
 				game.title = 'Snapshot - ' + (final_step + 1)
 				$('input.title').val game.title
 				new PlayBoard board
+				refresh_view()
 			else
 				delete $('#trying-board').data 'data'
 				delete $('#trying-board').data 'game'
@@ -106,7 +121,7 @@ $ ->
 			else
 				$('#detail-view').hide()
 	
-	b = new Weiqi $('#gaming-board'), {LINE_COLOR: '#53595e', NINE_POINTS_COLOR: '#53595e', size: 600}
+	
 	
 	if b.board.attr('status') is 'taking_seat'
 		players = JSON.parse b.board.attr('players')
@@ -139,4 +154,33 @@ $ ->
 	else
 		b.on_show_steps()
 	
+
+	$('#aside-tabs a').click ->
+		if $(this).parent().hasClass('active')
+			return
+		else
+			$('#aside-tabs li').removeClass 'active'
+			$(this).parent().addClass('active')
+			if $(this).attr('id') is 'aside-game'
+				$('#game-controls').show()
+			else
+				$('#game-controls').hide()
+			
+			if $(this).attr('id') is 'aside-comments'
+				$('#blogs-view').show()
+			else
+				$('#blogs-view').hide()
+			
+	
+window.show_trying_board = (game)->
+	delete $('#trying-board').data 'data'
+	delete $('#trying-board').data 'game'
+	$('#trying-board').remove()
+	$('#tabs li').removeClass 'active'
+	$('#tabs li a#trying').parent().addClass('active')
+	$('#gaming-board').hide()
+	next = game.next
+	board = $('#gaming-board').clone().insertAfter($('#gaming-board')).attr('id', 'trying-board').show().data('game', game)
+	tb = new PlayBoard board
+	tb.change_to_next next
 	

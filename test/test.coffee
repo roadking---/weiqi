@@ -545,6 +545,7 @@ describe 'game', ->
 					assert test_gid in games[2]
 					assert not (test_gid in games[3])
 					api.surrender test_gid, users[0], (err, rlt)->
+						console.log rlt
 						assert not err
 						assert.equal rlt.win, 'white'
 						assert.equal rlt.case, 'black surrenders'

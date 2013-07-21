@@ -72,6 +72,9 @@ input.showable:focus {
 #game-view-outer #game-view {
   padding: 20px 0;
 }
+aside {
+  padding: 20px 0;
+}
 .board {
   margin-top: 20px;
 }
@@ -84,14 +87,6 @@ input.showable:focus {
 .board .title .seat:after {
   content: ')';
 }
-.board #num_btn i {
-  padding: 0px 16px;
-  background: url("/img/icons.svg") no-repeat;
-  background-position: 0 -16px;
-}
-.board #num_btn i.show-number {
-  background-position: 0 0;
-}
 .board canvas {
   border: 1px solid rgab(0, 0, 0, 0);
   -webkit-tap-highlight-color: rgba(0,0,0,0);
@@ -100,49 +95,75 @@ input.showable:focus {
 .board canvas.your_turn {
   border: 1px solid #f00;
 }
-.board .players {
+#players {
   margin: 5px 0;
 }
-.board .players .player {
+#players .player {
   -webkit-border-radius: 10px;
   -moz-border-radius: 10px;
   border-radius: 10px;
   font-weight: bold;
   padding: 10px;
-  text-align: right;
+  text-align: left;
 }
-.board .players .player a {
+#players .player a {
   color: #acaaaf;
 }
-.board .players .player .title {
+#players .player .title {
   display: block;
 }
-.board .players .player:hover a {
+#players .player:hover a {
   color: #0d2b52;
   text-decoration: none;
 }
-.board .players .player.black:before {
+#players .player.black:before {
   content: ' ';
   height: 30px;
   width: 30px;
   background: url("/img/black.svg") no-repeat;
 }
-.board .players .player.white:before {
+#players .player.white:before {
   content: ' ';
   height: 30px;
   width: 30px;
   background: url("/img/white.svg") no-repeat;
 }
-.board .players .next {
+#players .next {
   background-color: rgba(69,203,170,0.3);
 }
-.board .players .next a {
+#players .next a {
   color: #0f1926;
 }
-.board #btn-group-row {
-  margin-top: 10px;
+#toolbox {
+  -webkit-border-radius: 10px;
+  -moz-border-radius: 10px;
+  border-radius: 10px;
+  background-color: #f8efd8;
+  text-align: left;
+  margin-top: 20px;
+  padding: 5px;
 }
-.board #game-notice {
+#toolbox #num_btn i {
+  padding: 0px 16px;
+  background: url("/img/icons.svg") no-repeat;
+  background-position: 0 -16px;
+}
+#toolbox #num_btn.show-number i {
+  background-position: 0 0;
+}
+#toolbox a {
+  display: inline-block;
+  padding: 15px;
+  cursor: pointer;
+  -webkit-border-radius: 10px;
+  -moz-border-radius: 10px;
+  border-radius: 10px;
+}
+#toolbox a:hover {
+  background-color: #a8ceff;
+  text-decoration: none;
+}
+#game-notice {
   text-decoration: underline;
   font-size: 18px;
   background-color: rgba(237,190,200,0.8);
@@ -155,30 +176,9 @@ input.showable:focus {
   width: 100%;
   display: table;
 }
-.board #game-notice p {
+#game-notice p {
   vertical-align: middle;
   display: table-cell;
-}
-.board #toolbox {
-  -webkit-border-radius: 10px;
-  -moz-border-radius: 10px;
-  border-radius: 10px;
-  background-color: #f8efd8;
-  text-align: right;
-  margin-top: 20px;
-  padding: 5px;
-}
-.board #toolbox a {
-  display: inline-block;
-  padding: 15px;
-  cursor: pointer;
-  -webkit-border-radius: 10px;
-  -moz-border-radius: 10px;
-  border-radius: 10px;
-}
-.board #toolbox a:hover {
-  background-color: #a8ceff;
-  text-decoration: none;
 }
 #pendings {
   margin-top: 30px;
@@ -288,8 +288,16 @@ input.showable:focus {
   background-color: #aaa;
   color: #fff;
 }
-#blogs .blog .text {
+#blogs .blog article .text {
   font-size: 16px;
+  display: inline-block;
+  width: 40%;
+}
+#blogs .blog article .attached {
+  padding: 0 0 0 20px;
+  display: inline-block;
+  width: 50%;
+  border-left: 10px dashed #fcfcca;
 }
 #blogs .blog .ts {
   font-size: 8px;
@@ -388,14 +396,14 @@ a#go2top {
   background-color: #fffcf7;
   margin-top: 40px;
 }
-footer {
+#footer {
   height: 40px;
   line-height: 40px;
   background-color: #74b3b8;
   text-align: center;
   margin-top: 40px;
 }
-footer a {
+#footer a {
   display: inline-block;
   color: #fff;
 }

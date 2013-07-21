@@ -1,4 +1,4 @@
-extends layout
+extends ../layout
 
 block title
 	title= lingua.title_user_page({name:me.nickname, title:lingua['title_' + me.title]})
@@ -9,11 +9,10 @@ block append scripts
 	script(type='text/javascript', src='/js/user_page.js')
 
 block content
-	include widget/history_list
-	include widget/user_title	
+	include ../history/history_list
+	include ../widget/user_title
 	
 	- var status_text = function(status){var key = 'status_' + status; console.log(key); return lingua[key] ? lingua[key] : key;}
-	//- console.log(me);
 	#profile.container.piece(_uid=me.id)
 		.row
 			.span2.offset1
@@ -112,8 +111,8 @@ block content
 	#blogs.container
 		.row
 			.span10.offset1
-				include widget/publish_blog
-				include widget/blog
+				include ../blogs/publish_blog
+				include ../blogs/blog_list
 	script.
 		$('nav #mine').parent().addClass('active');
 	

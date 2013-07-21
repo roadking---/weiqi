@@ -40,7 +40,7 @@ exports.index = (req, res, next)->
 		blog_id = req.session.user?.id ? 'test'
 		api.get_page blog_id,  (err, blogs)->
 			api.get_refs {blogs:blogs, games:_.chain(games).values().flatten().compact().pluck('id').value()}, (err, refs)->
-				res.render 'index',
+				res.render 'home',
 					refs: refs
 					games: games
 					blogs: blogs
@@ -59,7 +59,7 @@ exports.new = (req, res, next)->
 			res.redirect "/game/weiqi/#{gid}"
 		
 exports.game = (req, res, next)->
-	gid=req.params.gid
+	gid = req.game.id
 	api.get_comments gid, api.COMMENTS, (err, comments)->
 		return next err if err
 		api.get_blogs gid, (err, blogs)->
@@ -67,12 +67,19 @@ exports.game = (req, res, next)->
 			api.get_refs {blogs:blogs, games:[gid]}, (err, refs)->
 				return next err if err
 				_.chain(comments).values().flatten().each (x)-> x.nickname = refs[x.author].nickname
-				res.render 'weiqi', 
-					gid: req.params.id
-					opts:req.game
+				res.render 'game', 
+					gid: gid
+					game:req.game
 					refs: refs
 					comments: comments
 					blogs: blogs
+					players: if req.game.seats
+						_.chain(req.game.seats).pairs().map((x)->[
+							x[0], 
+							id: x[1], nickname: refs[x[1]].nickname, title: res.locals.title(refs[x[1]].title)
+						]).object().value()
+							
+	
 	if not (req.game.status in ['ended'])
 		if not api.cache.get gid + '_socket'
 			console.info "listen to /weiqi/#{gid}"
@@ -227,7 +234,7 @@ exports.blog = (req, res, next)->
 			return res.send 'error' if err
 			api.get_refs {blogs:blogs}, (err, refs)->
 				return res.send 'error' if err
-				return res.render 'widget/blog_list', blogs:blogs, refs:refs
+				return res.render 'widget/blogs', blogs:blogs, refs:refs
 				res.json
 					blogs:blogs
 					success:true
@@ -259,7 +266,8 @@ exports.surrender = (req, res, next)->
 	if not req.session.user
 		return res.json {error:'please login'}
 	
-	return next err if err or not (req.session.user.id in req.game.players)
+	return next new Error "not a player in the game" if not (req.session.user.id in req.game.players)
+	
 	api.surrender req.params.gid, req.session.user.id, (err, rlt)->
 		return next err if err
 		api.game_rating rlt, (err, players)->

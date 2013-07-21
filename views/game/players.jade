@@ -1,3 +1,5 @@
+include ../widget/user_title
+
 mixin draft_players(players)
 	.span5.player.black
 		span.span2= lingua.black
@@ -28,18 +30,15 @@ mixin draft_players(players)
 			_player='white'
 			_type='title')
 
-mixin show_players(players, seats)
-	.player.black
-		if players.black
-			a.nickname(title=players.black.nickname, href='/u/#{seats.black}')= players.black.nickname
-				span.title= title(players.black.title)
-		else
-			span.nickname
-			span.title
-	.player.white
-		if players.white
-			a.nickname(title=players.white.nickname, href='/u/#{seats.white}')= players.white.nickname
-				span.title= title(players.white.title)
-		else
-			span.nickname
-			span.title
+mixin list_players(players, seats)
+	#players
+		.player.black
+			if players && players.black
+				mixin user_title(players.black)
+			else
+				span ?
+		.player.white
+			if players && players.white
+				mixin user_title(players.white)
+			else
+				span ?

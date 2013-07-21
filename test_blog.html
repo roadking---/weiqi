@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<head>
+	<meta http-equiv='Content-Type' content='text/html; charset=utf-8' />
+	<link rel="stylesheet" href="http://localhost:5000/css/bootstrap.min.css">
+	<link rel="stylesheet" href="http://localhost:5000/css/style.css">
+	<script type="text/javascript" src="http://localhost:5000/js/jquery-1.9.1.min.js"></script>
+	<script type="text/javascript" src="http://localhost:5000/js/moment.min.js"></script>
+	<script type="text/javascript" src="http://localhost:5000/js/bootstrap.min.js"></script>
+</head>
+<body>
+	<div id="blogs">
+		<div class="row">
+			<div class="span10 offset1">
+				<div id="blogs_list">
+<div _type="init_game" id="weiqi4016|p1" class="blog row">
+  <header><a href="/game/weiqi/weiqi4016" class="author">Game</a>
+  </header>
+  <article>
+    <div class="text"><a href="/u/u19814" title="Jane undefined">Jane<span class="title"></span></a>与<a href="/u/u19815" title="Eric undefined">Eric<span class="title"></span></a>的对局即将开始，敬请关注 ~~</div>
+    <div class="attached">
+      <div class="item">
+        <p><a href="/u/u19814" title="Jane undefined">Jane<span class="title"></span></a>的过往成绩是 7胜 17负，胜率29.2%，等级分1899</p>
+      </div>
+      <div class="item">
+        <p><a href="/u/u19815" title="Eric undefined">Eric<span class="title"></span></a>的过往成绩是 3胜 1负</p>
+      </div>
+    </div>
+  </article>
+  <footer><span _ts="1374388700" class="ts"></span>
+  </footer>
+</div></div>
+			</div>
+		</div>
+	</div>
+	<script>
+		$(function() {
+    return $('.ts').each(function() {
+      return $(this).text(moment(Number($(this).attr('_ts')) * 1000).format('YYYY/MM/DD HH:mm'));
+    });
+  });
+    </script>
+</body>

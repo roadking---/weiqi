@@ -4,15 +4,15 @@ class BasicBoard
 		@LINES = 19
 		
 		@initial = @board.data('game') ? JSON.parse @board.attr 'game'
-		@change_to_next @board.attr 'next'
+		@on_next_player @board.attr 'next'
 		@board.data 'data', this
 		
 	locate: (n)-> Math.round @opts.margin + @interval * n
-	change_to_next: (player)->
+	on_next_player: (player)->
 		@initial.next = player
 		@board.attr 'next', player
-		@board.find(".players .next").removeClass 'next'
-		@board.find(".players .#{player}").addClass 'next'
+		#@board.find("#players .next").removeClass 'next'
+		#@board.find("#players .#{player}").addClass 'next'
 	redraw: ->
 
 class window.CanvasBoard extends BasicBoard
@@ -145,15 +145,6 @@ class window.Board extends CanvasBoard
 		super @board, @opts
 		@try_mode = false
 		
-		@board.find('#num_btn').click => 
-			@board.find('#num_btn i').toggleClass 'show-number'
-			@toggle_num_shown()
-		@board.find('#beginning').click => @go_to_beginning()
-		@board.find('#ending').click => @go_to_ending()
-		@board.find('#back').click => @go_back()
-		@board.find('#forward').click => @go_forward()
-			
-	
 	go_to_beginning: ->
 		num = @show_steps_to ? @initial.moves.length - 1
 		return if num < 0
@@ -205,7 +196,7 @@ class window.PlayBoard extends window.Board
 			n: if @initial.moves then @initial.moves.length else 0
 		@calc_move m
 		@place m
-		@change_to_next if player is 'black' then 'white' else 'black'
+		@on_next_player if player is 'black' then 'white' else 'black'
 		@redraw()
 
 class window.ConnectedBoard extends window.PlayBoard
@@ -227,6 +218,7 @@ class window.ConnectedBoard extends window.PlayBoard
 			@canvas.addClass 'your_turn'
 
 	connect: ->
+		console.log 'try connect'
 		@socket = io.connect "http://#{location.hostname}/weiqi/#{@board.attr('socket')}"
 		@socket.emit 'auth', $.cookie('auth') ? 'anonymous', (res)=>
 			console.log res
@@ -252,14 +244,14 @@ class window.ConnectedBoard extends window.PlayBoard
 				@board.find('.players .black .title').text seats.black.title
 				@board.find('.players .white .name').text(seats.white.nickname).attr 'href', "/u/#{seats.black.id}"
 				@board.find('.players .white .title').text seats.white.title
-				@change_to_next next
+				@on_next_player next
 				@on_start?()
 			@socket.on 'move', (moves, next)=>
 				console.log 'move: ' + JSON.stringify(moves)
 				_.each moves, (x)=> 
 					@calc_move x
 					@place x
-				@change_to_next next
+				@on_next_player next
 				@redraw()
 				@canvas.addClass 'your_turn' if @board.attr('iam') is 'player'
 				@on_move? moves, next
@@ -269,7 +261,7 @@ class window.ConnectedBoard extends window.PlayBoard
 			@socket.on 'retract', (uid)=> 
 				console.log 'retract ' + uid
 				retract @initial.moves
-				@change_to_next if @board.attr('next') is 'black' then 'white' else 'black'
+				@on_next_player if @board.attr('next') is 'black' then 'white' else 'black'
 				@redraw()
 				@canvas.removeClass 'your_turn'
 				@on_retract? uid
@@ -294,7 +286,7 @@ class window.ConnectedBoard extends window.PlayBoard
 			if res.fail
 				@withdraw pos, player
 			else
-				@change_to_next res.next if res.next
+				@on_next_player res.next if res.next
 		
 	on_connect: ->
 		@connected = true
@@ -313,7 +305,7 @@ class window.ConnectedBoard extends window.PlayBoard
 			@socket.emit 'retract', (data)=> 
 				if data is 'success'
 					retract @initial.moves
-					@change_to_next if @board.attr('next') is 'black' then 'white' else 'black'
+					@on_next_player if @board.attr('next') is 'black' then 'white' else 'black'
 					@redraw()
 					@canvas.addClass 'your_turn'
 

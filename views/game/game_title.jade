@@ -1,0 +1,28 @@
+include ../widget/user_title
+
+if data.title
+	span= data.title
+else if data.seats
+	- var tmp = _.difference(data.players, _.values(data.seats))[0]
+	if data.seats.black
+		mixin user_title(refs[data.seats.black])
+		span.seat= lingua.black_short
+	else if tmp
+		mixin user_title(refs[tmp])
+	else
+		span.player ?
+	span  vs 
+	if data.seats.white
+		mixin user_title(refs[data.seats.white])
+		span.seat= lingua.white_short
+	else if tmp
+		mixin user_title(refs[tmp])
+	else
+		span.player ?
+else if data.players
+	mixin user_title(data.players[0])
+	span  vs 
+	if data.players[1]
+		mixin user_title(data.players[1])
+	else
+		span.player ?	

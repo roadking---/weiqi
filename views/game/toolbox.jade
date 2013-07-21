@@ -1,0 +1,11 @@
+#toolbox
+	div
+		a#num_btn.show-number(status='show_num', _text=JSON.stringify(_.pick(lingua, 'show_num', 'hide_num')), title=lingua.show_num): i
+	div
+		a#back: i.icon-chevron-left
+		a#forward: i.icon-chevron-right
+	div
+		a#beginning: i.icon-step-backward
+		a#ending: i.icon-step-forward
+	div
+		a#retract= lingua.retract

@@ -41,6 +41,11 @@
       return console.log('connected');
     };
 
+    Weiqi.prototype.on_next_player = function(player) {
+      $("#players .next").removeClass('next');
+      return $("#players ." + player).addClass('next');
+    };
+
     Weiqi.prototype.on_start_taking_seat = function() {
       return location.reload();
     };
@@ -85,6 +90,7 @@
 
     Weiqi.prototype.on_disconnect = function() {
       show_notice('connection_lost', 'text-warning');
+      console.log('disconnect');
       return this.connect();
     };
 
@@ -124,24 +130,50 @@
 
   })(ConnectedBoard);
 
-  window.show_trying_board = function(game) {
-    var board, next, tb;
-
-    delete $('#trying-board').data('data');
-    delete $('#trying-board').data('game');
-    $('#trying-board').remove();
-    $('#tabs li').removeClass('active');
-    $('#tabs li a#trying').parent().addClass('active');
-    $('#gaming-board').hide();
-    next = game.next;
-    board = $('#gaming-board').clone().insertAfter($('#gaming-board')).attr('id', 'trying-board').show().data('game', game);
-    tb = new PlayBoard(board);
-    return tb.change_to_next(next);
-  };
-
   $(function() {
-    var b, m, players;
+    var b, m, players, refresh_view;
 
+    b = new Weiqi($('#gaming-board'), {
+      LINE_COLOR: '#53595e',
+      NINE_POINTS_COLOR: '#53595e',
+      size: 600
+    });
+    $('#toolbox #num_btn').click(function() {
+      var _ref1;
+
+      $(this).toggleClass('show-number');
+      return (_ref1 = $('#gaming-board:visible, #trying-board:visible').data('data')) != null ? _ref1.toggle_num_shown() : void 0;
+    });
+    $('#toolbox #beginning').click(function() {
+      var _ref1;
+
+      return (_ref1 = $('#gaming-board:visible, #trying-board:visible').data('data')) != null ? _ref1.go_to_beginning() : void 0;
+    });
+    $('#toolbox #ending').click(function() {
+      var _ref1;
+
+      return (_ref1 = $('#gaming-board:visible, #trying-board:visible').data('data')) != null ? _ref1.go_to_ending() : void 0;
+    });
+    $('#toolbox #back').click(function() {
+      var _ref1;
+
+      return (_ref1 = $('#gaming-board:visible, #trying-board:visible').data('data')) != null ? _ref1.go_back() : void 0;
+    });
+    $('#toolbox #forward').click(function() {
+      var _ref1;
+
+      return (_ref1 = $('#gaming-board:visible, #trying-board:visible').data('data')) != null ? _ref1.go_forward() : void 0;
+    });
+    refresh_view = function() {
+      var show_num, _ref1;
+
+      show_num = (_ref1 = $('#gaming-board:visible, #trying-board:visible').data('data')) != null ? _ref1.show_num : void 0;
+      if (show_num) {
+        return $('#toolbox #num_btn').removeClass('show-number');
+      } else {
+        return $('#toolbox #num_btn').addClass('show-number');
+      }
+    };
     $('#tabs a').click(function() {
       var board, final_step, game;
 
@@ -153,6 +185,7 @@
         if ($(this).attr('id') === 'gaming') {
           $('#gaming-board').show();
           clear_pub_input();
+          refresh_view();
         } else {
           $('#gaming-board').hide();
         }
@@ -166,10 +199,10 @@
           }).value();
           board = $('#gaming-board').clone().insertAfter($('#gaming-board')).attr('id', 'trying-board').show().data('game', game);
           board.data('final_step', final_step);
-          console.log;
           game.title = 'Snapshot - ' + (final_step + 1);
           $('input.title').val(game.title);
           new PlayBoard(board);
+          refresh_view();
         } else {
           delete $('#trying-board').data('data');
           delete $('#trying-board').data('game');
@@ -186,11 +219,6 @@
           return $('#detail-view').hide();
         }
       }
-    });
-    b = new Weiqi($('#gaming-board'), {
-      LINE_COLOR: '#53595e',
-      NINE_POINTS_COLOR: '#53595e',
-      size: 600
     });
     if (b.board.attr('status') === 'taking_seat') {
       players = JSON.parse(b.board.attr('players'));
@@ -232,10 +260,43 @@
     if (m) {
       b.show_steps_to = m[1];
       b.redraw();
-      return b.on_show_steps(m[1]);
+      b.on_show_steps(m[1]);
     } else {
-      return b.on_show_steps();
+      b.on_show_steps();
     }
+    return $('#aside-tabs a').click(function() {
+      if ($(this).parent().hasClass('active')) {
+
+      } else {
+        $('#aside-tabs li').removeClass('active');
+        $(this).parent().addClass('active');
+        if ($(this).attr('id') === 'aside-game') {
+          $('#game-controls').show();
+        } else {
+          $('#game-controls').hide();
+        }
+        if ($(this).attr('id') === 'aside-comments') {
+          return $('#blogs-view').show();
+        } else {
+          return $('#blogs-view').hide();
+        }
+      }
+    });
   });
+
+  window.show_trying_board = function(game) {
+    var board, next, tb;
+
+    delete $('#trying-board').data('data');
+    delete $('#trying-board').data('game');
+    $('#trying-board').remove();
+    $('#tabs li').removeClass('active');
+    $('#tabs li a#trying').parent().addClass('active');
+    $('#gaming-board').hide();
+    next = game.next;
+    board = $('#gaming-board').clone().insertAfter($('#gaming-board')).attr('id', 'trying-board').show().data('game', game);
+    tb = new PlayBoard(board);
+    return tb.change_to_next(next);
+  };
 
 }).call(this);

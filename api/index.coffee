@@ -107,6 +107,7 @@ get_user = exports.get_user = (uid, cb)->
 				console.error e
 				
 			user.rate = Number user.rate if user.rate
+			user.win_ratio = if user[USER.WINS] then user[USER.WINS]/user[USER.TOTAL_GAMES] else 0
 			user.id = uid
 			cb undefined, user
 	else if _.isArray uid
@@ -210,11 +211,18 @@ init_game = exports.init_game = (opts, cb)->
 			
 			m.exec (err)->
 				return cb err if err
-				
 				((social, cb)->
 					if social
 						client.sadd [opts.initiator, USER.FOLLOWED_GAMES].join('|'), gid, ->
-							send_post gid, {type:'init_game', gid:gid}, (err, pid)-> forward_post opts.initiator, null, pid, cb
+							((cb)->
+								if opts.contract.players and opts.initiator in opts.contract.players
+									if opts.contract.players.length is 1
+										send_post_tpl 'init_game', 'init_and_wait', gid, opts.initiator, cb
+									else if opts.contract.players.length is 2
+										send_post_tpl 'init_game', 'init_and_start', gid, opts.contract.players, cb
+								else
+									send_post_tpl 'init_game', null, gid, cb
+							) (err, pid)-> forward_post opts.initiator, null, pid, cb
 					else
 						cb()
 				) opts.social, (err)->
@@ -223,6 +231,9 @@ init_game = exports.init_game = (opts, cb)->
 							cb undefined, gid
 					else
 						cb undefined, gid
+
+
+
 move = exports.move = (gid, data, cb)->
 	get_game gid, (err, game)->
 		return cb err if err
@@ -249,7 +260,9 @@ move = exports.move = (gid, data, cb)->
 			
 
 get_game = exports.get_game = (gid, cb)->
-	if _.isString gid 
+	if _.isString gid
+		cb new Error "gid == 'undefined'" if gid is 'undefined'
+		
 		if data = cache.get gid
 			return cb undefined, data
 		
@@ -280,7 +293,7 @@ get_game = exports.get_game = (gid, cb)->
 			data.contract = JSON.parse data.contract if data.contract
 			cache.set gid, data
 			data.id = gid
-			return cb new Error "#{gid} not exists" if not data.status and not data.version
+			return cb new Error "#{gid} not exists" if not data.status or not data.version
 			cb undefined, data
 	else if _.isArray gid
 		flow.group (_.map gid, (x)-> (cb)->get_game x, cb
@@ -315,9 +328,8 @@ player_attend = exports.player_attend = (gid, uid, cb)->
 						cache.del data.initiator + '_upds'
 					get_game gid, (err, data)->
 						return cb err if err
-						
 						((uid, data, cb)->
-							if uid is data.initiator
+							if uid is data.initiator or (data.contract.players and uid in data.contract.players)
 								cb()
 							else
 								send_post gid, {type:'player_attend', gid:gid, uid:uid}, (err, pid)->
@@ -386,15 +398,6 @@ taking_seat = exports.taking_seat = ->
 					else
 						cb undefined, data.seats, all_arrived
 
-###
-gid = 'weiqi|1'
-multi = client.multi()
-multi.hset gid, 'seats', null
-multi.hset gid, 'status', STATUS.INIT
-multi.del gid + '|players'
-multi.sadd gid + '|players', 'test'
-multi.exec -> exports.get_game gid, (err, data)-> console.log data
-###
 
 start_game = exports.start_game = (gid, cb)->
 	get_game gid, (err, data)->
@@ -1079,6 +1082,37 @@ send_post = exports.send_post = ->
 						cb err
 					else
 						cb undefined, pid
+
+send_post_tpl = exports.send_post_tpl = ->
+	[type, scenario] = arguments
+	switch type
+		when 'init_game'
+			switch scenario
+				when 'init_and_wait'
+					[gid, initiator, cb] = _.toArray(arguments)[2..]
+					get_user initiator, (err, initiator)->
+						return cb err if err
+						send_post gid, {
+							type:'init_game'
+							scenario:scenario
+							v: .1
+							gid:gid
+							initiator: _.pick initiator, ['id', USER.WINS, USER.LOSSES, USER.TOTAL_GAMES, 'win_ratio', 'rate']
+						}, cb
+				when 'init_and_start'
+					[gid, players, cb] = _.toArray(arguments)[2..]
+					get_user players, (err, players)->
+						return cb err if err
+						send_post gid, {
+							type:'init_game'
+							scenario:scenario
+							v: .1
+							gid:gid
+							players: _.chain(players).values().map((x)-> _.pick x, ['id', USER.WINS, USER.LOSSES, USER.TOTAL_GAMES, 'win_ratio', 'rate']).value()
+						}, cb
+				else
+					[gid, cb] = _.toArray(arguments)[2..]
+					send_post gid, {type:'init_game', gid:gid}, cb
 
 delete_post = exports.delete_post = (post_id, cb)->
 	get_blogs [post_id], (err, posts)->

@@ -1,4 +1,4 @@
-extends layout
+extends ../layout
 
 block scripts
 	link(rel="stylesheet", href="http://cdn.oesmith.co.uk/morris-0.4.3.min.css")
@@ -7,9 +7,10 @@ block scripts
 	script(src="/js/history.js")
 
 block title
-	title= lingua.title_history({name:me.nickname, title:lingua['title_' + me.title]})
+	title= lingua.title_history({name:me.nickname, title:title(me.title)})
 
 block content
+	include ../widget/user_title
 	.container
 		#rate-chart(data=JSON.stringify(_.chain(games).pluck('record').map(function(x){return _.pick(x, 'rate', 'ts')}).value()))
 		#records
@@ -19,12 +20,10 @@ block content
 					//- console.log(g);
 					if g.seats
 						h6
-							a(href='/u/#{g.seats.black}')= refs[g.seats.black].nickname
-								span.title= lingua['title_' + refs[g.seats.black].title]
+							mixin user_title(refs[g.seats.black])
 							span.seat= lingua.black_short
 							span	vs 
-							a(href='/u/#{g.seats.white}')= refs[g.seats.white].nickname
-								span.title= lingua['title_' + refs[g.seats.white].title]
+							mixin user_title(refs[g.seats.white])
 							span.seat= lingua.white_short
 							
 							if g.result

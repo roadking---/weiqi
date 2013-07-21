@@ -72,7 +72,8 @@ input.showable
 	#game-view
 		//background-color #fffcf7
 		padding 20px 0
-		
+aside
+	padding 20px 0		
 
 .board
 	margin-top 20px
@@ -83,13 +84,6 @@ input.showable
 				content '('
 			&:after
 				content ')'
-	#num_btn
-		i
-			padding 0px 16px
-			background url(/img/icons.svg) no-repeat
-			background-position 0 -16px
-		i.show-number
-			background-position 0 0
 	canvas
 		border 1px solid rgab(0,0,0,0)
 		-webkit-tap-highlight-color rgba(0,0,0,0)
@@ -97,68 +91,74 @@ input.showable
 	canvas.your_turn
 		border 1px solid red
 		
-	.players
-		margin 5px 0
-		.player
-			border-radius(10px)
-			font-weight bold
-			padding 10px
-			text-align right
-			a
-				color #acaaaf
-			.title
-				display block
-			&:hover
-				a
-					color #0d2b52
-					text-decoration none
-		.player.black
-			&:before
-				content: ' '
-				height 30px
-				width 30px
-				background url(/img/black.svg) no-repeat
-				
-		.player.white
-			&:before
-				content: ' '
-				height 30px
-				width 30px
-				background url(/img/white.svg) no-repeat
-			
-		.next
-			background-color rgba(69,203,170,.3)
-			a
-				color #0f1926
-	#btn-group-row
-		margin-top 10px
-	#game-notice
-		text-decoration underline
-		font-size 18px
-		background-color rgba(237, 190, 200, .8)
+#players
+	margin 5px 0
+	.player
 		border-radius(10px)
-		text-align center
-		height 120px
-		margin-bottom 50px
-		width 100%
-		display table
-		p
-			vertical-align middle
-			display table-cell
-	#toolbox
-		border-radius(10px)
-		background-color #f8efd8
-		text-align right
-		margin-top 20px
-		padding 5px
+		font-weight bold
+		padding 10px
+		text-align left
 		a
-			display inline-block
-			padding 15px
-			cursor pointer
-			border-radius(10px)
-			&:hover
-				background-color #a8ceff
+			color #acaaaf
+		.title
+			display block
+		&:hover
+			a
+				color #0d2b52
 				text-decoration none
+	.player.black
+		&:before
+			content: ' '
+			height 30px
+			width 30px
+			background url(/img/black.svg) no-repeat
+			
+	.player.white
+		&:before
+			content: ' '
+			height 30px
+			width 30px
+			background url(/img/white.svg) no-repeat
+		
+	.next
+		background-color rgba(69,203,170,.3)
+		a
+			color #0f1926
+#toolbox
+	border-radius(10px)
+	background-color #f8efd8
+	text-align left
+	margin-top 20px
+	padding 5px
+	#num_btn
+		i
+			padding 0px 16px
+			background url(/img/icons.svg) no-repeat
+			background-position 0 -16px
+	#num_btn.show-number
+		i
+			background-position 0 0
+	a
+		display inline-block
+		padding 15px
+		cursor pointer
+		border-radius(10px)
+		&:hover
+			background-color #a8ceff
+			text-decoration none
+#game-notice
+	text-decoration underline
+	font-size 18px
+	background-color rgba(237, 190, 200, .8)
+	border-radius(10px)
+	text-align center
+	height 120px
+	margin-bottom 50px
+	width 100%
+	display table
+	p
+		vertical-align middle
+		display table-cell
 
 #pendings
 	margin-top 30px
@@ -247,8 +247,16 @@ input.showable
 				&:hover
 					background-color #aaa
 					color white
-		.text
-			font-size 16px
+		article
+			.text
+				font-size 16px
+				display inline-block
+				width 40%
+			.attached
+				padding 0 0 0 20px
+				display inline-block
+				width 50%
+				border-left 10px dashed #fcfcca
 		.ts
 			font-size 8px
 			color #999
@@ -341,7 +349,7 @@ a#go2top
 	background-color #fffcf7
 	margin-top 40px
 
-footer
+#footer
 	height 40px
 	line-height 40px
 	background-color #74b3b8

@@ -1,4 +1,4 @@
-extends layout
+extends ../layout
 
 block title
 	title= lingua.title_home_page
@@ -29,7 +29,7 @@ block content
 				.span10.offset1
 					//include widget/publish_blog
 					//button#recent_blogs_btn.btn update
-					include widget/blog
+					include ../blogs/blog_list
 					button#prev_blogs_btn.btn.btn-block= lingua.prev_blogs
 	script.
 		$('nav #home').parent().addClass('active');

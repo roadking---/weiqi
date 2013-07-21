@@ -1,3 +1,4 @@
+_ = require 'underscore'
 express = require('express')
 http = require('http')
 path = require('path')
@@ -5,6 +6,7 @@ lingua  = require('lingua')
 routes = require('./routes')
 require './compile'
 require './i18n'
+jade = require 'jade'
 
 app = express()
 
@@ -24,7 +26,12 @@ app.configure ->
 	app.use express.csrf()
 	app.use (req, res, next)->
 		res.locals.csrf = req.session?._csrf
-		res.locals.title = (t)-> res.locals.lingua['title_' + t] ? ''
+		res.locals.title = title_fn = (t)-> res.locals.lingua['title_' + t] ? ''
+		res.locals.win_ratio_fn = (r)-> Math.round(r*1000)/10 + '%'
+		user_title_fn = jade.compile(fs.readFileSync(__dirname + '/views/view_fn/user_title_fn.jade').toString(), filename: __dirname + '/views/widget/user_title.jade')
+		res.locals.user_title_fn = _.wrap user_title_fn, (fn, args)->
+			args.title = title_fn
+			fn args
 		next()
 	app.use(app.router)
 	app.use(require('stylus').middleware(__dirname + '/public'))

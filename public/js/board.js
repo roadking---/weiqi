@@ -18,7 +18,7 @@
       });
       this.LINES = 19;
       this.initial = (_ref1 = this.board.data('game')) != null ? _ref1 : JSON.parse(this.board.attr('game'));
-      this.change_to_next(this.board.attr('next'));
+      this.on_next_player(this.board.attr('next'));
       this.board.data('data', this);
     }
 
@@ -26,11 +26,9 @@
       return Math.round(this.opts.margin + this.interval * n);
     };
 
-    BasicBoard.prototype.change_to_next = function(player) {
+    BasicBoard.prototype.on_next_player = function(player) {
       this.initial.next = player;
-      this.board.attr('next', player);
-      this.board.find(".players .next").removeClass('next');
-      return this.board.find(".players ." + player).addClass('next');
+      return this.board.attr('next', player);
     };
 
     BasicBoard.prototype.redraw = function() {};
@@ -235,28 +233,10 @@
     __extends(Board, _super);
 
     function Board(board, opts) {
-      var _this = this;
-
       this.board = board;
       this.opts = opts;
       Board.__super__.constructor.call(this, this.board, this.opts);
       this.try_mode = false;
-      this.board.find('#num_btn').click(function() {
-        _this.board.find('#num_btn i').toggleClass('show-number');
-        return _this.toggle_num_shown();
-      });
-      this.board.find('#beginning').click(function() {
-        return _this.go_to_beginning();
-      });
-      this.board.find('#ending').click(function() {
-        return _this.go_to_ending();
-      });
-      this.board.find('#back').click(function() {
-        return _this.go_back();
-      });
-      this.board.find('#forward').click(function() {
-        return _this.go_forward();
-      });
     }
 
     Board.prototype.go_to_beginning = function() {
@@ -361,7 +341,7 @@
       };
       this.calc_move(m);
       this.place(m);
-      this.change_to_next(player === 'black' ? 'white' : 'black');
+      this.on_next_player(player === 'black' ? 'white' : 'black');
       return this.redraw();
     };
 
@@ -404,6 +384,7 @@
       var _ref1,
         _this = this;
 
+      console.log('try connect');
       this.socket = io.connect("http://" + location.hostname + "/weiqi/" + (this.board.attr('socket')));
       return this.socket.emit('auth', (_ref1 = $.cookie('auth')) != null ? _ref1 : 'anonymous', function(res) {
         console.log(res);
@@ -437,7 +418,7 @@
           _this.board.find('.players .black .title').text(seats.black.title);
           _this.board.find('.players .white .name').text(seats.white.nickname).attr('href', "/u/" + seats.black.id);
           _this.board.find('.players .white .title').text(seats.white.title);
-          _this.change_to_next(next);
+          _this.on_next_player(next);
           return typeof _this.on_start === "function" ? _this.on_start() : void 0;
         });
         _this.socket.on('move', function(moves, next) {
@@ -446,7 +427,7 @@
             _this.calc_move(x);
             return _this.place(x);
           });
-          _this.change_to_next(next);
+          _this.on_next_player(next);
           _this.redraw();
           if (_this.board.attr('iam') === 'player') {
             _this.canvas.addClass('your_turn');
@@ -463,7 +444,7 @@
         _this.socket.on('retract', function(uid) {
           console.log('retract ' + uid);
           retract(_this.initial.moves);
-          _this.change_to_next(_this.board.attr('next') === 'black' ? 'white' : 'black');
+          _this.on_next_player(_this.board.attr('next') === 'black' ? 'white' : 'black');
           _this.redraw();
           _this.canvas.removeClass('your_turn');
           return typeof _this.on_retract === "function" ? _this.on_retract(uid) : void 0;
@@ -506,7 +487,7 @@
           return _this.withdraw(pos, player);
         } else {
           if (res.next) {
-            return _this.change_to_next(res.next);
+            return _this.on_next_player(res.next);
           }
         }
       }) : void 0;
@@ -542,7 +523,7 @@
         return this.socket.emit('retract', function(data) {
           if (data === 'success') {
             retract(_this.initial.moves);
-            _this.change_to_next(_this.board.attr('next') === 'black' ? 'white' : 'black');
+            _this.on_next_player(_this.board.attr('next') === 'black' ? 'white' : 'black');
             _this.redraw();
             return _this.canvas.addClass('your_turn');
           }

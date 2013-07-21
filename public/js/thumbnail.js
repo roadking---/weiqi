@@ -11,7 +11,8 @@
       _.defaults(opts, {
         NINE_POINTS_RADIUS: 1.5,
         LINE_COLOR: '#aaa',
-        click: false
+        click: false,
+        NINE_POINTS_COLOR: '#53595e'
       });
       opts.PAWN_RADIUS = Math.round(size * .7 / 38);
       opts.margin = Math.round(opts.PAWN_RADIUS * 1.4);

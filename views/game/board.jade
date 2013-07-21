@@ -1,0 +1,19 @@
+include players
+include ../widget/user_title
+
+mixin board(id, data)
+	- var iam = user && _.contains(data.players, user.id) ? 'player' : 'witness';
+	- var seat = iam == 'player' && data.seats ? _.invert(data.seats)[user.id] : null;
+	.board.container-fluid(id=id, socket=data.socket||data.id, status=data.status, iam=iam, seat=seat, uid='#{user ? user.id : ""}', next=data.next, players=JSON.stringify(players), game=JSON.stringify(data))
+		.row-fluid
+			.span5.offset3
+				if data.status == 'draft'
+					input.title.showable.span4.offset2(type='text', placeholder=lingua.dapu, value='#{data.title ? data.title : ""}', _text=lingua.dapu)
+				else
+					h4.title
+						include game_title
+				
+		.row
+			.span2
+				
+			canvas.draw.span4

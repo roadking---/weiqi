@@ -71,8 +71,6 @@ all =
 		gaming: '对局'
 		tring: '试下'
 		add_chart: '截图'
-		init_game_blog: '游戏就要开始啦！'
-		player_attend_blog: '加入游戏中！'
 		retract: '悔棋'
 		surrender: '认输'
 		title_user_page: '{name} {title}的主页'
@@ -111,6 +109,16 @@ all =
 		invite_received: '约您手谈：'
 		connection_lost: '连接断开'
 		connected: '连接建立'
+		init_and_wait_0_1_blog: '新开一局，赶紧加入吧！'
+		init_and_wait_0_1_attached_new_user: '这一局是{user}开设的。{user}是一位新朋友，还没有成绩证明自己 ~~'
+		init_and_wait_0_1_attached_less_frequent_user: '这一局是{user}开设的。{user}的过往成绩是 {wins}胜 {losses}负'
+		init_and_wait_0_1_attached_frequent_user: '这一局是{user}开设的。{user}的过往成绩是 {wins}胜 {losses}负，胜率{win_ratio}，等级分{rate}'
+		init_and_start_0_1_blog: '{player1}与{player2}的对局即将开始，敬请关注 ~~'
+		init_and_start_0_1_attached_new_user: '{user}是一位新朋友，还没有成绩证明自己 ~~'
+		init_and_start_0_1_attached_less_frequent_user: '{user}的过往成绩是 {wins}胜 {losses}负'
+		init_and_start_0_1_attached_frequent_user: '{user}的过往成绩是 {wins}胜 {losses}负，胜率{win_ratio}，等级分{rate}'
+		player_attend_blog: '加入游戏中！'
+		
 	zh_TW:
 		contact_us: '聯繫我們'
 

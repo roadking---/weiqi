@@ -1,0 +1,77 @@
+include ../widget/user_title
+
+mixin show_snapshots(blog)
+	if blog.snapshots && blog.snapshots.length
+		- from = _.max(blog.snapshots, function(x){return x.from}).from;
+		if blog.gid && refs[blog.gid]
+			.snapshots(_ss=JSON.stringify(blog.snapshots), gid=blog.gid, game_moves=JSON.stringify(refs[blog.gid].moves.slice(0, from+1)))
+		else
+			.snapshots(_ss=JSON.stringify(blog.snapshots))
+	
+mixin show_init_game(blog)
+	case blog.scenario
+		when 'init_and_wait'
+			case blog.v
+				when .1
+					.text
+						a(href='/game/weiqi/#{blog.gid}')= lingua.init_and_wait_0_1_blog
+					.attached
+						if ! blog.initiator.total_games
+							p!= lingua.init_and_wait_0_1_attached_new_user({user:user_title_fn({user:refs[blog.initiator.id]})})
+						else if blog.initiator.total_games < 5
+							p!= lingua.init_and_wait_0_1_attached_less_frequent_user({ user:user_title_fn({user:refs[blog.initiator.id]}), wins:blog.initiator.wins, losses:blog.initiator.losses  })
+						else
+							p!= lingua.init_and_wait_0_1_attached_frequent_user({ user:user_title_fn({user:refs[blog.initiator.id]}), wins:blog.initiator.wins, losses:blog.initiator.losses, win_ratio:win_ratio_fn(blog.initiator.win_ratio), rate:blog.initiator.rate  })
+		when 'init_and_start'
+			case blog.v
+				when .1
+					.text!= lingua.init_and_start_0_1_blog({player1:user_title_fn({user:refs[blog.players[0].id]}), player2:user_title_fn({user:refs[blog.players[1].id]}) })
+					.attached
+						each p in blog.players
+							.item
+								if ! p.total_games
+									p!= lingua.init_and_start_0_1_attached_new_user({user:user_title_fn({user:refs[p.id]})})
+								else if p.total_games < 5
+									p!= lingua.init_and_start_0_1_attached_less_frequent_user({ user:user_title_fn({user:refs[p.id]}), wins:p.wins, losses:p.losses  })
+								else
+									p!= lingua.init_and_start_0_1_attached_frequent_user({ user:user_title_fn({user:refs[p.id]}), wins:p.wins, losses:p.losses, win_ratio:win_ratio_fn(p.win_ratio), rate:p.rate  })
+									
+mixin show_blog(blog, forwarded)
+	header
+		if blog.author
+			mixin user_title(refs[blog.author], 'author')
+		else if blog.gid
+			a.author(href='/game/weiqi/#{blog.gid}') #{refs[blog.gid] && refs[blog.gid].title ? refs[blog.gid].title : 'Game'}
+		
+		if !forwarded && user && user.id == blog.author
+			span.hide.del.pull-right &times;
+	article
+		if blog.type == 'init_game' && refs[blog.gid]
+			mixin show_init_game(blog)
+		else if blog.type == 'player_attend' && refs[blog.uid]
+			.text
+				a.ref_user(href='/u/#{blog.uid}', title='#{refs[blog.uid].nickname} #{lingua["title_" + refs[blog.uid].title]}')= refs[blog.uid].nickname
+				| #{lingua.player_attend_blog}
+			mixin show_snapshots(blog)
+		else if blog.type == 'forward'
+			.text= blog.comment
+			mixin show_snapshots(blog)
+			.forwarded_blog
+				mixin show_blog(blog.original_blog, true)
+		else if blog.type == 'game_comment'
+			.text= blog.text
+			mixin show_snapshots(blog)
+			a.step(_step=blog.step, href='/game/weiqi/#{blog.gid}?step=#{blog.step}')=blog.step+1
+		else
+			.text= blog.text
+			mixin show_snapshots(blog)
+	
+	footer
+		if blog.ts
+			span.ts(_ts=blog.ts)
+		
+each blog in blogs
+	- var type = 'plain';
+	
+	.blog.row(_type=blog.type?blog.type:'plain', id=blog.id)
+		mixin show_blog(blog, false)

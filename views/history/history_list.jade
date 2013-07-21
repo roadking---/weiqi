@@ -1,3 +1,5 @@
+include ../widget/user_title
+
 mixin history_list(item)
 	.history
 		span.ts(_ts=item.init_ts)
@@ -11,12 +13,10 @@ mixin history_list(item)
 				if me.id == item.seats[item.result.win]
 					span= lingua.win_vs
 					- var loser = item.result.win == 'black' ? 'white' : 'black'
-					a.player(href='/u/#{item.seats[loser]}')= refs[item.seats[loser]].nickname
-						span.title= lingua['title_' + refs[item.seats[loser]].title]
+					mixin user_title(refs[item.seats[loser]], 'player')
 				else
 					span= lingua.fail_vs
-					a.player(href='/u/#{item.seats[item.result.win]}')= refs[item.seats[item.result.win]].nickname
-						span.title= lingua['title_' + refs[item.seats[item.result.win]].title]
-			
+					mixin user_title(refs[item.seats[item.result.win]], 'player')
+					
 			
 		a(href='/game/weiqi/#{item.id}') >>
