@@ -423,6 +423,7 @@ describe 'game', ->
 								assert not game.moves.length
 								assert.equal game.next, 'black'
 								done()
+			
 		it 'failed with wrong guy', (done)->
 			api.start_game test_gid, (err)-> 
 				assert not err
@@ -545,7 +546,6 @@ describe 'game', ->
 					assert test_gid in games[2]
 					assert not (test_gid in games[3])
 					api.surrender test_gid, users[0], (err, rlt)->
-						console.log rlt
 						assert not err
 						assert.equal rlt.win, 'white'
 						assert.equal rlt.case, 'black surrenders'
@@ -1268,3 +1268,30 @@ describe 'social', ->
 								assert not err
 								assert not _.findWhere(blogs, {content:'test'})
 								done()
+
+describe 'game', ->
+	gid = null
+	test_users = 'test1@test.com test3@test.com test4@test.com'.split ' '
+	password = '12345678'
+	users = null
+	beforeEach (done)-> 
+		flow.group _.map(test_users, (x)-> (cb)-> api.register {email:x, password:password}, (err, id)-> cb id), -> 
+			users = _.chain(arguments).toArray().pluck(0).value()
+			api.init_game {initiator: users[0], type: 'weiqi', players:users[0..1], seats:{black:users[0], white:users[1]}, social:true, start:'auto'}, (err, test_gid)->
+				gid = test_gid
+				done()
+		
+	afterEach (done)->
+		api.now = -> Math.round new Date().getTime()/1000
+		api.discard_game gid, ->
+			flow.group _.map(test_users, (x)->(cb)->api.discard_user x, cb), -> done()
+			
+	describe 'retract', ->
+		it 'move and retract repeatedly', (done)->
+			api.move gid, {next:'white', move:{player:'black', pos:[0,0]}}, (err, data)->
+				assert not err
+				api.retract users[0], gid, (err)->
+					assert not err
+					api.move gid, {next:'white', move:{player:'black', pos:[0,0]}}, (err, data)->
+						assert not err
+						done()

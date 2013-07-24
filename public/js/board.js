@@ -358,10 +358,6 @@
       this.board = board;
       this.opts = opts;
       ConnectedBoard.__super__.constructor.call(this, this.board, this.opts);
-      this.connect();
-      this.board.find('#retract').click(function() {
-        return _this.retract();
-      });
       if (this.board.attr('status') === 'taking_seat' && this.board.attr('iam') === 'player') {
         $('#seats').show();
         $('#seats .item a').click(function() {
@@ -380,14 +376,13 @@
       }
     }
 
-    ConnectedBoard.prototype.connect = function() {
+    ConnectedBoard.prototype.connect = function(cb) {
       var _ref1,
         _this = this;
 
       console.log('try connect');
       this.socket = io.connect("http://" + location.hostname + "/weiqi/" + (this.board.attr('socket')));
       return this.socket.emit('auth', (_ref1 = $.cookie('auth')) != null ? _ref1 : 'anonymous', function(res) {
-        console.log(res);
         if (typeof _this.on_connect === "function") {
           _this.on_connect();
         }
@@ -449,10 +444,11 @@
           _this.canvas.removeClass('your_turn');
           return typeof _this.on_retract === "function" ? _this.on_retract(uid) : void 0;
         });
-        return _this.socket.on('surrender', function(uid) {
+        _this.socket.on('surrender', function(uid) {
           console.log('surrender ' + uid);
           return typeof this.on_surrender === "function" ? this.on_surrender(uid) : void 0;
         });
+        return typeof cb === "function" ? cb(console.log(res)) : void 0;
       });
     };
 
@@ -466,9 +462,19 @@
       }) : void 0;
     };
 
-    ConnectedBoard.prototype.withdraw = function(pos, player) {
-      console.log(this.option);
-      return this.redraw();
+    ConnectedBoard.prototype.withdraw = function() {
+      var last_player, _ref1;
+
+      if (!((_ref1 = this.initial.moves) != null ? _ref1.length : void 0)) {
+        return;
+      }
+      last_player = this.initial.moves[this.initial.moves.length - 1].player;
+      retract(this.initial.moves);
+      this.on_next_player(last_player);
+      this.redraw();
+      if (last_player === this.board.attr('seat')) {
+        return this.canvas.addClass('your_turn');
+      }
     };
 
     ConnectedBoard.prototype.move = function(pos, player) {
@@ -484,7 +490,7 @@
         console.log('move: ' + JSON.stringify(res));
         sent = true;
         if (res.fail) {
-          return _this.withdraw(pos, player);
+          return _this.withdraw();
         } else {
           if (res.next) {
             return _this.on_next_player(res.next);
@@ -498,8 +504,7 @@
     };
 
     ConnectedBoard.prototype.on_disconnect = function() {
-      this.connected = false;
-      return console.log('disconnect');
+      return this.connected = false;
     };
 
     ConnectedBoard.prototype.on_start_taking_seat = null;
@@ -520,27 +525,39 @@
       var _this = this;
 
       if (this.board.attr('iam') === 'player' && this.initial.moves.length && this.board.attr('next') !== this.board.attr('seat')) {
-        return this.socket.emit('retract', function(data) {
-          if (data === 'success') {
-            retract(_this.initial.moves);
-            _this.on_next_player(_this.board.attr('next') === 'black' ? 'white' : 'black');
-            _this.redraw();
-            return _this.canvas.addClass('your_turn');
-          }
+        return this.test_connection(function() {
+          return _this.socket.emit('retract', function(data) {
+            if (data === 'success') {
+              return _this.withdraw();
+            }
+          });
         });
       }
     };
 
     ConnectedBoard.prototype.on_surrender = null;
 
-    ConnectedBoard.prototype.on_click = function(pos, player) {
-      if (this.board.attr('status') === 'started' && this.board.attr('iam') === 'player' && this.board.attr('next') === this.board.attr('seat')) {
-        if (!this.connected) {
-          throw new Error("failed for connection absence");
+    ConnectedBoard.prototype.test_connection = function(cb) {
+      var _this = this;
+
+      return (function(cb) {
+        if (_this.connected) {
+          return cb();
+        } else {
+          return _this.connect(cb);
         }
-        ConnectedBoard.__super__.on_click.call(this, pos, player);
-        this.move(pos, this.board.attr('seat'));
-        return this.canvas.removeClass('your_turn');
+      })(cb);
+    };
+
+    ConnectedBoard.prototype.on_click = function(pos, player) {
+      var _this = this;
+
+      if (this.board.attr('status') === 'started' && this.board.attr('iam') === 'player' && this.board.attr('next') === this.board.attr('seat')) {
+        return this.test_connection(function() {
+          ConnectedBoard.__super__.on_click.call(_this, pos, player);
+          _this.move(pos, _this.board.attr('seat'));
+          return _this.canvas.removeClass('your_turn');
+        });
       }
     };
 

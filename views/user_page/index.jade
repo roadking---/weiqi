@@ -1,7 +1,7 @@
 extends ../layout
 
 block title
-	title= lingua.title_user_page({name:me.nickname, title:lingua['title_' + me.title]})
+	title= lingua.title_user_page({name:me.nickname, title:title(me.title)})
 
 block append scripts
 	script(type='text/javascript', src='/js/board.js')

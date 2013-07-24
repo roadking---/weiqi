@@ -233,7 +233,6 @@ init_game = exports.init_game = (opts, cb)->
 						cb undefined, gid
 
 
-
 move = exports.move = (gid, data, cb)->
 	get_game gid, (err, game)->
 		return cb err if err

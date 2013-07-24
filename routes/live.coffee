@@ -106,7 +106,7 @@ exports.start = (io, socket, gid)->
 					api.move gid, {next:next, move:req}, (err, rlt)->
 						if err
 							console.error err
-							return cb? fail:err
+							return cb? fail:(err.message ? 'unknown error')
 						socket.get 'user', (err, user)->
 							if not err
 								console.info "move: #{user}: " + JSON.stringify req

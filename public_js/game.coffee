@@ -18,6 +18,7 @@ class Weiqi extends ConnectedBoard
 		super()
 		console.log 'connected'
 	on_next_player: (player)->
+		super player
 		$("#players .next").removeClass 'next'
 		$("#players .#{player}").addClass 'next'
 	on_start_taking_seat: -> 
@@ -44,7 +45,7 @@ class Weiqi extends ConnectedBoard
 	on_disconnect: => 
 		show_notice 'connection_lost', 'text-warning'
 		console.log 'disconnect'
-		@connect()
+		super()
 	on_move: (moves, next)->
 		if @board.attr('status') is 'started' and @board.attr('iam') is 'player' and next is @board.attr('seat')
 			show_notice 'started_please_move', 'text-warning'
@@ -75,6 +76,10 @@ $ ->
 		$('#gaming-board:visible, #trying-board:visible').data('data')?.go_back()
 	$('#toolbox #forward').click -> 
 		$('#gaming-board:visible, #trying-board:visible').data('data')?.go_forward()
+	$('#toolbox #retract').click ->
+		console.log 'retract'
+		$('#gaming-board:visible').data('data')?.retract()
+	
 	
 	refresh_view = ->
 		show_num = $('#gaming-board:visible, #trying-board:visible').data('data')?.show_num
@@ -124,13 +129,13 @@ $ ->
 	
 	
 	if b.board.attr('status') is 'taking_seat'
-		players = JSON.parse b.board.attr('players')
-		if players
-			_.chain(players).pairs().each (x)->
-				if x[1].id is b.board.attr('uid')
-					set_seat x[0], nickname:$('#seats').attr('_text')
-				else
-					set_seat x[0], x[1]
+		if b.board.attr('players')
+			if players = JSON.parse b.board.attr('players')
+				_.chain(players).pairs().each (x)->
+					if x[1].id is b.board.attr('uid')
+						set_seat x[0], nickname:$('#seats').attr('_text')
+					else
+						set_seat x[0], x[1]
 		
 		$('#seats #black, #white').click ->
 			if $(this).hasClass 'vacant'
@@ -143,7 +148,9 @@ $ ->
 							if $(x).hasClass 'me'
 								$(x).removeClass 'me'
 								reset_seat $(x).attr('id')
-			
+	
+	
+	
 	install_pub 'connected'
 	
 	m = /step=(\d+)/.exec location.search

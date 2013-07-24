@@ -11,8 +11,7 @@ class BasicBoard
 	on_next_player: (player)->
 		@initial.next = player
 		@board.attr 'next', player
-		#@board.find("#players .next").removeClass 'next'
-		#@board.find("#players .#{player}").addClass 'next'
+		
 	redraw: ->
 
 class window.CanvasBoard extends BasicBoard
@@ -202,9 +201,8 @@ class window.PlayBoard extends window.Board
 class window.ConnectedBoard extends window.PlayBoard
 	constructor: (@board, @opts)->
 		super @board, @opts
-		@connect()
+		#@connect()
 		
-		@board.find('#retract').click => @retract()
 		if @board.attr('status') is 'taking_seat' and @board.attr('iam') is 'player'
 			$('#seats').show()
 			$('#seats .item a').click =>
@@ -217,11 +215,10 @@ class window.ConnectedBoard extends window.PlayBoard
 		if @board.attr('iam') is 'player' and @board.attr('next') is @board.attr('seat')
 			@canvas.addClass 'your_turn'
 
-	connect: ->
+	connect: (cb)->
 		console.log 'try connect'
 		@socket = io.connect "http://#{location.hostname}/weiqi/#{@board.attr('socket')}"
 		@socket.emit 'auth', $.cookie('auth') ? 'anonymous', (res)=>
-			console.log res
 			@on_connect?()
 			@socket.on 'attend', (res)=>
 				console.log 'attend: ' + JSON.stringify res
@@ -268,14 +265,21 @@ class window.ConnectedBoard extends window.PlayBoard
 			@socket.on 'surrender', (uid)->
 				console.log 'surrender ' + uid
 				@on_surrender? uid
-	
+			cb? console.log res
+			
 	taking_seat: (seat, cb)->
 		@socket?.emit 'taking_seat', seat, (res)=>
 			console.log 'taking_seat: ' + JSON.stringify res
 			cb? res
-	withdraw: (pos, player)->
-		console.log @option
+	withdraw: ->
+		return if not @initial.moves?.length
+		
+		last_player = @initial.moves[@initial.moves.length-1].player
+		retract @initial.moves
+		@on_next_player last_player
 		@redraw()
+		if last_player is @board.attr('seat')
+			@canvas.addClass 'your_turn'
 	move: (pos, player)->
 		move={pos:pos, player:player}
 		sent = false
@@ -284,7 +288,7 @@ class window.ConnectedBoard extends window.PlayBoard
 			console.log 'move: ' + JSON.stringify res
 			sent = true
 			if res.fail
-				@withdraw pos, player
+				@withdraw()
 			else
 				@on_next_player res.next if res.next
 		
@@ -292,7 +296,6 @@ class window.ConnectedBoard extends window.PlayBoard
 		@connected = true
 	on_disconnect: ->
 		@connected = false
-		console.log 'disconnect'
 	on_start_taking_seat: null
 	on_seats_update: null
 	on_quit: null
@@ -302,22 +305,28 @@ class window.ConnectedBoard extends window.PlayBoard
 	on_retract: null
 	retract: ->
 		if @board.attr('iam') is 'player' and @initial.moves.length and @board.attr('next') isnt @board.attr('seat')
-			@socket.emit 'retract', (data)=> 
-				if data is 'success'
-					retract @initial.moves
-					@on_next_player if @board.attr('next') is 'black' then 'white' else 'black'
-					@redraw()
-					@canvas.addClass 'your_turn'
+			@test_connection =>
+				@socket.emit 'retract', (data)=> 
+					if data is 'success'
+						@withdraw()
 
 	on_surrender: null
+	test_connection: (cb)->
+		((cb)=>
+			if @connected
+				cb()
+			else
+				#throw new Error "failed for connection absence"
+				@connect cb
+		) cb
 	on_click: (pos, player)->
 		if @board.attr('status') is 'started' and @board.attr('iam') is 'player' and @board.attr('next') is @board.attr('seat')
-			if not @connected
-				throw new Error "failed for connection absence"
+			@test_connection =>
+				super pos, player
+				@move pos, @board.attr('seat')
+				@canvas.removeClass 'your_turn'
 				
-			super pos, player
-			@move pos, @board.attr('seat')
-			@canvas.removeClass 'your_turn'
+				
 	send_comment: (gid, comment, cb)->
 		console.log comment
 		@socket?.emit 'comment', gid, comment, cb

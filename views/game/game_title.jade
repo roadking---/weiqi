@@ -20,9 +20,9 @@ else if data.seats
 	else
 		span.player ?
 else if data.players
-	mixin user_title(data.players[0])
+	mixin user_title(refs[data.players[0]])
 	span  vs 
 	if data.players[1]
-		mixin user_title(data.players[1])
+		mixin user_title(refs[data.players[1]])
 	else
 		span.player ?	

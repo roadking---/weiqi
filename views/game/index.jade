@@ -4,7 +4,7 @@ block title
 	if game.seats && _.keys(game.seats).length == 2
 		title #{refs[game.seats.black].nickname} #{title(refs[game.seats.black].title)} (#{lingua.black_short}) vs #{refs[game.seats.white].nickname} #{title(refs[game.seats.white].title)} (#{lingua.white_short})
 	else if game.players && game.players.length == 1
-		title xx
+		title #{refs[game.players[0]].nickname} #{title(refs[game.players[0]].title)} vs ?
 	else if game.players && game.players.length == 2
 		title #{refs[game.players[0]].nickname} #{title(refs[game.players[0]].title)} vs #{refs[game.players[1]].nickname} #{title(refs[game.players[1]].title)}
 	else
@@ -20,13 +20,7 @@ block append scripts
 
 block content
 	if game.status == 'taking_seat'
-		#seats(_text=lingua.me).row
-			#black.span6.vacant
-				span.nickname ?
-				span.title
-			#white.span6.vacant
-				span.nickname ?
-				span.title
+		include seats.jade
 	
 	#game-view-outer.row-fluid
 		#game-view.span9

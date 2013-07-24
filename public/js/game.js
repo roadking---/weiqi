@@ -42,6 +42,7 @@
     };
 
     Weiqi.prototype.on_next_player = function(player) {
+      Weiqi.__super__.on_next_player.call(this, player);
       $("#players .next").removeClass('next');
       return $("#players ." + player).addClass('next');
     };
@@ -91,7 +92,7 @@
     Weiqi.prototype.on_disconnect = function() {
       show_notice('connection_lost', 'text-warning');
       console.log('disconnect');
-      return this.connect();
+      return Weiqi.__super__.on_disconnect.call(this);
     };
 
     Weiqi.prototype.on_move = function(moves, next) {
@@ -164,6 +165,12 @@
 
       return (_ref1 = $('#gaming-board:visible, #trying-board:visible').data('data')) != null ? _ref1.go_forward() : void 0;
     });
+    $('#toolbox #retract').click(function() {
+      var _ref1;
+
+      console.log('retract');
+      return (_ref1 = $('#gaming-board:visible').data('data')) != null ? _ref1.retract() : void 0;
+    });
     refresh_view = function() {
       var show_num, _ref1;
 
@@ -221,17 +228,18 @@
       }
     });
     if (b.board.attr('status') === 'taking_seat') {
-      players = JSON.parse(b.board.attr('players'));
-      if (players) {
-        _.chain(players).pairs().each(function(x) {
-          if (x[1].id === b.board.attr('uid')) {
-            return set_seat(x[0], {
-              nickname: $('#seats').attr('_text')
-            });
-          } else {
-            return set_seat(x[0], x[1]);
-          }
-        });
+      if (b.board.attr('players')) {
+        if (players = JSON.parse(b.board.attr('players'))) {
+          _.chain(players).pairs().each(function(x) {
+            if (x[1].id === b.board.attr('uid')) {
+              return set_seat(x[0], {
+                nickname: $('#seats').attr('_text')
+              });
+            } else {
+              return set_seat(x[0], x[1]);
+            }
+          });
+        }
       }
       $('#seats #black, #white').click(function() {
         var seat;

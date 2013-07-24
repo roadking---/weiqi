@@ -2,9 +2,10 @@ include ../widget/user_title
 
 mixin history_list(item)
 	.history
-		span.ts(_ts=item.init_ts)
+		span.ts(_ts=item.result.ts)
 		span.total_moves= lingua.total_moves({moves:item.moves.length})
 		span.case
+			- console.log(item.result);
 			if item.result.win
 				if item.result.win == 'black'
 					span= lingua.seat_black

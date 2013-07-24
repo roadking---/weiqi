@@ -134,7 +134,6 @@ describe 'blogs view', ->
 				assert not err
 				api.get_page gid, (err, posts)->
 					assert not err
-					console.log posts
 					assert.equal posts.length, 1
 					assert.equal posts[0].type, 'init_game'
 					assert.equal posts[0].scenario, 'init_and_start'
@@ -143,7 +142,7 @@ describe 'blogs view', ->
 						html = fn blogs:posts, refs:refs
 						#dump html
 						done()
-		it.only 'init_and_start and frequent and less frequent users', (done)->
+		it 'init_and_start and frequent and less frequent users', (done)->
 			m = api.client.multi()
 			m.set [users[0], 'wins'].join('|'), 7
 			m.set [users[0], 'losses'].join('|'), 17
@@ -158,12 +157,11 @@ describe 'blogs view', ->
 					assert not err
 					api.get_page gid, (err, posts)->
 						assert not err
-						console.log posts
 						assert.equal posts.length, 1
 						assert.equal posts[0].type, 'init_game'
 						assert.equal posts[0].scenario, 'init_and_start'
 						api.get_refs {blogs:posts, users:_.pluck(users, 'id')}, (err, refs)->
 							assert not err
 							html = fn blogs:posts, refs:refs
-							dump html
+							#dump html
 							done()
