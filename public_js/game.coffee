@@ -38,7 +38,7 @@ class Weiqi extends ConnectedBoard
 				$("#seats .#{s}").removeClass('me').removeClass('taken')
 	on_quit: (res)-> location.reload()
 	on_resume: (res)-> location.reload()
-	on_start: -> 
+	on_start: (seats, next)-> 
 		$('#players .black .name').text(seats.black.nickname).attr 'href', "/u/#{seats.black.id}"
 		$('#players .black .title').text seats.black.title
 		$('#players .white .name').text(seats.white.nickname).attr 'href', "/u/#{seats.black.id}"

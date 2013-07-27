@@ -222,12 +222,13 @@ class window.ConnectedBoard extends window.PlayBoard
 		
 	connect: (cb)->
 		console.log 'try connect'
-		@socket = io.connect "http://#{location.hostname}/weiqi/#{@board.attr('socket')}"
+		@socket = io.connect "http://#{location.hostname}/weiqi"
 		@socket.on 'connect_failed', @on_connect_failed
 		@socket.on 'reconnect_failed', @on_connect_failed
 		@socket.on 'connecting', @on_connecting
 		@socket.on 'reconnecting', @on_connecting
 		@socket.emit 'auth', $.cookie('auth') ? 'anonymous', (res)=>
+			@socket.emit 'room', @board.attr('socket')
 			@on_connect?()
 			@socket.on 'reconnect', @on_reconnect
 			@socket.on 'attend', (res)=>
@@ -242,14 +243,13 @@ class window.ConnectedBoard extends window.PlayBoard
 					@board.attr 'status', 'taking_seat'
 					@on_start_taking_seat?()
 				else
-					console.log res
 					@on_seats_update? res
 			@socket.on 'start', (seats, next)=>
 				console.log 'start: ' + JSON.stringify [seats, next]
 				@board.attr 'status', 'started'
 				
 				@on_next_player next
-				@on_start?()
+				@on_start? seats, next
 			@socket.on 'move', (moves, next)=>
 				console.log 'move: ' + JSON.stringify(moves)
 				_.each moves, (x)=> 

@@ -23,7 +23,6 @@ exports.start = (io, socket, gid)->
 			
 	socket.on 'auth', (str, cb)-> 
 		console.info 'auth'
-		
 		if str is 'anonymous'
 			socket.set 'user', 'anonymous'
 			cb? 'anonymous'

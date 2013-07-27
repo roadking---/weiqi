@@ -79,13 +79,7 @@ exports.game = (req, res, next)->
 							id: x[1], nickname: refs[x[1]].nickname, title: res.locals.title(refs[x[1]].title)
 						]).object().value()
 							
-	
-	if not (req.game.status in ['ended'])
-		if not api.cache.get gid + '_socket'
-			console.info "listen to /weiqi/#{gid}"
-			exports.io.of("/weiqi/#{gid}").on 'connection',  (socket)->
-				live.start exports.io, socket, gid
-									
+			
 exports.attend = (req, res, next)->
 	return res.redirect '/login' if not req.session.user
 	api.player_attend req.params.id, req.session.user.id, (err, all_arrived)->
@@ -93,9 +87,9 @@ exports.attend = (req, res, next)->
 			next err
 		else
 			console.info "attend: #{req.params.id} <- #{req.session.user.id}"
-			exports.io.of("/weiqi/#{req.params.id}").emit 'attend', uid:req.session.user.id, name:req.session.user.nickname
+			exports.io.of("/weiqi").in(req.params.id).emit 'attend', uid:req.session.user.id, name:req.session.user.nickname
 			if all_arrived
-				exports.io.of("/weiqi/#{req.params.id}").emit 'taking_seat', 'start'
+				exports.io.of("/weiqi").in(req.params.id).emit 'taking_seat', 'start'
 			res.redirect "/game/weiqi/#{req.params.id}"
 
 exports.delete = (req, res, next)->
@@ -119,16 +113,8 @@ exports.quit = (req, res, next)->
 			next err
 		else
 			console.info "quit: #{req.params.id} <- #{req.session.user.id}"
-			exports.io.of("/weiqi/#{req.params.id}").emit 'quit', uid:req.session.user.id, name:req.session.user.nickname
+			exports.io.of("/weiqi").in(req.params.id).emit 'quit', uid:req.session.user.id, name:req.session.user.nickname
 			res.redirect "/game/weiqi/#{req.params.id}"
-###
-m = api.client.multi()
-m.del ['u1', 'inviting'].join('|')
-m.del ['u1', 'invited'].join('|')
-m.del ['u2', 'inviting'].join('|')
-m.del ['u2', 'invited'].join('|')
-m.exec()
-###
 
 exports.user_page = (req, res, next)->
 	uid = req.params.id
@@ -273,7 +259,7 @@ exports.surrender = (req, res, next)->
 		api.game_rating rlt, (err, players)->
 			return next err if err
 			console.log players
-			exports.io.of("/weiqi/#{req.params.gid}").emit 'surrender', req.session.user.id
+			exports.io.of("/weiqi").in(req.params.id).emit 'surrender', req.session.user.id
 			res.redirect "/game/weiqi/#{req.params.gid}"
 
 exports.delete_blog = (req, res, next)->

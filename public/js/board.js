@@ -388,12 +388,13 @@
         _this = this;
 
       console.log('try connect');
-      this.socket = io.connect("http://" + location.hostname + "/weiqi/" + (this.board.attr('socket')));
+      this.socket = io.connect("http://" + location.hostname + "/weiqi");
       this.socket.on('connect_failed', this.on_connect_failed);
       this.socket.on('reconnect_failed', this.on_connect_failed);
       this.socket.on('connecting', this.on_connecting);
       this.socket.on('reconnecting', this.on_connecting);
       return this.socket.emit('auth', (_ref1 = $.cookie('auth')) != null ? _ref1 : 'anonymous', function(res) {
+        _this.socket.emit('room', _this.board.attr('socket'));
         if (typeof _this.on_connect === "function") {
           _this.on_connect();
         }
@@ -414,7 +415,6 @@
             _this.board.attr('status', 'taking_seat');
             return typeof _this.on_start_taking_seat === "function" ? _this.on_start_taking_seat() : void 0;
           } else {
-            console.log(res);
             return typeof _this.on_seats_update === "function" ? _this.on_seats_update(res) : void 0;
           }
         });
@@ -422,7 +422,7 @@
           console.log('start: ' + JSON.stringify([seats, next]));
           _this.board.attr('status', 'started');
           _this.on_next_player(next);
-          return typeof _this.on_start === "function" ? _this.on_start() : void 0;
+          return typeof _this.on_start === "function" ? _this.on_start(seats, next) : void 0;
         });
         _this.socket.on('move', function(moves, next) {
           console.log('move: ' + JSON.stringify(moves));

@@ -3,7 +3,6 @@ express = require('express')
 http = require('http')
 path = require('path')
 lingua  = require('lingua')
-routes = require('./routes')
 require './compile'
 require './i18n'
 jade = require 'jade'
@@ -58,10 +57,14 @@ require('./routes/routes').set app
 server = http.createServer(app).listen app.get('port'), ->
 	console.log "Express server listening on port " + app.get('port')
 
-routes.io = require('socket.io').listen server
+require('./routes').io = io = require('socket.io').listen server
 
 #required by heroku
-routes.io.configure ->
-	routes.io.set "transports", ["xhr-polling"]
-	routes.io.set "polling duration", 10
-	routes.io.set "log level", 1
+io.configure ->
+	io.set "transports", ["xhr-polling"]
+	io.set "polling duration", 10
+	io.set "log level", 1
+
+io.of("/weiqi").on 'connection',  (socket)->
+	game_io = require('./routes/game.io')
+	game_io io, socket

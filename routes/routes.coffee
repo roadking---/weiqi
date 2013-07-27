@@ -2,8 +2,6 @@ routes = require('./index')
 _ = require 'underscore'
 api = require '../api'
 
-exports.io = null
-
 exports.set = (app)->
 	app.param 'gid', (req, res, next, gid)->
 		api.get_game gid, (err, game)->
