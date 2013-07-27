@@ -18,7 +18,6 @@
       });
       this.LINES = 19;
       this.initial = (_ref1 = this.board.data('game')) != null ? _ref1 : JSON.parse(this.board.attr('game'));
-      this.on_next_player(this.board.attr('next'));
       this.board.data('data', this);
     }
 
@@ -67,6 +66,7 @@
       });
       this.interval = (this.canvas.height() - 2 * this.opts.margin) / (this.LINES - 1);
       this.ctx = this.canvas[0].getContext("2d");
+      this.on_next_player(this.board.attr('next'));
       this.show_number = this.board.find('#num_btn i').hasClass('show-number');
       this.show_steps_to = null;
       if (this.opts.click) {
@@ -103,6 +103,15 @@
       }
       this.redraw();
     }
+
+    CanvasBoard.prototype.on_next_player = function(player) {
+      CanvasBoard.__super__.on_next_player.call(this, player);
+      if (this.board.attr('iam') === 'player' && this.board.attr('next') === this.board.attr('seat')) {
+        return this.canvas.addClass('your_turn');
+      } else {
+        return this.canvas.removeClass('your_turn');
+      }
+    };
 
     CanvasBoard.prototype.circle = function(x, y, radius, fill_color, stroke_color) {
       if (stroke_color == null) {
@@ -358,6 +367,7 @@
       this.board = board;
       this.opts = opts;
       ConnectedBoard.__super__.constructor.call(this, this.board, this.opts);
+      this.connect();
       if (this.board.attr('status') === 'taking_seat' && this.board.attr('iam') === 'player') {
         $('#seats').show();
         $('#seats .item a').click(function() {
@@ -371,9 +381,6 @@
           }
         });
       }
-      if (this.board.attr('iam') === 'player' && this.board.attr('next') === this.board.attr('seat')) {
-        this.canvas.addClass('your_turn');
-      }
     }
 
     ConnectedBoard.prototype.connect = function(cb) {
@@ -382,10 +389,15 @@
 
       console.log('try connect');
       this.socket = io.connect("http://" + location.hostname + "/weiqi/" + (this.board.attr('socket')));
+      this.socket.on('connect_failed', this.on_connect_failed);
+      this.socket.on('reconnect_failed', this.on_connect_failed);
+      this.socket.on('connecting', this.on_connecting);
+      this.socket.on('reconnecting', this.on_connecting);
       return this.socket.emit('auth', (_ref1 = $.cookie('auth')) != null ? _ref1 : 'anonymous', function(res) {
         if (typeof _this.on_connect === "function") {
           _this.on_connect();
         }
+        _this.socket.on('reconnect', _this.on_reconnect);
         _this.socket.on('attend', function(res) {
           console.log('attend: ' + JSON.stringify(res));
           if (_this.initial.status === 'need_player') {
@@ -409,10 +421,6 @@
         _this.socket.on('start', function(seats, next) {
           console.log('start: ' + JSON.stringify([seats, next]));
           _this.board.attr('status', 'started');
-          _this.board.find('.players .black .name').text(seats.black.nickname).attr('href', "/u/" + seats.black.id);
-          _this.board.find('.players .black .title').text(seats.black.title);
-          _this.board.find('.players .white .name').text(seats.white.nickname).attr('href', "/u/" + seats.black.id);
-          _this.board.find('.players .white .title').text(seats.white.title);
           _this.on_next_player(next);
           return typeof _this.on_start === "function" ? _this.on_start() : void 0;
         });
@@ -424,9 +432,6 @@
           });
           _this.on_next_player(next);
           _this.redraw();
-          if (_this.board.attr('iam') === 'player') {
-            _this.canvas.addClass('your_turn');
-          }
           return typeof _this.on_move === "function" ? _this.on_move(moves, next) : void 0;
         });
         if (_this.on_disconnect) {
@@ -441,7 +446,6 @@
           retract(_this.initial.moves);
           _this.on_next_player(_this.board.attr('next') === 'black' ? 'white' : 'black');
           _this.redraw();
-          _this.canvas.removeClass('your_turn');
           return typeof _this.on_retract === "function" ? _this.on_retract(uid) : void 0;
         });
         _this.socket.on('surrender', function(uid) {
@@ -453,13 +457,16 @@
     };
 
     ConnectedBoard.prototype.taking_seat = function(seat, cb) {
-      var _ref1,
-        _this = this;
+      var _this = this;
 
-      return (_ref1 = this.socket) != null ? _ref1.emit('taking_seat', seat, function(res) {
-        console.log('taking_seat: ' + JSON.stringify(res));
-        return typeof cb === "function" ? cb(res) : void 0;
-      }) : void 0;
+      return this.test_connection(function() {
+        var _ref1;
+
+        return (_ref1 = _this.socket) != null ? _ref1.emit('taking_seat', seat, function(res) {
+          console.log('taking_seat: ' + JSON.stringify(res));
+          return typeof cb === "function" ? cb(res) : void 0;
+        }) : void 0;
+      });
     };
 
     ConnectedBoard.prototype.withdraw = function() {
@@ -471,10 +478,7 @@
       last_player = this.initial.moves[this.initial.moves.length - 1].player;
       retract(this.initial.moves);
       this.on_next_player(last_player);
-      this.redraw();
-      if (last_player === this.board.attr('seat')) {
-        return this.canvas.addClass('your_turn');
-      }
+      return this.redraw();
     };
 
     ConnectedBoard.prototype.move = function(pos, player) {
@@ -503,9 +507,20 @@
       return this.connected = true;
     };
 
+    ConnectedBoard.prototype.on_reconnect = function() {
+      return this.connected = true;
+    };
+
     ConnectedBoard.prototype.on_disconnect = function() {
       return this.connected = false;
     };
+
+    ConnectedBoard.prototype.on_connect_failed = function() {
+      this.connected = false;
+      return console.log('connect_failed');
+    };
+
+    ConnectedBoard.prototype.on_connecting = function() {};
 
     ConnectedBoard.prototype.on_start_taking_seat = null;
 
@@ -519,7 +534,7 @@
 
     ConnectedBoard.prototype.on_move = null;
 
-    ConnectedBoard.prototype.on_retract = null;
+    ConnectedBoard.prototype.on_retract = function() {};
 
     ConnectedBoard.prototype.retract = function() {
       var _this = this;
@@ -528,12 +543,15 @@
         return this.test_connection(function() {
           return _this.socket.emit('retract', function(data) {
             if (data === 'success') {
-              return _this.withdraw();
+              _this.withdraw();
+              return typeof _this.mine_retract === "function" ? _this.mine_retract() : void 0;
             }
           });
         });
       }
     };
+
+    ConnectedBoard.prototype.mine_retract = null;
 
     ConnectedBoard.prototype.on_surrender = null;
 
@@ -550,14 +568,19 @@
     };
 
     ConnectedBoard.prototype.on_click = function(pos, player) {
-      var _this = this;
+      var e,
+        _this = this;
 
       if (this.board.attr('status') === 'started' && this.board.attr('iam') === 'player' && this.board.attr('next') === this.board.attr('seat')) {
-        return this.test_connection(function() {
-          ConnectedBoard.__super__.on_click.call(_this, pos, player);
-          _this.move(pos, _this.board.attr('seat'));
-          return _this.canvas.removeClass('your_turn');
-        });
+        try {
+          ConnectedBoard.__super__.on_click.call(this, pos, player);
+          return this.test_connection(function() {
+            return _this.move(pos, _this.board.attr('seat'));
+          });
+        } catch (_error) {
+          e = _error;
+          return console.log(e);
+        }
       }
     };
 

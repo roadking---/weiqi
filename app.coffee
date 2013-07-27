@@ -64,3 +64,4 @@ routes.io = require('socket.io').listen server
 routes.io.configure ->
 	routes.io.set "transports", ["xhr-polling"]
 	routes.io.set "polling duration", 10
+	routes.io.set "log level", 1

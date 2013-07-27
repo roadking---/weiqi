@@ -35,35 +35,49 @@ input.showable:focus {
   margin-left: 60px;
 }
 #seats {
+  display: table;
   color: #483c32;
+  position: fixed;
+  background-color: rgba(0,0,0,0.5);
+  top: 30%;
+  width: 100%;
+  height: 300px;
   margin-bottom: 30px;
 }
-#seats #black,
-#seats #white {
-  height: 40px;
+#seats .black,
+#seats .white {
+  height: 100px;
+  margin-top: 100px;
+  display: table;
   -webkit-border-radius: 10px;
   -moz-border-radius: 10px;
   border-radius: 10px;
   line-height: 40px;
   text-align: center;
+  vertical-align: middle;
+  border: 4px solid #86bdaa;
 }
-#seats #black .nickname,
-#seats #white .nickname {
+#seats .black .nickname,
+#seats .white .nickname {
+  display: none;
+}
+#seats .taken {
+  border: 4px solid rgba(0,0,0,0) !important;
+}
+#seats .taken .unknown {
+  display: none;
+}
+#seats .taken .nickname {
+  display: block !important;
   margin-left: 10%;
   margin-right: 5px;
 }
-#seats .vacant {
-  border: 4px solid #86bdaa;
-}
-#seats .taken {
-  border: 4px solid rgba(0,0,0,0.3);
-}
-#seats #black {
-  background: url("/img/black.svg") no-repeat;
+#seats .black {
+  background: rgba(255,255,255,0.7) url("/img/black.svg") no-repeat;
   background-position: 30% 10px;
 }
-#seats #white {
-  background: url("/img/white.svg") no-repeat;
+#seats .white {
+  background: rgba(255,255,255,0.7) url("/img/white.svg") no-repeat;
   background-position: 30% 10px;
 }
 #game-view-outer {

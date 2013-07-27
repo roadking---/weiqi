@@ -1,12 +1,8 @@
 set_seat = (seat, player)->
-	s = $("#seats ##{seat}").addClass('taken').removeClass('vacant')
+	s = $("#seats .#{seat}").addClass('taken')
 	s.find('.nickname').text player.nickname
-	s.find('.title').text player.title ? ''
+	
 		
-reset_seat = (seat, player)->
-	s = $("#seats ##{seat}").removeClass('taken').addClass('vacant')
-	s.find('.nickname').text '?'
-	s.find('.title').text ''
 
 show_notice = (msg, style)->
 	text = JSON.parse $('#game-notice').attr('_text')
@@ -14,9 +10,19 @@ show_notice = (msg, style)->
 	
 class Weiqi extends ConnectedBoard
 	on_connect: -> 
-		#show_notice 'connected', 'text-warning'
 		super()
 		console.log 'connected'
+		show_notice 'connected', 'text-warning'
+	on_reconnect: ->
+		super()
+		console.log 'reconnected'
+		show_notice 'reconnected', 'text-warning'
+	on_connect_failed: ->
+		super()
+		show_notice 'connect_failed', 'text-warning'
+	on_connecting: ->
+		super()
+		show_notice 'connecting', 'text-warning'
 	on_next_player: (player)->
 		super player
 		$("#players .next").removeClass 'next'
@@ -26,15 +32,20 @@ class Weiqi extends ConnectedBoard
 	on_seats_update: (seats)->
 		_.each ['black', 'white'], (s)->
 			if seats[s]
-				set_seat s, seats[s]
+				$("#seats .#{s}").addClass('taken')
+				$("#seats .#{s} .nickname").text seats[s].nickname
 			else
-				reset_seat s
+				$("#seats .#{s}").removeClass('me').removeClass('taken')
 	on_quit: (res)-> location.reload()
 	on_resume: (res)-> location.reload()
 	on_start: -> 
+		$('#players .black .name').text(seats.black.nickname).attr 'href', "/u/#{seats.black.id}"
+		$('#players .black .title').text seats.black.title
+		$('#players .white .name').text(seats.white.nickname).attr 'href', "/u/#{seats.black.id}"
+		$('#players .white .title').text seats.white.title
 		_.delay (->$('#seats').hide()), 5000
-		if $('.board').attr('iam') is 'player'
-			if $('.board').attr('next') is $('.board').attr('seat')
+		if @board.attr('iam') is 'player'
+			if @board.attr('next') is @board.attr('seat')
 				show_notice 'started_please_move', 'text-warning'
 			else
 				show_notice 'started_please_wait', 'text-success'
@@ -61,7 +72,13 @@ class Weiqi extends ConnectedBoard
 	on_comment: (comment)-> 
 		comment.ts = moment(Number comment.ts).format('YYYY/MM/DD HH:mm')
 		update_comment comment
-
+	on_retract: ->
+		super()
+		show_notice 'retract_by_opponent', 'text-warning'
+		console.log 'retract'
+	mine_retract: ->
+		show_notice 'started_please_move', 'text-warning'
+	
 $ ->
 	b = new Weiqi $('#gaming-board'), {LINE_COLOR: '#53595e', NINE_POINTS_COLOR: '#53595e', size: 600}
 	
@@ -133,22 +150,26 @@ $ ->
 			if players = JSON.parse b.board.attr('players')
 				_.chain(players).pairs().each (x)->
 					if x[1].id is b.board.attr('uid')
-						set_seat x[0], nickname:$('#seats').attr('_text')
+						$("#seats .#{x[0]}").addClass('taken').addClass('me')
+						$("#seats .#{x[0]} .nickname").text $('#seats').attr('_text')
 					else
-						set_seat x[0], x[1]
+						$("#seats .#{x[0]}").addClass('taken')
+						$("#seats .#{x[0]} .nickname").text x[1].nickname
 		
-		$('#seats #black, #white').click ->
-			if $(this).hasClass 'vacant'
-				b.taking_seat seat = $(this).attr('id'), (res)->
-					if res isnt 'fail'
+		$('#seats .black, #seats .white').click ->
+			if not $(this).hasClass 'taken'
+				seat = if $(this).hasClass('black') then 'black' else 'white'
+				b.taking_seat seat, (res)=>
+					if res is 'fail'
+						console.log 'fail'
+					else
+						if not $('#seats .me').hasClass(seat)
+							$('#seats .me').removeClass('me').removeClass('taken')
+						
 						$('.board').attr 'seat', seat
 						set_seat seat, nickname:$('#seats').attr('_text')
 						$(this).addClass 'me'
-						_.chain($('#seats #black, #white')).difference([this]).each (x)-> 
-							if $(x).hasClass 'me'
-								$(x).removeClass 'me'
-								reset_seat $(x).attr('id')
-	
+						
 	
 	
 	install_pub 'connected'

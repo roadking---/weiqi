@@ -106,12 +106,11 @@ exports.start = (io, socket, gid)->
 					api.move gid, {next:next, move:req}, (err, rlt)->
 						if err
 							console.error err
-							return cb? fail:(err.message ? 'unknown error')
+							return cb? fail:(err.message ? 'unknown error'), gid:gid
 						socket.get 'user', (err, user)->
 							if not err
 								console.info "move: #{user}: " + JSON.stringify req
 						socket.broadcast.emit 'move', [req], next
-						api.add_live_show gid, ->
 						cb? success:true, next:next
 		
 		socket.on 'comment', (gid, comment, cb)->

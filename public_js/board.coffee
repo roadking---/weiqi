@@ -4,7 +4,7 @@ class BasicBoard
 		@LINES = 19
 		
 		@initial = @board.data('game') ? JSON.parse @board.attr 'game'
-		@on_next_player @board.attr 'next'
+		
 		@board.data 'data', this
 		
 	locate: (n)-> Math.round @opts.margin + @interval * n
@@ -25,9 +25,10 @@ class window.CanvasBoard extends BasicBoard
 		@canvas.css width: @opts.size, height: @opts.size
 		@interval = (@canvas.height() - 2 * @opts.margin)/(@LINES-1)
 		@ctx = @canvas[0].getContext("2d")
-		
+		@on_next_player @board.attr 'next'
 		@show_number = @board.find('#num_btn i').hasClass 'show-number'
 		@show_steps_to = null
+		
 		
 		if @opts.click
 			@canvas.click (e)=>
@@ -47,6 +48,13 @@ class window.CanvasBoard extends BasicBoard
 					else
 						1
 		@redraw()
+
+	on_next_player: (player)->
+		super player
+		if @board.attr('iam') is 'player' and @board.attr('next') is @board.attr('seat')
+			@canvas.addClass 'your_turn'
+		else
+			@canvas.removeClass 'your_turn'
 
 	circle: (x, y, radius, fill_color, stroke_color='black')->
 		x += .5
@@ -201,7 +209,7 @@ class window.PlayBoard extends window.Board
 class window.ConnectedBoard extends window.PlayBoard
 	constructor: (@board, @opts)->
 		super @board, @opts
-		#@connect()
+		@connect()
 		
 		if @board.attr('status') is 'taking_seat' and @board.attr('iam') is 'player'
 			$('#seats').show()
@@ -212,14 +220,16 @@ class window.ConnectedBoard extends window.PlayBoard
 					@socket.emit 'taking_seat', $(this).attr('seat'), (res)=> console.log 'taking_seat: ' + JSON.stringify res
 					$(this).removeClass('none').addClass('mine').text 'Me'
 		
-		if @board.attr('iam') is 'player' and @board.attr('next') is @board.attr('seat')
-			@canvas.addClass 'your_turn'
-
 	connect: (cb)->
 		console.log 'try connect'
 		@socket = io.connect "http://#{location.hostname}/weiqi/#{@board.attr('socket')}"
+		@socket.on 'connect_failed', @on_connect_failed
+		@socket.on 'reconnect_failed', @on_connect_failed
+		@socket.on 'connecting', @on_connecting
+		@socket.on 'reconnecting', @on_connecting
 		@socket.emit 'auth', $.cookie('auth') ? 'anonymous', (res)=>
 			@on_connect?()
+			@socket.on 'reconnect', @on_reconnect
 			@socket.on 'attend', (res)=>
 				console.log 'attend: ' + JSON.stringify res
 				if @initial.status is 'need_player'
@@ -237,10 +247,7 @@ class window.ConnectedBoard extends window.PlayBoard
 			@socket.on 'start', (seats, next)=>
 				console.log 'start: ' + JSON.stringify [seats, next]
 				@board.attr 'status', 'started'
-				@board.find('.players .black .name').text(seats.black.nickname).attr 'href', "/u/#{seats.black.id}"
-				@board.find('.players .black .title').text seats.black.title
-				@board.find('.players .white .name').text(seats.white.nickname).attr 'href', "/u/#{seats.black.id}"
-				@board.find('.players .white .title').text seats.white.title
+				
 				@on_next_player next
 				@on_start?()
 			@socket.on 'move', (moves, next)=>
@@ -250,7 +257,6 @@ class window.ConnectedBoard extends window.PlayBoard
 					@place x
 				@on_next_player next
 				@redraw()
-				@canvas.addClass 'your_turn' if @board.attr('iam') is 'player'
 				@on_move? moves, next
 			@socket.on 'disconnect', @on_disconnect if @on_disconnect
 			@socket.on 'player_disconnect', (player)=> console.log 'player_disconnect ' + player
@@ -260,7 +266,6 @@ class window.ConnectedBoard extends window.PlayBoard
 				retract @initial.moves
 				@on_next_player if @board.attr('next') is 'black' then 'white' else 'black'
 				@redraw()
-				@canvas.removeClass 'your_turn'
 				@on_retract? uid
 			@socket.on 'surrender', (uid)->
 				console.log 'surrender ' + uid
@@ -268,9 +273,10 @@ class window.ConnectedBoard extends window.PlayBoard
 			cb? console.log res
 			
 	taking_seat: (seat, cb)->
-		@socket?.emit 'taking_seat', seat, (res)=>
-			console.log 'taking_seat: ' + JSON.stringify res
-			cb? res
+		@test_connection =>
+			@socket?.emit 'taking_seat', seat, (res)=>
+				console.log 'taking_seat: ' + JSON.stringify res
+				cb? res
 	withdraw: ->
 		return if not @initial.moves?.length
 		
@@ -278,8 +284,7 @@ class window.ConnectedBoard extends window.PlayBoard
 		retract @initial.moves
 		@on_next_player last_player
 		@redraw()
-		if last_player is @board.attr('seat')
-			@canvas.addClass 'your_turn'
+		
 	move: (pos, player)->
 		move={pos:pos, player:player}
 		sent = false
@@ -294,22 +299,29 @@ class window.ConnectedBoard extends window.PlayBoard
 		
 	on_connect: ->
 		@connected = true
+	on_reconnect: ->
+		@connected = true
 	on_disconnect: ->
 		@connected = false
+	on_connect_failed: ->
+		@connected = false
+		console.log 'connect_failed'
+	on_connecting: ->
 	on_start_taking_seat: null
 	on_seats_update: null
 	on_quit: null
 	on_start: null
 	on_resume: null
 	on_move: null
-	on_retract: null
+	on_retract: ->
 	retract: ->
 		if @board.attr('iam') is 'player' and @initial.moves.length and @board.attr('next') isnt @board.attr('seat')
 			@test_connection =>
 				@socket.emit 'retract', (data)=> 
 					if data is 'success'
 						@withdraw()
-
+						@mine_retract?()
+	mine_retract: null
 	on_surrender: null
 	test_connection: (cb)->
 		((cb)=>
@@ -321,11 +333,12 @@ class window.ConnectedBoard extends window.PlayBoard
 		) cb
 	on_click: (pos, player)->
 		if @board.attr('status') is 'started' and @board.attr('iam') is 'player' and @board.attr('next') is @board.attr('seat')
-			@test_connection =>
+			try
 				super pos, player
-				@move pos, @board.attr('seat')
-				@canvas.removeClass 'your_turn'
-				
+				@test_connection =>
+					@move pos, @board.attr('seat')
+			catch	e
+				console.log e
 				
 	send_comment: (gid, comment, cb)->
 		console.log comment

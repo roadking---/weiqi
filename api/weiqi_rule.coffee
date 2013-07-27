@@ -68,7 +68,7 @@ repeal = (stones, block)->
 	
 move_step = (stones, step)->
 	if _.any(stones, (x)->not x.repealed and x.pos[0] is step.pos[0] and x.pos[1] is step.pos[1])
-		throw new Error "already exists: not allowed in #{step.pos} #{step.player}"
+		throw new Error "already exists: not allowed in #{JSON.stringify step}"
 	
 	try_move = ->
 		blocks = move stones, step
@@ -227,7 +227,18 @@ analyze = (stones)->
 		else
 			regiments.push domains: _.flatten [d, d.adjacent_domains.mine]
 	_.each regiments, (r)->
+		r.player = r.domains[0].player
 		r.adjacent_regiments = _.chain(r.domains).map((x)->x.adjacent_domains.rival).flatten().uniq().map((d)-> _.find regiments, (r)-> d in r.domains).value()
+		r.liberty_blocks = _.chain(r.domains).pluck('liberty_blocks').flatten().compact().uniq().value()
+		_.each r.liberty_blocks, (lb)->
+			lb.eye = \
+			if lb.liberties.length > 1
+				true
+			else
+				console.log lb
+				console.log _.some lb.stone_blocks[r.player], (sb)->
+					console.log sb
+				false
 	
 	#now guessing true or false liberties
 	
@@ -235,3 +246,12 @@ analyze = (stones)->
 
 exports?.analyze = analyze
 window?.analyze = analyze
+
+find_regiment = (regiments, pos)->
+	_.find regiments, (r)->
+		_.find r.domains, (d)->
+			_.find d.stone_blocks, (sb)->
+				_.find sb.block, (b)->
+					b.pos[0] is pos[0] and b.pos[1] is pos[1]
+				
+exports?.find_regiment = find_regiment

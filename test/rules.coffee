@@ -156,5 +156,37 @@ describe 'rules', ->
 			#console.log d.liberty_blocks[0].stone_blocks
 			#_.each rlt, (x)-> console.log _.chain(x.stone_blocks).pluck('block').flatten().value()
 			done()
+		it.only 'false liberty', (done)->
+			stones = []
+			r.move_step stones, {pos:[1, 1], player:'black'}
+			r.move_step stones, {pos:[0, 2], player:'black'}
+			r.move_step stones, {pos:[2, 2], player:'black'}
+			r.move_step stones, {pos:[1, 3], player:'black'}
+			r.move_step stones, {pos:[0, 3], player:'white'}
+			r.move_step stones, {pos:[1, 4], player:'white'}
+			r.move_step stones, {pos:[2, 3], player:'white'}
+			regiments = r.analyze stones
+			assert.equal regiments.length, 2
+			assert regiment = r.find_regiment regiments, [1, 1]
+			assert.equal regiment.player, 'black'
+			assert.equal regiment.liberty_blocks.length, 1
+			#console.log regiment
+			done()
 		it 'regiments', (done)->
+			stones = []
+			r.move_step stones, {pos:[0, 1], player:'black'}
+			r.move_step stones, {pos:[1, 2], player:'black'}
+			r.move_step stones, {pos:[2, 1], player:'black'}
+			r.move_step stones, {pos:[2, 0], player:'black'}
+			r.move_step stones, {pos:[0, 3], player:'white'}
+			r.move_step stones, {pos:[1, 3], player:'white'}
+			r.move_step stones, {pos:[2, 3], player:'white'}
+			r.move_step stones, {pos:[3, 2], player:'white'}
+			r.move_step stones, {pos:[3, 1], player:'white'}
+			r.move_step stones, {pos:[3, 0], player:'white'}
+			r.move_step stones, {pos:[15, 3], player:'black'}
+			regiments = r.analyze stones
+			assert.equal regiments.length, 3
+			regiment = r.find_regiment regiments, [0, 1]
+			console.log regiment
 			done()
