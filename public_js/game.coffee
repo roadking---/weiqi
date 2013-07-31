@@ -2,27 +2,32 @@ set_seat = (seat, player)->
 	s = $("#seats .#{seat}").addClass('taken')
 	s.find('.nickname').text player.nickname
 	
-		
 
-show_notice = (msg, style)->
-	text = JSON.parse $('#game-notice').attr('_text')
-	$('#game-notice').empty().append "<p class='#{style} offset3'>#{text[msg]}</p>"
+show_notice = (msg)->
+	$('#game-notice > *').hide()
+	$("#game-notice *[msg='#{msg}']").show()
 	
 class Weiqi extends ConnectedBoard
 	on_connect: -> 
 		super()
 		console.log 'connected'
-		show_notice 'connected', 'text-warning'
+		show_notice 'connected'
+		if @initial.calling_finishing
+			if @initial.calling_finishing.msg is 'ask' and @initial.calling_finishing.uid is @board.attr('uid')
+				show_notice 'ask_calling_finishing'
+			else if @initial.calling_finishing.msg is 'ask' and @initial.calling_finishing.uid isnt @board.attr('uid') and @board.attr('uid') in @initial.players
+				show_notice 'ask_calling_finishing2_receiver'
+			
 	on_reconnect: ->
 		super()
 		console.log 'reconnected'
-		show_notice 'reconnected', 'text-warning'
+		show_notice 'reconnected'
 	on_connect_failed: ->
 		super()
-		show_notice 'connect_failed', 'text-warning'
+		show_notice 'connect_failed'
 	on_connecting: ->
 		super()
-		show_notice 'connecting', 'text-warning'
+		show_notice 'connecting'
 	on_next_player: (player)->
 		super player
 		$("#players .next").removeClass 'next'
@@ -46,20 +51,20 @@ class Weiqi extends ConnectedBoard
 		_.delay (->$('#seats').hide()), 5000
 		if @board.attr('iam') is 'player'
 			if @board.attr('next') is @board.attr('seat')
-				show_notice 'started_please_move', 'text-warning'
+				show_notice 'started_please_move'
 			else
-				show_notice 'started_please_wait', 'text-success'
+				show_notice 'started_please_wait'
 	on_click: (pos)->
 		if @board.attr('status') is 'started' and @board.attr('iam') is 'player' and @board.attr('next') is @board.attr('seat')
 			super pos
-			show_notice 'started_please_wait', 'text-success'
+			show_notice 'started_please_wait'
 	on_disconnect: => 
-		show_notice 'connection_lost', 'text-warning'
+		show_notice 'connection_lost'
 		console.log 'disconnect'
 		super()
 	on_move: (moves, next)->
 		if @board.attr('status') is 'started' and @board.attr('iam') is 'player' and next is @board.attr('seat')
-			show_notice 'started_please_move', 'text-warning'
+			show_notice 'started_please_move'
 	on_show_steps: (step)->
 		step ?= @initial.moves?.length - 1
 		return if not step?
@@ -74,10 +79,10 @@ class Weiqi extends ConnectedBoard
 		update_comment comment
 	on_retract: ->
 		super()
-		show_notice 'retract_by_opponent', 'text-warning'
+		show_notice 'retract_by_opponent'
 		console.log 'retract'
 	mine_retract: ->
-		show_notice 'started_please_move', 'text-warning'
+		show_notice 'started_please_move'
 	
 $ ->
 	b = new Weiqi $('#gaming-board'), {LINE_COLOR: '#53595e', NINE_POINTS_COLOR: '#53595e', size: 600}
@@ -94,10 +99,12 @@ $ ->
 	$('#toolbox #forward').click -> 
 		$('#gaming-board:visible, #trying-board:visible').data('data')?.go_forward()
 	$('#toolbox #retract').click ->
-		console.log 'retract'
 		$('#gaming-board:visible').data('data')?.retract()
-	
-	
+	$('#toolbox #call-finishing').click ->
+		$('#gaming-board:visible').data('data')?.call_finishing 'ask', (err)->
+			if not err
+				show_notice 'ask_calling_finishing'
+				
 	refresh_view = ->
 		show_num = $('#gaming-board:visible, #trying-board:visible').data('data')?.show_num
 		if show_num
@@ -198,7 +205,12 @@ $ ->
 				$('#blogs-view').show()
 			else
 				$('#blogs-view').hide()
-			
+	
+	$('#game-notice a#cancel_calling_finishing').click ->
+		$('#gaming-board:visible').data('data')?.call_finishing 'cancel', (err)->
+			if not err
+				show_notice 'started_please_move'
+		
 	
 window.show_trying_board = (game)->
 	delete $('#trying-board').data 'data'

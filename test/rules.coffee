@@ -156,7 +156,7 @@ describe 'rules', ->
 			#console.log d.liberty_blocks[0].stone_blocks
 			#_.each rlt, (x)-> console.log _.chain(x.stone_blocks).pluck('block').flatten().value()
 			done()
-		it.only 'false liberty', (done)->
+		it 'false liberty', (done)->
 			stones = []
 			r.move_step stones, {pos:[1, 1], player:'black'}
 			r.move_step stones, {pos:[0, 2], player:'black'}
@@ -170,14 +170,71 @@ describe 'rules', ->
 			assert regiment = r.find_regiment regiments, [1, 1]
 			assert.equal regiment.player, 'black'
 			assert.equal regiment.liberty_blocks.length, 1
-			#console.log regiment
+			assert eye = r.find_eye regiments, [1, 2]
+			assert not eye.eye
 			done()
-		it 'regiments', (done)->
+		it 'true liberty', (done)->
+			stones = []
+			r.move_step stones, {pos:[1, 1], player:'black'}
+			r.move_step stones, {pos:[0, 2], player:'black'}
+			r.move_step stones, {pos:[2, 2], player:'black'}
+			r.move_step stones, {pos:[1, 3], player:'black'}
+			#r.move_step stones, {pos:[0, 3], player:'white'}
+			r.move_step stones, {pos:[1, 4], player:'white'}
+			r.move_step stones, {pos:[2, 3], player:'white'}
+			regiments = r.analyze stones
+			assert.equal regiments.length, 2
+			assert regiment = r.find_regiment regiments, [1, 1]
+			assert.equal regiment.player, 'black'
+			assert.equal regiment.liberty_blocks.length, 1
+			assert eye = r.find_eye regiments, [1, 2]
+			assert eye.eye
+			done()
+		it 'true liberty 2', (done)->
+			stones = []
+			r.move_step stones, {pos:[1, 1], player:'black'}
+			r.move_step stones, {pos:[0, 2], player:'black'}
+			r.move_step stones, {pos:[2, 2], player:'black'}
+			r.move_step stones, {pos:[1, 3], player:'black'}
+			_.each [0..3], (i)->
+				r.move_step stones, {pos:[i, 4], player:'white'}
+				r.move_step stones, {pos:[4, i], player:'white'}
+			regiments = r.analyze stones
+			assert.equal regiments.length, 2
+			assert regiment = r.find_regiment regiments, [1, 1]
+			assert.equal regiment.player, 'black'
+			assert.equal regiment.liberty_blocks.length, 1
+			assert eye = r.find_eye regiments, [1, 2]
+			assert eye.eye
+			done()
+		it 'false liberty 2', (done)->
+			stones = []
+			r.move_step stones, {pos:[1, 1], player:'black'}
+			r.move_step stones, {pos:[0, 2], player:'black'}
+			r.move_step stones, {pos:[2, 2], player:'black'}
+			r.move_step stones, {pos:[1, 3], player:'black'}
+			r.move_step stones, {pos:[0, 3], player:'white'}
+			r.move_step stones, {pos:[1, 4], player:'white'}
+			r.move_step stones, {pos:[2, 1], player:'white'}
+			r.move_step stones, {pos:[3, 1], player:'white'}
+			r.move_step stones, {pos:[3, 2], player:'white'}
+			r.move_step stones, {pos:[3, 3], player:'white'}
+			r.move_step stones, {pos:[3, 4], player:'white'}
+			r.move_step stones, {pos:[2, 4], player:'white'}
+			regiments = r.analyze stones
+			assert.equal regiments.length, 2
+			assert regiment = r.find_regiment regiments, [1, 1]
+			assert.equal regiment.player, 'black'
+			assert.equal regiment.liberty_blocks.length, 1
+			assert eye = r.find_eye regiments, [1, 2]
+			assert not eye.eye?
+			done()
+		it.only 'regiments guess 1', (done)->
 			stones = []
 			r.move_step stones, {pos:[0, 1], player:'black'}
-			r.move_step stones, {pos:[1, 2], player:'black'}
+			r.move_step stones, {pos:[1, 0], player:'black'}
 			r.move_step stones, {pos:[2, 1], player:'black'}
-			r.move_step stones, {pos:[2, 0], player:'black'}
+			r.move_step stones, {pos:[1, 2], player:'black'}
 			r.move_step stones, {pos:[0, 3], player:'white'}
 			r.move_step stones, {pos:[1, 3], player:'white'}
 			r.move_step stones, {pos:[2, 3], player:'white'}
@@ -187,6 +244,12 @@ describe 'rules', ->
 			r.move_step stones, {pos:[15, 3], player:'black'}
 			regiments = r.analyze stones
 			assert.equal regiments.length, 3
-			regiment = r.find_regiment regiments, [0, 1]
-			console.log regiment
+			assert regiment = r.find_regiment regiments, [0, 1]
+			assert.equal regiment.player, 'black'
+			assert.equal regiment.guess, 'live'
+			assert eye = r.find_eye regiments, [0, 0]
+			assert eye.eye
+			assert eye = r.find_eye regiments, [1, 1]
+			assert eye.eye
+			#console.log regiment = r.find_regiment regiments, [3, 2]
 			done()

@@ -115,34 +115,52 @@ aside
 	.player
 		border-radius(10px)
 		font-weight bold
-		padding 10px
+		padding 10px 10px 10px 60px
 		text-align left
 		a
 			color #acaaaf
 		.title
 			display block
 		&:hover
+			vendor('transform', scale(1.3))
+			vendor('transition-property', all)
+			vendor('transition-duration', .2s)
+			vendor('transition-timing-function', ease)
 			a
 				color #0d2b52
 				text-decoration none
+				
+				
 	.player.black
-		&:before
-			content: ' '
-			height 30px
-			width 30px
-			background url(/img/black.svg) no-repeat
-			
+		background url(/img/black.svg) no-repeat
+		background-position 10px 50%
+	.player.black.next
+		background rgba(69,203,170,.3) url(/img/black.svg) no-repeat
+		background-position 10px 50%
 	.player.white
-		&:before
-			content: ' '
-			height 30px
-			width 30px
-			background url(/img/white.svg) no-repeat
-		
+		background url(/img/white.svg) no-repeat
+		background-position 10px 50%
+	.player.white.next
+		background rgba(69,203,170,.3) url(/img/white.svg) no-repeat
+		background-position 10px 50%
 	.next
-		background-color rgba(69,203,170,.3)
+		vendor('transition-property', background-color)
+		vendor('transition-duration', 2s)
+		vendor('animation-name', next-player)
+		vendor('animation-duration', 1s)
 		a
 			color #0f1926
+
+@keyframes next-player
+	0%
+		font-size 100%
+	50%
+		font-size 150%
+		vendor('transform', rotate(30deg))
+	100%
+		font-size 100%
+
+			
 #toolbox
 	border-radius(10px)
 	background-color #f8efd8
@@ -166,7 +184,6 @@ aside
 			background-color #a8ceff
 			text-decoration none
 #game-notice
-	text-decoration underline
 	font-size 18px
 	background-color rgba(237, 190, 200, .8)
 	border-radius(10px)
@@ -178,6 +195,8 @@ aside
 	p
 		vertical-align middle
 		display table-cell
+	a
+		cursor pointer
 
 #pendings
 	margin-top 30px
@@ -377,3 +396,4 @@ a#go2top
 	a
 		display inline-block
 		color #fff
+

@@ -72,6 +72,8 @@ all =
 		tring: '试下'
 		add_chart: '截图'
 		retract: '悔棋'
+		finish_game: '棋局结束'
+		finish_game_desc: '先由轮到着手的一方以简洁的语言表明“棋局结束”，“棋已下完”，对方予以回应，终局即告成立。'
 		surrender: '认输'
 		title_user_page: '{name} {title}的主页'
 		title_history: '{name} {title}的光辉战绩！'

@@ -225,6 +225,7 @@ class window.ConnectedBoard extends window.PlayBoard
 		@socket = io.connect "http://#{location.hostname}/weiqi"
 		@socket.on 'connect_failed', @on_connect_failed
 		@socket.on 'reconnect_failed', @on_connect_failed
+		@socket.on 'error', => console.log arguments
 		@socket.on 'connecting', @on_connecting
 		@socket.on 'reconnecting', @on_connecting
 		@socket.emit 'auth', $.cookie('auth') ? 'anonymous', (res)=>
@@ -270,8 +271,15 @@ class window.ConnectedBoard extends window.PlayBoard
 			@socket.on 'surrender', (uid)->
 				console.log 'surrender ' + uid
 				@on_surrender? uid
-			cb? console.log res
+			@socket.on 'call_finishing', @on_call_finishing
 			
+			cb? console.log res
+		
+		_.delay =>
+			if not @connected
+				cb? new Error 'fail to connect'
+		, 20*1000
+		
 	taking_seat: (seat, cb)->
 		@test_connection =>
 			@socket?.emit 'taking_seat', seat, (res)=>
@@ -317,7 +325,7 @@ class window.ConnectedBoard extends window.PlayBoard
 	retract: ->
 		if @board.attr('iam') is 'player' and @initial.moves.length and @board.attr('next') isnt @board.attr('seat')
 			@test_connection =>
-				@socket.emit 'retract', (data)=> 
+				@socket.emit 'retract', (data)=>
 					if data is 'success'
 						@withdraw()
 						@mine_retract?()
@@ -328,15 +336,17 @@ class window.ConnectedBoard extends window.PlayBoard
 			if @connected
 				cb()
 			else
-				#throw new Error "failed for connection absence"
 				@connect cb
 		) cb
 	on_click: (pos, player)->
 		if @board.attr('status') is 'started' and @board.attr('iam') is 'player' and @board.attr('next') is @board.attr('seat')
 			try
 				super pos, player
-				@test_connection =>
-					@move pos, @board.attr('seat')
+				@test_connection (err)=>
+					if err
+						console.log err
+					else
+						@move pos, @board.attr('seat')
 			catch	e
 				console.log e
 				
@@ -344,3 +354,16 @@ class window.ConnectedBoard extends window.PlayBoard
 		console.log comment
 		@socket?.emit 'comment', gid, comment, cb
 	on_comment: (comment)-> console.log comment
+	call_finishing: (msg, cb)->
+		switch msg
+			when 'ask', 'cancel'
+				if @board.attr('iam') is 'player' and @board.attr('next') is @board.attr('seat')
+					@test_connection (err)=>
+						return console.log err if err
+						@socket.emit 'call_finishing', msg, cb
+				else
+					cb 'not your turn'
+	on_call_finishing: (req)->
+		console.log req
+		if req is 'ask'
+			1

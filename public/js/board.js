@@ -391,9 +391,12 @@
       this.socket = io.connect("http://" + location.hostname + "/weiqi");
       this.socket.on('connect_failed', this.on_connect_failed);
       this.socket.on('reconnect_failed', this.on_connect_failed);
+      this.socket.on('error', function() {
+        return console.log(arguments);
+      });
       this.socket.on('connecting', this.on_connecting);
       this.socket.on('reconnecting', this.on_connecting);
-      return this.socket.emit('auth', (_ref1 = $.cookie('auth')) != null ? _ref1 : 'anonymous', function(res) {
+      this.socket.emit('auth', (_ref1 = $.cookie('auth')) != null ? _ref1 : 'anonymous', function(res) {
         _this.socket.emit('room', _this.board.attr('socket'));
         if (typeof _this.on_connect === "function") {
           _this.on_connect();
@@ -452,8 +455,14 @@
           console.log('surrender ' + uid);
           return typeof this.on_surrender === "function" ? this.on_surrender(uid) : void 0;
         });
+        _this.socket.on('call_finishing', _this.on_call_finishing);
         return typeof cb === "function" ? cb(console.log(res)) : void 0;
       });
+      return _.delay(function() {
+        if (!_this.connected) {
+          return typeof cb === "function" ? cb(new Error('fail to connect')) : void 0;
+        }
+      }, 20 * 1000);
     };
 
     ConnectedBoard.prototype.taking_seat = function(seat, cb) {
@@ -574,8 +583,12 @@
       if (this.board.attr('status') === 'started' && this.board.attr('iam') === 'player' && this.board.attr('next') === this.board.attr('seat')) {
         try {
           ConnectedBoard.__super__.on_click.call(this, pos, player);
-          return this.test_connection(function() {
-            return _this.move(pos, _this.board.attr('seat'));
+          return this.test_connection(function(err) {
+            if (err) {
+              return console.log(err);
+            } else {
+              return _this.move(pos, _this.board.attr('seat'));
+            }
           });
         } catch (_error) {
           e = _error;
@@ -593,6 +606,32 @@
 
     ConnectedBoard.prototype.on_comment = function(comment) {
       return console.log(comment);
+    };
+
+    ConnectedBoard.prototype.call_finishing = function(msg, cb) {
+      var _this = this;
+
+      switch (msg) {
+        case 'ask':
+        case 'cancel':
+          if (this.board.attr('iam') === 'player' && this.board.attr('next') === this.board.attr('seat')) {
+            return this.test_connection(function(err) {
+              if (err) {
+                return console.log(err);
+              }
+              return _this.socket.emit('call_finishing', msg, cb);
+            });
+          } else {
+            return cb('not your turn');
+          }
+      }
+    };
+
+    ConnectedBoard.prototype.on_call_finishing = function(req) {
+      console.log(req);
+      if (req === 'ask') {
+        return 1;
+      }
     };
 
     return ConnectedBoard;

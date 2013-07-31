@@ -1295,3 +1295,52 @@ describe 'game', ->
 					api.move gid, {next:'white', move:{player:'black', pos:[0,0]}}, (err, data)->
 						assert not err
 						done()
+	
+	describe 'call_finishing', ->
+		it 'ask', (done)->
+			api.call_finishing gid, users[0], 'ask', (err)->
+				assert not err
+				api.get_game gid, (err, game)->
+					assert not err
+					assert.equal game.calling_finishing.uid, users[0]
+					assert.equal game.calling_finishing.msg, 'ask'
+					done()
+		it 'cancel', (done)->
+			api.call_finishing gid, users[0], 'cancel', (err)->
+				assert not err
+				api.get_game gid, (err, game)->
+					assert not err
+					assert not game.calling_finishing
+					done()
+		it 'accept while no asking', (done)->
+			api.call_finishing gid, users[0], 'accept', (err)->
+				assert err
+				done()
+		it 'accept while the same user', (done)->
+			api.call_finishing gid, users[0], 'ask', (err)->
+				assert not err
+				api.call_finishing gid, users[0], 'accept', (err)->
+					assert err
+					done()
+		it 'accept', (done)->
+			api.call_finishing gid, users[0], 'ask', (err)->
+				assert not err
+				api.call_finishing gid, users[1], 'accept', (err)->
+					assert not err
+					api.get_game gid, (err, game)->
+						assert not err
+						assert.equal game.calling_finishing.uid, users[1]
+						assert.equal game.calling_finishing.msg, 'accept'
+						done()
+		it 'reject', (done)->
+			api.call_finishing gid, users[0], 'ask', (err)->
+				assert not err
+				api.call_finishing gid, users[1], 'reject', (err)->
+					assert not err
+					api.get_game gid, (err, game)->
+						assert not err
+						assert.equal game.calling_finishing.uid, users[1]
+						assert.equal game.calling_finishing.msg, 'reject'
+						done()
+				
+		

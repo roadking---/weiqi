@@ -230,18 +230,35 @@ analyze = (stones)->
 		r.player = r.domains[0].player
 		r.adjacent_regiments = _.chain(r.domains).map((x)->x.adjacent_domains.rival).flatten().uniq().map((d)-> _.find regiments, (r)-> d in r.domains).value()
 		r.liberty_blocks = _.chain(r.domains).pluck('liberty_blocks').flatten().compact().uniq().value()
+		
+	#eyes
+	_.each regiments, (r)->
 		_.each r.liberty_blocks, (lb)->
-			lb.eye = \
 			if lb.liberties.length > 1
-				true
+				lb.eye = true
+			else if _.some(lb.stone_blocks[r.player], (sb)->
+				#console.log sb
+				return true if sb.liberty_blocks.length <= 1
+				
+				#console.log _.chain(sb.liberty_blocks).difference(sb.liberty_blocks_owned).map((x)-> x.stone_blocks[r.player]).flatten().uniq().value()
+				#sb.liberty_blocks_owned.length <= 1 and _.chain(sb.liberty_blocks).without(lb).every().value()
+			)
+				lb.eye = false
+			else if 1 is _.chain(lb.stone_blocks[r.player]).map((sb)->
+				proximity = [sb]
+				while (peripherals = _.chain(proximity).pluck('liberty_blocks').flatten().without(lb).map((y)->y.stone_blocks[r.player]).flatten().uniq().difference(proximity).value()).length
+					proximity = _.union proximity, peripherals
+				_.chain(proximity).pluck('block').flatten().min((y)->y.n).value()
+			).uniq().value().length
+				lb.eye = true
 			else
-				console.log lb
-				console.log _.some lb.stone_blocks[r.player], (sb)->
-					console.log sb
-				false
+				1 # it depends if it connects to some true eyes. no need to care about this.
+				
 	
 	#now guessing true or false liberties
-	
+	_.each regiments, (r)->
+		if _.where(r.liberty_blocks, eye:true).length >= 2 or _.some(r.liberty_blocks, (lb)->lb.liberties.length >= 5)
+			r.guess = 'live'
 	regiments
 
 exports?.analyze = analyze
@@ -255,3 +272,10 @@ find_regiment = (regiments, pos)->
 					b.pos[0] is pos[0] and b.pos[1] is pos[1]
 				
 exports?.find_regiment = find_regiment
+
+find_eye = (regiments, pos)->
+	_.chain(regiments).pluck('liberty_blocks').flatten().find((lb)->
+		_.find lb.liberties, (x)->
+			x[0] is pos[0] and x[1] is pos[1]
+	).value()
+exports.find_eye = find_eye

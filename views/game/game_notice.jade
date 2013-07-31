@@ -1,4 +1,4 @@
-#game-notice(_text=JSON.stringify(_.pick(lingua, 'started_please_move', 'started_please_wait', 'connection_lost', 'connected', 'reconnected', 'connect_failed', 'connecting', 'retract_by_opponent')))
+#game-notice
 	if game.status == 'init'
 		if user && user.my_new_game == game.id
 			p.text-warning= lingua.init_waiting
@@ -25,3 +25,18 @@
 		else
 			p.text-warning= lingua.need_player_invite
 				a.btn.btn-primary(href='/attend/#{gid}')= lingua.start_game
+	
+	p.text-warning.hide(msg='started_please_move')= lingua.started_please_move
+	p.text-warning.hide(msg='started_please_wait')= lingua.started_please_wait
+	p.text-warning.hide(msg='connection_lost')= lingua.connection_lost
+	p.text-warning.hide(msg='connected')= lingua.connected
+	p.text-warning.hide(msg='reconnected')= lingua.reconnected
+	p.text-warning.hide(msg='connect_failed')= lingua.connect_failed
+	p.text-warning.hide(msg='connecting')= lingua.connecting
+	p.text-warning.hide(msg='retract_by_opponent')= lingua.retract_by_opponent
+	p.text-warning.hide(msg='ask_calling_finishing') ask calling_finishing
+		a#cancel_calling_finishing Cancel
+	p.text-warning.hide(msg='ask_calling_finishing2_receiver')
+		a#accept_calling_finishing Accept
+		a#reject_calling_finishing Reject
+	

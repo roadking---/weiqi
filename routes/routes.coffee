@@ -41,3 +41,4 @@ exports.set = (app)->
 	app.get '/invite/:ref_user', routes.send_invite
 	app.post '/invite', routes.send_invite
 	app.get '/receive_invite/:ref_user', routes.receive_invite
+	

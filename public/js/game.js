@@ -3,7 +3,8 @@
   var Weiqi, set_seat, show_notice, _ref,
     __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
     __hasProp = {}.hasOwnProperty,
-    __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
+    __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
+    __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   set_seat = function(seat, player) {
     var s;
@@ -12,11 +13,9 @@
     return s.find('.nickname').text(player.nickname);
   };
 
-  show_notice = function(msg, style) {
-    var text;
-
-    text = JSON.parse($('#game-notice').attr('_text'));
-    return $('#game-notice').empty().append("<p class='" + style + " offset3'>" + text[msg] + "</p>");
+  show_notice = function(msg) {
+    $('#game-notice > *').hide();
+    return $("#game-notice *[msg='" + msg + "']").show();
   };
 
   Weiqi = (function(_super) {
@@ -28,25 +27,34 @@
     }
 
     Weiqi.prototype.on_connect = function() {
+      var _ref1;
+
       Weiqi.__super__.on_connect.call(this);
       console.log('connected');
-      return show_notice('connected', 'text-warning');
+      show_notice('connected');
+      if (this.initial.calling_finishing) {
+        if (this.initial.calling_finishing.msg === 'ask' && this.initial.calling_finishing.uid === this.board.attr('uid')) {
+          return show_notice('ask_calling_finishing');
+        } else if (this.initial.calling_finishing.msg === 'ask' && this.initial.calling_finishing.uid !== this.board.attr('uid') && (_ref1 = this.board.attr('uid'), __indexOf.call(this.initial.players, _ref1) >= 0)) {
+          return show_notice('ask_calling_finishing2_receiver');
+        }
+      }
     };
 
     Weiqi.prototype.on_reconnect = function() {
       Weiqi.__super__.on_reconnect.call(this);
       console.log('reconnected');
-      return show_notice('reconnected', 'text-warning');
+      return show_notice('reconnected');
     };
 
     Weiqi.prototype.on_connect_failed = function() {
       Weiqi.__super__.on_connect_failed.call(this);
-      return show_notice('connect_failed', 'text-warning');
+      return show_notice('connect_failed');
     };
 
     Weiqi.prototype.on_connecting = function() {
       Weiqi.__super__.on_connecting.call(this);
-      return show_notice('connecting', 'text-warning');
+      return show_notice('connecting');
     };
 
     Weiqi.prototype.on_next_player = function(player) {
@@ -88,9 +96,9 @@
       }), 5000);
       if (this.board.attr('iam') === 'player') {
         if (this.board.attr('next') === this.board.attr('seat')) {
-          return show_notice('started_please_move', 'text-warning');
+          return show_notice('started_please_move');
         } else {
-          return show_notice('started_please_wait', 'text-success');
+          return show_notice('started_please_wait');
         }
       }
     };
@@ -98,19 +106,19 @@
     Weiqi.prototype.on_click = function(pos) {
       if (this.board.attr('status') === 'started' && this.board.attr('iam') === 'player' && this.board.attr('next') === this.board.attr('seat')) {
         Weiqi.__super__.on_click.call(this, pos);
-        return show_notice('started_please_wait', 'text-success');
+        return show_notice('started_please_wait');
       }
     };
 
     Weiqi.prototype.on_disconnect = function() {
-      show_notice('connection_lost', 'text-warning');
+      show_notice('connection_lost');
       console.log('disconnect');
       return Weiqi.__super__.on_disconnect.call(this);
     };
 
     Weiqi.prototype.on_move = function(moves, next) {
       if (this.board.attr('status') === 'started' && this.board.attr('iam') === 'player' && next === this.board.attr('seat')) {
-        return show_notice('started_please_move', 'text-warning');
+        return show_notice('started_please_move');
       }
     };
 
@@ -142,12 +150,12 @@
 
     Weiqi.prototype.on_retract = function() {
       Weiqi.__super__.on_retract.call(this);
-      show_notice('retract_by_opponent', 'text-warning');
+      show_notice('retract_by_opponent');
       return console.log('retract');
     };
 
     Weiqi.prototype.mine_retract = function() {
-      return show_notice('started_please_move', 'text-warning');
+      return show_notice('started_please_move');
     };
 
     return Weiqi;
@@ -191,8 +199,16 @@
     $('#toolbox #retract').click(function() {
       var _ref1;
 
-      console.log('retract');
       return (_ref1 = $('#gaming-board:visible').data('data')) != null ? _ref1.retract() : void 0;
+    });
+    $('#toolbox #call-finishing').click(function() {
+      var _ref1;
+
+      return (_ref1 = $('#gaming-board:visible').data('data')) != null ? _ref1.call_finishing('ask', function(err) {
+        if (!err) {
+          return show_notice('ask_calling_finishing');
+        }
+      }) : void 0;
     });
     refresh_view = function() {
       var show_num, _ref1;
@@ -296,7 +312,7 @@
     } else {
       b.on_show_steps();
     }
-    return $('#aside-tabs a').click(function() {
+    $('#aside-tabs a').click(function() {
       if ($(this).parent().hasClass('active')) {
 
       } else {
@@ -313,6 +329,15 @@
           return $('#blogs-view').hide();
         }
       }
+    });
+    return $('#game-notice a#cancel_calling_finishing').click(function() {
+      var _ref1;
+
+      return (_ref1 = $('#gaming-board:visible').data('data')) != null ? _ref1.call_finishing('cancel', function(err) {
+        if (!err) {
+          return show_notice('started_please_move');
+        }
+      }) : void 0;
     });
   });
 

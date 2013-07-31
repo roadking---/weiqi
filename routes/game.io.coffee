@@ -109,4 +109,15 @@ module.exports = (io, socket)->
 										if not err
 											io.of('/weiqi').in(gid).emit 'start', seats, 'black'
 											
-		
+		socket.on 'call_finishing', (msg, cb)->
+			console.log "call_finishing #{msg}"
+			socket.get 'gid', (err, gid)->
+				return cb? fail:err if err
+				socket.get 'uid', (err, uid)->
+					return cb? fail:err if err
+					api.call_finishing gid, uid, msg, (err)->
+						if err
+							cb? err
+						else
+							socket.broadcast.to(gid).emit 'call_finishing', msg
+							cb?()

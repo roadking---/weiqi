@@ -279,6 +279,7 @@ get_game = exports.get_game = (gid, cb)->
 			initiator: (m)-> m.hget gid, 'initiator'
 			contract: (m)-> m.hget gid, 'contract'
 			social: (m)-> m.hget gid, 'social'
+			calling_finishing: (m)-> m.hget gid, 'calling_finishing'
 		multi = client.multi()
 		_.chain(data).values().each (f)-> f multi
 		multi.exec (err, replies)->
@@ -290,6 +291,7 @@ get_game = exports.get_game = (gid, cb)->
 			data.moves = _.map data.moves, (x)-> JSON.parse x
 			data.result = JSON.parse data.result if data.result
 			data.contract = JSON.parse data.contract if data.contract
+			data.calling_finishing = JSON.parse data.calling_finishing if data.calling_finishing
 			cache.set gid, data
 			data.id = gid
 			return cb new Error "#{gid} not exists" if not data.status or not data.version
@@ -1297,3 +1299,34 @@ retract = exports.retract = (uid, gid, cb)->
 					cb()
 		else
 			cb new Error "retract: #{uid} failed in #{gid}"
+
+call_finishing = exports.call_finishing = (gid, uid, msg, cb)->
+	get_game gid, (err, game)->
+		return cb err if err
+		return cb new Error "#{uid} is not a player in #{gid}" if not (uid in game.players)
+		switch msg
+			when 'ask'
+				client.hset gid, 'calling_finishing', JSON.stringify(uid:uid, msg:msg), (err)->
+					return cb err if err
+					cache.del gid
+					cb()
+			when 'cancel'
+				client.hdel gid, 'calling_finishing', (err)->
+					return cb err if err
+					cache.del gid
+					cb()
+			when 'accept'
+				return cb new Error 'no asking' if not game.calling_finishing
+				return cb new Error 'the same user' if game.calling_finishing.uid is uid
+				client.hset gid, 'calling_finishing', JSON.stringify(uid:uid, msg:msg), (err)->
+					return cb err if err
+					cache.del gid
+					cb()
+			when 'reject'
+				return cb new Error 'no asking' if not game.calling_finishing
+				return cb new Error 'the same user' if game.calling_finishing.uid is uid
+				client.hset gid, 'calling_finishing', JSON.stringify(uid:uid, msg:msg), (err)->
+					return cb err if err
+					cache.del gid
+					cb()
+				
