@@ -218,14 +218,8 @@ analyze = (stones)->
 			mine: _.where d.adjacent_domains, player:d.player
 			rival: _.reject d.adjacent_domains, (x)-> x.player is d.player
 	
-	
-	regiments = []
-	_.each domains, (d)->
-		r = _.find regiments, (r)-> d in r.domains
-		if r
-			r.domains = _.chain(r.domains).union(d.adjacent_domains.mine).uniq().value()
-		else
-			regiments.push domains: _.flatten [d, d.adjacent_domains.mine]
+	regiments = segment domains, (d)-> d.adjacent_domains.mine
+	regiments = _.map regiments, (r)-> domains: r
 	_.each regiments, (r)->
 		r.player = r.domains[0].player
 		r.adjacent_regiments = _.chain(r.domains).map((x)->x.adjacent_domains.rival).flatten().uniq().map((d)-> _.find regiments, (r)-> d in r.domains).value()
@@ -236,13 +230,7 @@ analyze = (stones)->
 		_.each r.liberty_blocks, (lb)->
 			if lb.liberties.length > 1
 				lb.eye = true
-			else if _.some(lb.stone_blocks[r.player], (sb)->
-				#console.log sb
-				return true if sb.liberty_blocks.length <= 1
-				
-				#console.log _.chain(sb.liberty_blocks).difference(sb.liberty_blocks_owned).map((x)-> x.stone_blocks[r.player]).flatten().uniq().value()
-				#sb.liberty_blocks_owned.length <= 1 and _.chain(sb.liberty_blocks).without(lb).every().value()
-			)
+			else if _.some(lb.stone_blocks[r.player], (sb)->sb.liberty_blocks.length <= 1)
 				lb.eye = false
 			else if 1 is _.chain(lb.stone_blocks[r.player]).map((sb)->
 				proximity = [sb]
@@ -257,12 +245,73 @@ analyze = (stones)->
 	
 	#now guessing true or false liberties
 	_.each regiments, (r)->
-		if _.where(r.liberty_blocks, eye:true).length >= 2 or _.some(r.liberty_blocks, (lb)->lb.liberties.length >= 5)
+		if _.where(r.liberty_blocks, eye:true).length >= 2 or _.some(r.liberty_blocks, (lb)->lb.liberties.length >= 5 or match_shape(lb.liberties, '直四') or match_shape(lb.liberties, '曲四') )
 			r.guess = 'live'
+	#console.log regiments
+	_.chain(regiments).reject((r)->r.guess?).each (r)->
+		if _.every(r.adjacent_regiments, (ar)-> ar.guess is 'live')
+			r.guess = 'dead'
+	
+	
+	_.each (segment _.reject(regiments, (r)-> r.guess?), (r)-> _.reject r.adjacent_regiments, (ra)->ra.guess? ), (x)->
+		x =_.chain(x).map((r)->
+			r.liberty_count = _.chain(r.domains).pluck('stone_blocks').flatten().pluck('liberty').flatten(true) \
+			.uniq((x)->19 * x[0] + x[1]).value().length
+			r
+		).sortBy((r)-> 
+			r.liberty_count * 100 + r.liberty_blocks.length).value()
+		if x.length is 2
+			if x[0].liberty_count is x[1].liberty_count
+				if x[0].liberty_blocks.length is x[1].liberty_blocks.length
+					x[0].guess = x[1].guess = '共活'
+				else
+					x[0].guess = 'dead'
+					x[1].guess = 'live'
+		_.chain(x).reject((r)->r.guess?).each (r)->
+			#adj = _.reject r.adjacent_regiments, (ar)-> ar.guess?
+			if _.some(r.adjacent_regiments, (ar)-> _.result(ar, 'guess') is 'dead')
+				r.guess = 'live'
+			else 
+				target = _.chain(r.adjacent_regiments).reject((ar)->ar.guess?).filter((ar)->ar.liberty_count < r.liberty_count).value()
+				if target.length is 2
+					r.guess = 'live'
+				if target.length is 1
+					if _.filter(r.liberty_blocks.length, (lb)->lb.eye).length > 0
+						r.guess = 'live'
+					else if _.chain(target[0].domains).pluck('stone_blocks').flatten().pluck('block').flatten().value() >= 5
+						r.guess = 'live'
+					else
+						target_stone_blocks = _.chain(target[0].domains).pluck('stone_blocks').flatten().uniq().value()
+						supposed_empty = _.chain(r.domains).pluck('liberty_blocks_peripheral').flatten().uniq().filter((lb)-> 
+							_.intersection(lb.stone_blocks[target[0].player], target_stone_blocks).length
+						).pluck('liberties').flatten(true).union(
+							_.chain(target_stone_blocks).pluck('block').flatten().pluck('pos').value()
+						).value()
+						if supposed_empty.length >= 5 or match_shape(supposed_empty, '直四') or match_shape(supposed_empty, '曲四')
+							r.guess = 'live'
+						else
+							r.guess = 'dead'
+				if r.guess is 'live'
+					_.each target, (t)-> t.guess = 'dead' if not t.guess?
+		_.chain(x).reject((r)->r.guess?).each (r)->
+			if _.some(r.adjacent_regiments, (ar)-> _.result(ar, 'guess') is 'dead')
+				r.guess = 'live'		
 	regiments
 
 exports?.analyze = analyze
 window?.analyze = analyze
+
+
+segment = (array, fn)->
+		rlt = []
+		_.each array, (d)->
+			r = _.find rlt, (r)-> d in r.items
+			if r
+				r.items = _.chain(r.items).union(fn d).uniq().value()
+			else
+				rlt.push items: _.flatten [d, fn(d)]
+		_.pluck rlt, 'items'
+	
 
 find_regiment = (regiments, pos)->
 	_.find regiments, (r)->
@@ -279,3 +328,17 @@ find_eye = (regiments, pos)->
 			x[0] is pos[0] and x[1] is pos[1]
 	).value()
 exports.find_eye = find_eye
+
+match_shape = (positions, shape)->
+	variance = (positions)->
+		center = _.chain(positions).reduce((memo, x)->[memo[0] + x[0], memo[1] + x[1]]).map((x)->x/positions.length).value()
+		_.chain(positions).map((x)-> Math.pow(x[0] - center[0], 2) + Math.pow(x[1] - center[1], 2)).reduce((memo, x)-> memo + x).value() / positions.length
+	switch shape
+		when '直四'
+			positions.length is 4 and variance(positions) is variance([[0,0],[1,0],[2,0],[3,0]])
+		when '曲四'
+			positions.length is 4 and variance(positions) is variance([[0,0],[1,0],[2,0],[2,1]])
+		when '方四'
+			positions.length is 4 and variance(positions) is variance([[0,0],[1,0],[0,1],[1,1]])
+
+exports.match_shape = match_shape

@@ -229,12 +229,12 @@ aside {
   -moz-border-radius: 10px;
   border-radius: 10px;
   text-align: center;
-  height: 120px;
+  min-height: 120px;
   margin-bottom: 50px;
   width: 100%;
   display: table;
 }
-#game-notice p {
+#game-notice > * {
   vertical-align: middle;
   display: table-cell;
 }

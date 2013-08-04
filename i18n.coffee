@@ -124,7 +124,21 @@ all =
 		init_and_start_0_1_attached_less_frequent_user: '{user}的过往成绩是 {wins}胜 {losses}负'
 		init_and_start_0_1_attached_frequent_user: '{user}的过往成绩是 {wins}胜 {losses}负，胜率{win_ratio}，等级分{rate}'
 		player_attend_blog: '加入游戏中！'
-		
+		reject_calling_finishing_receiver: '对方认为棋局尚未结束。<br>请落子吧！'
+		reject_calling_finishing: '您认为棋局尚未结束。等候对方落子……'
+		ask_calling_finishing_cancelled: '取消要求结束本局'
+		ask_calling_finishing: '您已要求结束本局，等待对方回应'
+		cancel_calling_finishing: '收回请求'
+		ask_calling_finishing_receiver: '对方认为此局可以结束，你认为呢？'
+		accept_calling_finishing: '结束'
+		reject_calling_finishing: '继续下'
+		stop_calling_finishing_btn: '让棋局继续'
+		stop_calling_finishing_move: '您要求让棋局继续。请落子吧。'
+		stop_calling_finishing_wait: '您要求让棋局继续。请稍候对方落子。'
+		stop_calling_finishing_receiver_move: '对方要求让棋局继续。请落子吧'
+		stop_calling_finishing_receiver_wait: '对方取消了结束棋局的请求。请稍候对方落子。'
+		or1: '或者'
+		or2: '还是'
 	zh_TW:
 		contact_us: '聯繫我們'
 

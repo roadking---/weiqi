@@ -1342,5 +1342,37 @@ describe 'game', ->
 						assert.equal game.calling_finishing.uid, users[1]
 						assert.equal game.calling_finishing.msg, 'reject'
 						done()
-				
+		it 'ask and move', (done)->
+			api.call_finishing gid, users[0], 'ask', (err)->
+				assert not err
+				api.get_game gid, (err, game)->
+					assert not err
+					assert.equal game.calling_finishing.msg, 'ask'
+					api.move gid, {next:'white', move:{n:0, pos:[3,3]}}, (err, data)->
+						assert not err
+						api.get_game gid, (err, game)->
+							assert not err
+							assert not game.calling_finishing
+							done()
 		
+	describe 'analyze', ->
+		it 'normal', (done)->
+			flow.serialize _.chain([0..4]).map((x, i)->
+				[
+					{n: i, pos:[x, 5], player:'black'}
+					{n: i + 5, pos:[5, x], player:'black'}
+					{n: i + 10, pos:[5, 18 - x], player:'white'}
+					{n: i + 15, pos:[x, 13], player:'white'}
+				]
+			).flatten().map((x, i, all)->
+				next: all[i+1]?.move?.player ? 'black', move: x
+			).map((x)-> (cb)->
+				api.move gid, x, cb
+			).value(), ->
+				api.analyze gid, true, (err, analysis)->
+					assert not err
+					assert analysis
+					api.get_game gid, (err, game)->
+						assert not err
+						assert game.analysis
+						done()

@@ -11,9 +11,11 @@ class BasicBoard
 	on_next_player: (player)->
 		@initial.next = player
 		@board.attr 'next', player
-		
 	redraw: ->
-
+	is_player: -> @board.attr('iam') is 'player'
+	uid: -> @board.attr('uid')
+	next: -> @board.attr('next')
+	seat: -> @board.attr('seat')
 class window.CanvasBoard extends BasicBoard
 	constructor: (@board, @opts)->
 		super @board, @opts
@@ -25,7 +27,7 @@ class window.CanvasBoard extends BasicBoard
 		@canvas.css width: @opts.size, height: @opts.size
 		@interval = (@canvas.height() - 2 * @opts.margin)/(@LINES-1)
 		@ctx = @canvas[0].getContext("2d")
-		@on_next_player @board.attr 'next'
+		@on_next_player @next()
 		@show_number = @board.find('#num_btn i').hasClass 'show-number'
 		@show_steps_to = null
 		
@@ -51,7 +53,7 @@ class window.CanvasBoard extends BasicBoard
 
 	on_next_player: (player)->
 		super player
-		if @board.attr('iam') is 'player' and @board.attr('next') is @board.attr('seat')
+		if @is_player() and @next() is @seat()
 			@canvas.addClass 'your_turn'
 		else
 			@canvas.removeClass 'your_turn'
@@ -196,7 +198,7 @@ class window.PlayBoard extends window.Board
 			m.taken = _.pluck blocks, 'block'
 	
 	on_click: (pos, player)->
-		player ?= @board.attr('next')
+		player ?= @next()
 		m =
 			pos: pos
 			player: player
@@ -211,7 +213,7 @@ class window.ConnectedBoard extends window.PlayBoard
 		super @board, @opts
 		@connect()
 		
-		if @board.attr('status') is 'taking_seat' and @board.attr('iam') is 'player'
+		if @board.attr('status') is 'taking_seat' and @is_player()
 			$('#seats').show()
 			$('#seats .item a').click =>
 				if $(this).hasClass 'none'
@@ -220,66 +222,67 @@ class window.ConnectedBoard extends window.PlayBoard
 					@socket.emit 'taking_seat', $(this).attr('seat'), (res)=> console.log 'taking_seat: ' + JSON.stringify res
 					$(this).removeClass('none').addClass('mine').text 'Me'
 		
-	connect: (cb)->
-		console.log 'try connect'
-		@socket = io.connect "http://#{location.hostname}/weiqi"
-		@socket.on 'connect_failed', @on_connect_failed
-		@socket.on 'reconnect_failed', @on_connect_failed
-		@socket.on 'error', => console.log arguments
-		@socket.on 'connecting', @on_connecting
-		@socket.on 'reconnecting', @on_connecting
+	init_socket: (cb)->
 		@socket.emit 'auth', $.cookie('auth') ? 'anonymous', (res)=>
 			@socket.emit 'room', @board.attr('socket')
-			@on_connect?()
-			@socket.on 'reconnect', @on_reconnect
-			@socket.on 'attend', (res)=>
-				console.log 'attend: ' + JSON.stringify res
-				if @initial.status is 'need_player'
-					@board.attr 'status', 'started'
-					@on_resume?()
-			@socket.on 'quit', @on_quit if @on_quit
-			@socket.on 'taking_seat', (res)=>
-				console.log 'taking_seat'
-				if res is 'start'
-					@board.attr 'status', 'taking_seat'
-					@on_start_taking_seat?()
-				else
-					@on_seats_update? res
-			@socket.on 'start', (seats, next)=>
-				console.log 'start: ' + JSON.stringify [seats, next]
-				@board.attr 'status', 'started'
-				
-				@on_next_player next
-				@on_start? seats, next
-			@socket.on 'move', (moves, next)=>
-				console.log 'move: ' + JSON.stringify(moves)
-				_.each moves, (x)=> 
-					@calc_move x
-					@place x
-				@on_next_player next
-				@redraw()
-				@on_move? moves, next
-			@socket.on 'disconnect', @on_disconnect if @on_disconnect
-			@socket.on 'player_disconnect', (player)=> console.log 'player_disconnect ' + player
-			@socket.on 'comment', @on_comment
-			@socket.on 'retract', (uid)=> 
-				console.log 'retract ' + uid
-				retract @initial.moves
-				@on_next_player if @board.attr('next') is 'black' then 'white' else 'black'
-				@redraw()
-				@on_retract? uid
-			@socket.on 'surrender', (uid)->
-				console.log 'surrender ' + uid
-				@on_surrender? uid
-			@socket.on 'call_finishing', @on_call_finishing
-			
 			cb? console.log res
-		
 		_.delay =>
 			if not @connected
 				cb? new Error 'fail to connect'
 		, 20*1000
 		
+	connect: (cb)->
+		console.log 'try connect'
+		@socket = io.connect "http://#{location.hostname}/weiqi"
+		@socket.on 'connect_failed', =>@on_connect_failed()
+		@socket.on 'reconnect_failed', =>@on_connect_failed()
+		@socket.on 'error', => console.log arguments
+		@socket.on 'connecting', =>@on_connecting()
+		@socket.on 'reconnecting', =>@on_connecting()
+		@socket.on 'reconnect', =>@on_reconnect()
+		@socket.on 'disconnect', =>@on_disconnect() if @on_disconnect
+		@socket.on 'attend', (res)=>
+			console.log 'attend: ' + JSON.stringify res
+			if @initial.status is 'need_player'
+				@board.attr 'status', 'started'
+				@on_resume?()
+		@socket.on 'quit', @on_quit if @on_quit
+		@socket.on 'taking_seat', (res)=>
+			console.log 'taking_seat'
+			if res is 'start'
+				@board.attr 'status', 'taking_seat'
+				@on_start_taking_seat?()
+			else
+				@on_seats_update? res
+		@socket.on 'start', (seats, next)=>
+			console.log 'start: ' + JSON.stringify [seats, next]
+			@board.attr 'status', 'started'
+			
+			@on_next_player next
+			@on_start? seats, next
+		@socket.on 'move', (moves, next)=>
+			console.log 'move: ' + JSON.stringify(moves)
+			_.each moves, (x)=> 
+				@calc_move x
+				@place x
+			@on_next_player next
+			@redraw()
+			@on_move? moves, next
+		@socket.on 'player_disconnect', (player)=> console.log 'player_disconnect ' + player
+		@socket.on 'comment', =>@on_comment()
+		@socket.on 'retract', (uid)=> 
+			console.log 'retract ' + uid
+			retract @initial.moves
+			@on_next_player if @next() is 'black' then 'white' else 'black'
+			@redraw()
+			@on_retract? uid
+		@socket.on 'surrender', (uid)->
+			console.log 'surrender ' + uid
+			@on_surrender? uid
+		@socket.on 'call_finishing', @on_call_finishing
+		
+		@init_socket =>
+			@on_connect?()
 	taking_seat: (seat, cb)->
 		@test_connection =>
 			@socket?.emit 'taking_seat', seat, (res)=>
@@ -307,8 +310,12 @@ class window.ConnectedBoard extends window.PlayBoard
 		
 	on_connect: ->
 		@connected = true
+		
 	on_reconnect: ->
 		@connected = true
+		@init_socket()
+		#console.log @socket.$events
+		#@socket.emit 'room', @board.attr('socket')
 	on_disconnect: ->
 		@connected = false
 	on_connect_failed: ->
@@ -323,7 +330,7 @@ class window.ConnectedBoard extends window.PlayBoard
 	on_move: null
 	on_retract: ->
 	retract: ->
-		if @board.attr('iam') is 'player' and @initial.moves.length and @board.attr('next') isnt @board.attr('seat')
+		if @is_player() and @initial.moves.length and @next() isnt @seat()
 			@test_connection =>
 				@socket.emit 'retract', (data)=>
 					if data is 'success'
@@ -339,14 +346,14 @@ class window.ConnectedBoard extends window.PlayBoard
 				@connect cb
 		) cb
 	on_click: (pos, player)->
-		if @board.attr('status') is 'started' and @board.attr('iam') is 'player' and @board.attr('next') is @board.attr('seat')
+		if @board.attr('status') is 'started' and @is_player() and @next() is @seat()
 			try
 				super pos, player
 				@test_connection (err)=>
 					if err
 						console.log err
 					else
-						@move pos, @board.attr('seat')
+						@move pos, @seat()
 			catch	e
 				console.log e
 				
@@ -357,13 +364,16 @@ class window.ConnectedBoard extends window.PlayBoard
 	call_finishing: (msg, cb)->
 		switch msg
 			when 'ask', 'cancel'
-				if @board.attr('iam') is 'player' and @board.attr('next') is @board.attr('seat')
+				if @is_player() and @next() is @seat()
 					@test_connection (err)=>
 						return console.log err if err
 						@socket.emit 'call_finishing', msg, cb
 				else
 					cb 'not your turn'
-	on_call_finishing: (req)->
-		console.log req
-		if req is 'ask'
-			1
+			when 'reject', 'accept', 'stop'
+				@test_connection (err)=>
+					return console.log err if err
+					@socket.emit 'call_finishing', msg, cb
+	on_call_finishing: (msg, analysis)->
+		console.log msg
+		

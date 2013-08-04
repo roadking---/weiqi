@@ -20,7 +20,8 @@
     "redis": "*",
     "ndir": "*",
     "maxmind": "*",
-    "yamljs": "*"
+    "yamljs": "*",
+    "gauss": "*"
   },
   "engines": {
     "node": "0.10.*",

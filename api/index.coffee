@@ -245,6 +245,7 @@ move = exports.move = (gid, data, cb)->
 						
 		m = client.multi()
 		m.hset gid, 'next', data.next
+		m.hdel gid, 'calling_finishing'
 		m.zadd [gid, 'main'].join('|'), data.move.n, JSON.stringify(data.move)
 		data.block_taken = _.pluck blocks, 'block'
 		if data.block_taken.length
@@ -280,6 +281,7 @@ get_game = exports.get_game = (gid, cb)->
 			contract: (m)-> m.hget gid, 'contract'
 			social: (m)-> m.hget gid, 'social'
 			calling_finishing: (m)-> m.hget gid, 'calling_finishing'
+			analysis: (m)-> m.hget gid, 'analysis'
 		multi = client.multi()
 		_.chain(data).values().each (f)-> f multi
 		multi.exec (err, replies)->
@@ -292,6 +294,7 @@ get_game = exports.get_game = (gid, cb)->
 			data.result = JSON.parse data.result if data.result
 			data.contract = JSON.parse data.contract if data.contract
 			data.calling_finishing = JSON.parse data.calling_finishing if data.calling_finishing
+			data.analysis = JSON.parse data.analysis if data.analysis
 			cache.set gid, data
 			data.id = gid
 			return cb new Error "#{gid} not exists" if not data.status or not data.version
@@ -1310,7 +1313,7 @@ call_finishing = exports.call_finishing = (gid, uid, msg, cb)->
 					return cb err if err
 					cache.del gid
 					cb()
-			when 'cancel'
+			when 'cancel', 'stop'
 				client.hdel gid, 'calling_finishing', (err)->
 					return cb err if err
 					cache.del gid
@@ -1329,4 +1332,34 @@ call_finishing = exports.call_finishing = (gid, uid, msg, cb)->
 					return cb err if err
 					cache.del gid
 					cb()
+
+analyze = exports.analyze = ->
+	switch arguments.length
+		when 2
+			[gid, cb] = arguments
+			analyze gid, false, cb
+		when 3
+			[gid, save, cb] = arguments
+			get_game gid, (err, game)->
+				return cb err if err
+				analysis = rule.analyze game.moves
+				analysis = _.map analysis, (r)->
+					r.domains = _.map r.domains, (d)-> 
+						#d.liberty_blocks = _.map d.liberty_blocks, (lb)-> _.omit lb, 'stone_blocks'
+						d.stone_blocks = _.map d.stone_blocks, (sb)-> _.omit sb, 'opposite', 'liberty', 'liberty_blocks', 'liberty_blocks_owned'
+						_.omit d, 'liberty_blocks_peripheral', 'adjacent_domains', 'liberty_blocks'
+					r.liberty_blocks = _.map r.liberty_blocks, (lb)-> _.omit lb, 'stone_blocks'
+					r = _.omit r, 'adjacent_regiments'
+				((save, cb)->
+					if save
+						client.hset gid, 'analysis', JSON.stringify(analysis), (err)->
+							cache.del gid if not err
+							cb err
+					else
+						cb()
+				) save, (err)->
+					if err
+						cb err
+					else
+						cb undefined, analysis
 				

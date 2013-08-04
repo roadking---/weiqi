@@ -119,5 +119,10 @@ module.exports = (io, socket)->
 						if err
 							cb? err
 						else
-							socket.broadcast.to(gid).emit 'call_finishing', msg
-							cb?()
+							if msg is 'accept'
+								api.analyze gid, true, (err, analysis)->
+									socket.broadcast.to(gid).emit 'call_finishing', msg, analysis
+									cb analysis
+							else
+								socket.broadcast.to(gid).emit 'call_finishing', msg
+								cb?()

@@ -32,6 +32,22 @@
 
     BasicBoard.prototype.redraw = function() {};
 
+    BasicBoard.prototype.is_player = function() {
+      return this.board.attr('iam') === 'player';
+    };
+
+    BasicBoard.prototype.uid = function() {
+      return this.board.attr('uid');
+    };
+
+    BasicBoard.prototype.next = function() {
+      return this.board.attr('next');
+    };
+
+    BasicBoard.prototype.seat = function() {
+      return this.board.attr('seat');
+    };
+
     return BasicBoard;
 
   })();
@@ -66,7 +82,7 @@
       });
       this.interval = (this.canvas.height() - 2 * this.opts.margin) / (this.LINES - 1);
       this.ctx = this.canvas[0].getContext("2d");
-      this.on_next_player(this.board.attr('next'));
+      this.on_next_player(this.next());
       this.show_number = this.board.find('#num_btn i').hasClass('show-number');
       this.show_steps_to = null;
       if (this.opts.click) {
@@ -106,7 +122,7 @@
 
     CanvasBoard.prototype.on_next_player = function(player) {
       CanvasBoard.__super__.on_next_player.call(this, player);
-      if (this.board.attr('iam') === 'player' && this.board.attr('next') === this.board.attr('seat')) {
+      if (this.is_player() && this.next() === this.seat()) {
         return this.canvas.addClass('your_turn');
       } else {
         return this.canvas.removeClass('your_turn');
@@ -341,7 +357,7 @@
       var m;
 
       if (player == null) {
-        player = this.board.attr('next');
+        player = this.next();
       }
       m = {
         pos: pos,
@@ -368,7 +384,7 @@
       this.opts = opts;
       ConnectedBoard.__super__.constructor.call(this, this.board, this.opts);
       this.connect();
-      if (this.board.attr('status') === 'taking_seat' && this.board.attr('iam') === 'player') {
+      if (this.board.attr('status') === 'taking_seat' && this.is_player()) {
         $('#seats').show();
         $('#seats .item a').click(function() {
           if ($(_this).hasClass('none')) {
@@ -383,79 +399,12 @@
       }
     }
 
-    ConnectedBoard.prototype.connect = function(cb) {
+    ConnectedBoard.prototype.init_socket = function(cb) {
       var _ref1,
         _this = this;
 
-      console.log('try connect');
-      this.socket = io.connect("http://" + location.hostname + "/weiqi");
-      this.socket.on('connect_failed', this.on_connect_failed);
-      this.socket.on('reconnect_failed', this.on_connect_failed);
-      this.socket.on('error', function() {
-        return console.log(arguments);
-      });
-      this.socket.on('connecting', this.on_connecting);
-      this.socket.on('reconnecting', this.on_connecting);
       this.socket.emit('auth', (_ref1 = $.cookie('auth')) != null ? _ref1 : 'anonymous', function(res) {
         _this.socket.emit('room', _this.board.attr('socket'));
-        if (typeof _this.on_connect === "function") {
-          _this.on_connect();
-        }
-        _this.socket.on('reconnect', _this.on_reconnect);
-        _this.socket.on('attend', function(res) {
-          console.log('attend: ' + JSON.stringify(res));
-          if (_this.initial.status === 'need_player') {
-            _this.board.attr('status', 'started');
-            return typeof _this.on_resume === "function" ? _this.on_resume() : void 0;
-          }
-        });
-        if (_this.on_quit) {
-          _this.socket.on('quit', _this.on_quit);
-        }
-        _this.socket.on('taking_seat', function(res) {
-          console.log('taking_seat');
-          if (res === 'start') {
-            _this.board.attr('status', 'taking_seat');
-            return typeof _this.on_start_taking_seat === "function" ? _this.on_start_taking_seat() : void 0;
-          } else {
-            return typeof _this.on_seats_update === "function" ? _this.on_seats_update(res) : void 0;
-          }
-        });
-        _this.socket.on('start', function(seats, next) {
-          console.log('start: ' + JSON.stringify([seats, next]));
-          _this.board.attr('status', 'started');
-          _this.on_next_player(next);
-          return typeof _this.on_start === "function" ? _this.on_start(seats, next) : void 0;
-        });
-        _this.socket.on('move', function(moves, next) {
-          console.log('move: ' + JSON.stringify(moves));
-          _.each(moves, function(x) {
-            _this.calc_move(x);
-            return _this.place(x);
-          });
-          _this.on_next_player(next);
-          _this.redraw();
-          return typeof _this.on_move === "function" ? _this.on_move(moves, next) : void 0;
-        });
-        if (_this.on_disconnect) {
-          _this.socket.on('disconnect', _this.on_disconnect);
-        }
-        _this.socket.on('player_disconnect', function(player) {
-          return console.log('player_disconnect ' + player);
-        });
-        _this.socket.on('comment', _this.on_comment);
-        _this.socket.on('retract', function(uid) {
-          console.log('retract ' + uid);
-          retract(_this.initial.moves);
-          _this.on_next_player(_this.board.attr('next') === 'black' ? 'white' : 'black');
-          _this.redraw();
-          return typeof _this.on_retract === "function" ? _this.on_retract(uid) : void 0;
-        });
-        _this.socket.on('surrender', function(uid) {
-          console.log('surrender ' + uid);
-          return typeof this.on_surrender === "function" ? this.on_surrender(uid) : void 0;
-        });
-        _this.socket.on('call_finishing', _this.on_call_finishing);
         return typeof cb === "function" ? cb(console.log(res)) : void 0;
       });
       return _.delay(function() {
@@ -463,6 +412,92 @@
           return typeof cb === "function" ? cb(new Error('fail to connect')) : void 0;
         }
       }, 20 * 1000);
+    };
+
+    ConnectedBoard.prototype.connect = function(cb) {
+      var _this = this;
+
+      console.log('try connect');
+      this.socket = io.connect("http://" + location.hostname + "/weiqi");
+      this.socket.on('connect_failed', function() {
+        return _this.on_connect_failed();
+      });
+      this.socket.on('reconnect_failed', function() {
+        return _this.on_connect_failed();
+      });
+      this.socket.on('error', function() {
+        return console.log(arguments);
+      });
+      this.socket.on('connecting', function() {
+        return _this.on_connecting();
+      });
+      this.socket.on('reconnecting', function() {
+        return _this.on_connecting();
+      });
+      this.socket.on('reconnect', function() {
+        return _this.on_reconnect();
+      });
+      this.socket.on('disconnect', function() {
+        if (_this.on_disconnect) {
+          return _this.on_disconnect();
+        }
+      });
+      this.socket.on('attend', function(res) {
+        console.log('attend: ' + JSON.stringify(res));
+        if (_this.initial.status === 'need_player') {
+          _this.board.attr('status', 'started');
+          return typeof _this.on_resume === "function" ? _this.on_resume() : void 0;
+        }
+      });
+      if (this.on_quit) {
+        this.socket.on('quit', this.on_quit);
+      }
+      this.socket.on('taking_seat', function(res) {
+        console.log('taking_seat');
+        if (res === 'start') {
+          _this.board.attr('status', 'taking_seat');
+          return typeof _this.on_start_taking_seat === "function" ? _this.on_start_taking_seat() : void 0;
+        } else {
+          return typeof _this.on_seats_update === "function" ? _this.on_seats_update(res) : void 0;
+        }
+      });
+      this.socket.on('start', function(seats, next) {
+        console.log('start: ' + JSON.stringify([seats, next]));
+        _this.board.attr('status', 'started');
+        _this.on_next_player(next);
+        return typeof _this.on_start === "function" ? _this.on_start(seats, next) : void 0;
+      });
+      this.socket.on('move', function(moves, next) {
+        console.log('move: ' + JSON.stringify(moves));
+        _.each(moves, function(x) {
+          _this.calc_move(x);
+          return _this.place(x);
+        });
+        _this.on_next_player(next);
+        _this.redraw();
+        return typeof _this.on_move === "function" ? _this.on_move(moves, next) : void 0;
+      });
+      this.socket.on('player_disconnect', function(player) {
+        return console.log('player_disconnect ' + player);
+      });
+      this.socket.on('comment', function() {
+        return _this.on_comment();
+      });
+      this.socket.on('retract', function(uid) {
+        console.log('retract ' + uid);
+        retract(_this.initial.moves);
+        _this.on_next_player(_this.next() === 'black' ? 'white' : 'black');
+        _this.redraw();
+        return typeof _this.on_retract === "function" ? _this.on_retract(uid) : void 0;
+      });
+      this.socket.on('surrender', function(uid) {
+        console.log('surrender ' + uid);
+        return typeof this.on_surrender === "function" ? this.on_surrender(uid) : void 0;
+      });
+      this.socket.on('call_finishing', this.on_call_finishing);
+      return this.init_socket(function() {
+        return typeof _this.on_connect === "function" ? _this.on_connect() : void 0;
+      });
     };
 
     ConnectedBoard.prototype.taking_seat = function(seat, cb) {
@@ -517,7 +552,8 @@
     };
 
     ConnectedBoard.prototype.on_reconnect = function() {
-      return this.connected = true;
+      this.connected = true;
+      return this.init_socket();
     };
 
     ConnectedBoard.prototype.on_disconnect = function() {
@@ -548,7 +584,7 @@
     ConnectedBoard.prototype.retract = function() {
       var _this = this;
 
-      if (this.board.attr('iam') === 'player' && this.initial.moves.length && this.board.attr('next') !== this.board.attr('seat')) {
+      if (this.is_player() && this.initial.moves.length && this.next() !== this.seat()) {
         return this.test_connection(function() {
           return _this.socket.emit('retract', function(data) {
             if (data === 'success') {
@@ -580,14 +616,14 @@
       var e,
         _this = this;
 
-      if (this.board.attr('status') === 'started' && this.board.attr('iam') === 'player' && this.board.attr('next') === this.board.attr('seat')) {
+      if (this.board.attr('status') === 'started' && this.is_player() && this.next() === this.seat()) {
         try {
           ConnectedBoard.__super__.on_click.call(this, pos, player);
           return this.test_connection(function(err) {
             if (err) {
               return console.log(err);
             } else {
-              return _this.move(pos, _this.board.attr('seat'));
+              return _this.move(pos, _this.seat());
             }
           });
         } catch (_error) {
@@ -614,7 +650,7 @@
       switch (msg) {
         case 'ask':
         case 'cancel':
-          if (this.board.attr('iam') === 'player' && this.board.attr('next') === this.board.attr('seat')) {
+          if (this.is_player() && this.next() === this.seat()) {
             return this.test_connection(function(err) {
               if (err) {
                 return console.log(err);
@@ -624,14 +660,21 @@
           } else {
             return cb('not your turn');
           }
+          break;
+        case 'reject':
+        case 'accept':
+        case 'stop':
+          return this.test_connection(function(err) {
+            if (err) {
+              return console.log(err);
+            }
+            return _this.socket.emit('call_finishing', msg, cb);
+          });
       }
     };
 
-    ConnectedBoard.prototype.on_call_finishing = function(req) {
-      console.log(req);
-      if (req === 'ask') {
-        return 1;
-      }
+    ConnectedBoard.prototype.on_call_finishing = function(msg, analysis) {
+      return console.log(msg);
     };
 
     return ConnectedBoard;

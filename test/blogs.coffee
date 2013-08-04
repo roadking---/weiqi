@@ -74,7 +74,7 @@ describe 'blogs view', ->
 		it 'init_and_wait and a new user', (done)->
 			opts = initiator: users[0], type: 'weiqi', players:[users[0]], social: true
 			api.init_game opts, (err, gid)->
-				assert not err
+				assert not err, err
 				api.get_page gid, (err, posts)->
 					assert not err
 					assert.equal posts[0].type, 'init_game'

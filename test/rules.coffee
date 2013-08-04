@@ -90,6 +90,13 @@ describe 'rules', ->
 				_.chain(d.stone_blocks).pluck('block').flatten().pluck('pos').find((x)-> 
 					x[0] is pos[0] and x[1] is pos[1]).value()
 		
+		circle_the_eye = (eye, player, stones)->
+			_.chain(eye).map((x)-> [ [x[0]+1, x[1]], [x[0]-1, x[1]], [x[0], x[1]+1], [x[0], x[1]-1] ]).flatten(true).filter((x)-> 0 <= x[0] <= 18 and 0 <= x[1] <= 18).uniq((x)->19 * x[0] + x[1]) \
+			.reject((x)-> _.find eye, (y)-> x[0] is y[0] and x[1] is y[1]).each (x)->
+				try
+					r.move_step stones, {pos:x, player:player}
+				catch e
+		
 		it 'simplest case', (done)->
 			stones = []
 			r.move_step stones, {pos:[3, 3], player:'black'}
@@ -229,7 +236,7 @@ describe 'rules', ->
 			assert eye = r.find_eye regiments, [1, 2]
 			assert not eye.eye?
 			done()
-		it.only 'regiments guess 1', (done)->
+		it 'regiments guess 1', (done)->
 			stones = []
 			r.move_step stones, {pos:[0, 1], player:'black'}
 			r.move_step stones, {pos:[1, 0], player:'black'}
@@ -251,5 +258,78 @@ describe 'rules', ->
 			assert eye.eye
 			assert eye = r.find_eye regiments, [1, 1]
 			assert eye.eye
-			#console.log regiment = r.find_regiment regiments, [3, 2]
+			done()
+		it 'regiments guess 2', (done)->
+			stones = []
+			r.move_step stones, {pos:[0, 1], player:'black'}
+			r.move_step stones, {pos:[1, 0], player:'black'}
+			r.move_step stones, {pos:[2, 1], player:'black'}
+			r.move_step stones, {pos:[0, 3], player:'white'}
+			r.move_step stones, {pos:[1, 3], player:'white'}
+			r.move_step stones, {pos:[2, 3], player:'white'}
+			r.move_step stones, {pos:[3, 2], player:'white'}
+			r.move_step stones, {pos:[3, 1], player:'white'}
+			r.move_step stones, {pos:[3, 0], player:'white'}
+			regiments = r.analyze stones
+			assert.equal regiments.length, 2
+			assert regiment = r.find_regiment regiments, [3, 1]
+			assert.equal regiment.player, 'white'
+			assert.equal regiment.guess, 'live'
+			assert regiment = r.find_regiment regiments, [0, 1]
+			assert.equal regiment.player, 'black'
+			assert.equal regiment.guess, 'dead'
+			done()
+		it 'regiments guess 3', (done)->
+			stones = []
+			circle_the_eye [[0,0], [1,0], [0,1],[1,1]], 'black', stones
+			_.each [0..8], (x)->
+				r.move_step stones, {pos:[9, x], player:'white'}
+				r.move_step stones, {pos:[x, 9], player:'white'}
+			r.move_step stones, {pos:[0, 0], player:'white'}
+			regiments = r.analyze stones
+			assert.equal regiments.length, 3
+			assert regiment = r.find_regiment regiments, [1, 2]
+			assert.equal regiment.player, 'black'
+			assert.equal regiment.guess, 'dead'
+			assert regiment = r.find_regiment regiments, [0, 0]
+			assert.equal regiment.player, 'white'
+			assert.equal regiment.guess, 'live'
+			done()
+		it 'regiments guess 4', (done)->
+			stones = []
+			circle_the_eye [[0,0], [1,0], [0,1],[1,1],[0,2]], 'black', stones
+			_.each [0..8], (x)->
+				r.move_step stones, {pos:[9, x], player:'white'}
+				r.move_step stones, {pos:[x, 9], player:'white'}
+			regiments = r.analyze stones
+			assert.equal regiments.length, 2
+			assert regiment = r.find_regiment regiments, [1, 2]
+			assert.equal regiment.player, 'black'
+			assert.equal regiment.guess, 'live'
+			done()
+		it 'regiments guess 5', (done)->
+			stones = []
+			circle_the_eye [[0,0], [1,0], [0,1],[1,1],[0,2]], 'black', stones
+			_.each [0..8], (x)->
+				r.move_step stones, {pos:[9, x], player:'white'}
+				r.move_step stones, {pos:[x, 9], player:'white'}
+			r.move_step stones, {pos:[0, 0], player:'white'}
+			r.move_step stones, {pos:[0, 2], player:'white'}
+			regiments = r.analyze stones
+			assert.equal regiments.length, 3
+			assert regiment = r.find_regiment regiments, [1, 2]
+			assert.equal regiment.player, 'black'
+			assert.equal regiment.guess, 'live'
+			assert regiment = r.find_regiment regiments, [0, 0]
+			assert.equal regiment.player, 'white'
+			assert.equal regiment.guess, 'dead'
+			done()
+		
+			
+	describe 'match_shape', ->
+		it '直四', (done)->
+			positions = _.map [1..4], (i)-> [3, i]
+			assert r.match_shape positions, '直四'
+			assert not r.match_shape positions, '曲四'
+			assert not r.match_shape positions, '方四'
 			done()

@@ -34,9 +34,30 @@
 	p.text-warning.hide(msg='connect_failed')= lingua.connect_failed
 	p.text-warning.hide(msg='connecting')= lingua.connecting
 	p.text-warning.hide(msg='retract_by_opponent')= lingua.retract_by_opponent
-	p.text-warning.hide(msg='ask_calling_finishing') ask calling_finishing
-		a#cancel_calling_finishing Cancel
-	p.text-warning.hide(msg='ask_calling_finishing2_receiver')
-		a#accept_calling_finishing Accept
-		a#reject_calling_finishing Reject
+	p.text-warning.hide(msg='ask_calling_finishing')= lingua.ask_calling_finishing
+		br
+		span= lingua.or1
+		a#cancel_calling_finishing= lingua.cancel_calling_finishing
+	p.text-warning.hide(msg='ask_calling_finishing_receiver')= lingua.ask_calling_finishing_receiver
+		br
+		a#accept_calling_finishing= lingua.accept_calling_finishing
+		span= lingua.or2
+		a#reject_calling_finishing= lingua.reject_calling_finishing
+	p.text-warning.hide(msg='ask_calling_finishing_cancelled')= lingua.ask_calling_finishing_cancelled
+	p.text-warning.hide(msg='reject_calling_finishing')= lingua.reject_calling_finishing
+	p.text-warning.hide(msg='reject_calling_finishing_receiver')!= lingua.reject_calling_finishing_receiver
+	#finishing.hide(msg='accept_calling_finishing')
+		a#stop_calling_finishing= lingua.stop_calling_finishing_btn
+		include finishing
+	#finishing.hide(msg='accept_calling_finishing_receiver')
+		a#stop_calling_finishing= lingua.stop_calling_finishing_btn
+		include finishing
+	p.hide(msg='stop_calling_finishing')= lingua.stop_calling_finishing
+	p.hide(msg='stop_calling_finishing_receiver') he stop it
+	p.hide(msg='stop_calling_finishing_move')= lingua.stop_calling_finishing_move
+	p.hide(msg='stop_calling_finishing_wait')= lingua.stop_calling_finishing_wait
+	p.hide(msg='stop_calling_finishing_receiver_move')= lingua.stop_calling_finishing_receiver_move
+	p.hide(msg='stop_calling_finishing_receiver_wait')= lingua.stop_calling_finishing_receiver_wait
 	
+	script.
+		$('#game-notice .hide').hide();
