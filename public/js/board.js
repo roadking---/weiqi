@@ -223,26 +223,26 @@
       };
     };
 
-    CanvasBoard.prototype.redraw = function() {
-      var num, x, y,
+    CanvasBoard.prototype.redraw = function(opts) {
+      var num,
         _this = this;
 
-      switch (arguments.length) {
-        case 0:
-          this.ctx.fillStyle = 'white';
-          this.ctx.fillRect(0, 0, this.opts.size, this.opts.size);
-          this.draw_board();
-          if (this.initial.moves) {
-            num = this.status_quo().step;
-            return _.each(this.initial.moves, function(x) {
-              if (x.n <= num && (!x.repealed || x.repealed > num)) {
-                return _this.place(x);
+      this.ctx.fillStyle = 'white';
+      this.ctx.fillRect(0, 0, this.opts.size, this.opts.size);
+      this.draw_board();
+      if (this.initial.moves) {
+        num = this.status_quo().step;
+        return _.each(this.initial.moves, function(x) {
+          if (x.n <= num && (!x.repealed || x.repealed > num)) {
+            if (opts != null) {
+              if (typeof opts.before_place === "function") {
+                opts.before_place(x);
               }
-            });
+            }
+            _this.place(x);
+            return opts != null ? typeof opts.after_place === "function" ? opts.after_place(x) : void 0 : void 0;
           }
-          break;
-        case 2:
-          return x = arguments[0], y = arguments[1], arguments;
+        });
       }
     };
 
@@ -644,12 +644,14 @@
       return console.log(comment);
     };
 
-    ConnectedBoard.prototype.call_finishing = function(msg, cb) {
-      var _this = this;
+    ConnectedBoard.prototype.call_finishing = function(msg) {
+      var cb, stone, suggest,
+        _this = this;
 
       switch (msg) {
         case 'ask':
         case 'cancel':
+          msg = arguments[0], cb = arguments[1];
           if (this.is_player() && this.next() === this.seat()) {
             return this.test_connection(function(err) {
               if (err) {
@@ -664,16 +666,25 @@
         case 'reject':
         case 'accept':
         case 'stop':
+          msg = arguments[0], cb = arguments[1];
           return this.test_connection(function(err) {
             if (err) {
               return console.log(err);
             }
             return _this.socket.emit('call_finishing', msg, cb);
           });
+        case 'suggest':
+          console.log((msg = arguments[0], stone = arguments[1], suggest = arguments[2], cb = arguments[3], arguments));
+          return this.test_connection(function(err) {
+            if (err) {
+              return console.log(err);
+            }
+            return _this.socket.emit('call_finishing', msg, stone, suggest, cb);
+          });
       }
     };
 
-    ConnectedBoard.prototype.on_call_finishing = function(msg, analysis) {
+    ConnectedBoard.prototype.on_call_finishing = function(msg) {
       return console.log(msg);
     };
 

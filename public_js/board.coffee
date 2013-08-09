@@ -133,20 +133,19 @@ class window.CanvasBoard extends BasicBoard
 	status_quo: ->
 		step: @show_steps_to ? @initial.moves.length - 1
 	
-	redraw: ->
-		switch arguments.length
-			when 0
-				@ctx.fillStyle = 'white'
-				@ctx.fillRect 0, 0, @opts.size, @opts.size
-				@draw_board()
-				
-				if @initial.moves
-					num = @status_quo().step
-					_.each @initial.moves, (x)=>
-						if x.n <= num and (not x.repealed or x.repealed > num)
-							@place x
-			when 2
-				[x, y] = arguments
+	redraw: (opts)->
+		@ctx.fillStyle = 'white'
+		@ctx.fillRect 0, 0, @opts.size, @opts.size
+		@draw_board()
+		
+		if @initial.moves
+			num = @status_quo().step
+			_.each @initial.moves, (x)=>
+				if x.n <= num and (not x.repealed or x.repealed > num)
+					opts?.before_place? x
+					@place x
+					opts?.after_place? x
+			
 	on_click: (pos)-> console.log pos
 
 class window.Board extends CanvasBoard
@@ -361,9 +360,10 @@ class window.ConnectedBoard extends window.PlayBoard
 		console.log comment
 		@socket?.emit 'comment', gid, comment, cb
 	on_comment: (comment)-> console.log comment
-	call_finishing: (msg, cb)->
+	call_finishing: (msg)->
 		switch msg
 			when 'ask', 'cancel'
+				[msg, cb] = arguments
 				if @is_player() and @next() is @seat()
 					@test_connection (err)=>
 						return console.log err if err
@@ -371,9 +371,15 @@ class window.ConnectedBoard extends window.PlayBoard
 				else
 					cb 'not your turn'
 			when 'reject', 'accept', 'stop'
+				[msg, cb] = arguments
 				@test_connection (err)=>
 					return console.log err if err
 					@socket.emit 'call_finishing', msg, cb
-	on_call_finishing: (msg, analysis)->
+			when 'suggest'
+				console.log [msg, stone, suggest, cb] = arguments
+				@test_connection (err)=>
+					return console.log err if err
+					@socket.emit 'call_finishing', msg, stone, suggest, cb
+	on_call_finishing: (msg)->
 		console.log msg
 		

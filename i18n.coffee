@@ -139,6 +139,9 @@ all =
 		stop_calling_finishing_receiver_wait: '对方取消了结束棋局的请求。请稍候对方落子。'
 		or1: '或者'
 		or2: '还是'
+		guess_live: '活棋'
+		guess_dead: '死棋'
+		guess_共活: '共活'
 	zh_TW:
 		contact_us: '聯繫我們'
 

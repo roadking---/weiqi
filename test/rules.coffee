@@ -2,6 +2,13 @@ _ = require 'underscore'
 r = require '../api/weiqi_rule'
 assert = require("assert")
 
+circle_the_eye = (eye, player, stones)->
+	_.chain(eye).map((x)-> [ [x[0]+1, x[1]], [x[0]-1, x[1]], [x[0], x[1]+1], [x[0], x[1]-1] ]).flatten(true).filter((x)-> 0 <= x[0] <= 18 and 0 <= x[1] <= 18).uniq((x)->19 * x[0] + x[1]) \
+	.reject((x)-> _.find eye, (y)-> x[0] is y[0] and x[1] is y[1]).each (x)->
+		try
+			r.move_step stones, {pos:x, player:player}
+		catch e
+
 describe 'rules', ->
 	describe 'move_step', ->
 		it 'move 1 step', (done)->
@@ -89,13 +96,6 @@ describe 'rules', ->
 			_.find domains, (d)->
 				_.chain(d.stone_blocks).pluck('block').flatten().pluck('pos').find((x)-> 
 					x[0] is pos[0] and x[1] is pos[1]).value()
-		
-		circle_the_eye = (eye, player, stones)->
-			_.chain(eye).map((x)-> [ [x[0]+1, x[1]], [x[0]-1, x[1]], [x[0], x[1]+1], [x[0], x[1]-1] ]).flatten(true).filter((x)-> 0 <= x[0] <= 18 and 0 <= x[1] <= 18).uniq((x)->19 * x[0] + x[1]) \
-			.reject((x)-> _.find eye, (y)-> x[0] is y[0] and x[1] is y[1]).each (x)->
-				try
-					r.move_step stones, {pos:x, player:player}
-				catch e
 		
 		it 'simplest case', (done)->
 			stones = []
@@ -325,7 +325,34 @@ describe 'rules', ->
 			assert.equal regiment.guess, 'dead'
 			done()
 		
-			
+	describe 'calc', ->
+		it 'both live', (done)->
+			stones = []
+			circle_the_eye _.map([0..6], (x)-> [x, 0]), 'black', stones
+			circle_the_eye _.map([0..6], (x)-> [18-x, 18]), 'white', stones
+			regiments = r.analyze stones
+			assert.equal regiments.length, 2
+			rlt = r.calc regiments
+			assert.equal rlt.black.occupied, 7
+			assert.equal rlt.white.occupied, 7
+			done()
+		it 'dead', (done)->
+			stones = []
+			tmp = _.chain([0..6]).map((x)-> _.map [0..6], (y)-> [x, y]).flatten(true).value()
+			circle_the_eye tmp, 'black', stones
+			r.move_step stones, {pos:[0, 0], player:'black'}
+			circle_the_eye _.map(tmp, (x)-> [18-x[0], 18-x[1]]), 'white', stones
+			circle_the_eye _.map(tmp, (x)-> [0, 0]), 'white', stones
+			regiments = r.analyze stones
+			assert.equal regiments.length, 3
+			rlt = r.calc regiments, stones
+			assert.equal rlt.black.occupied, 49
+			assert.equal rlt.white.occupied, 49
+			assert.equal rlt.black.repealed, 1
+			assert.equal rlt.white.repealed, 0
+			done()
+	
+	
 	describe 'match_shape', ->
 		it '直四', (done)->
 			positions = _.map [1..4], (i)-> [3, i]

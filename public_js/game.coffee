@@ -19,11 +19,60 @@ class Weiqi extends ConnectedBoard
 				show_notice 'ask_calling_finishing_receiver'
 			else if @is_player() and @initial.calling_finishing.msg is 'reject' and @initial.calling_finishing.uid isnt @uid()
 				show_notice 'reject_calling_finishing_receiver'
-			else if @is_player() and @initial.calling_finishing.msg is 'accept' and @initial.calling_finishing.uid is @uid()
-				show_notice 'accept_calling_finishing'
-			else if @is_player() and @initial.calling_finishing.msg is 'accept' and @initial.calling_finishing.uid isnt @uid()
-				show_notice 'accept_calling_finishing_receiver'
-		console.log @initial.analysis
+			else if @is_player() and @initial.calling_finishing.msg is 'accept' 
+				if @initial.calling_finishing.uid is @uid()
+					show_notice 'accept_calling_finishing'
+				else
+					show_notice 'accept_calling_finishing_receiver'
+				if @initial.analysis
+					@show_finishing_view @initial.analysis
+			
+	show_finishing_view: (analysis)->
+		_.each analysis, (x)=>
+			item = $('.finishing:visible li').first().clone().appendTo $('.finishing:visible ul')
+			item.data 'regiment', x
+			item.data 'stones', x.stones = _.chain(x.domains).pluck('stone_blocks').flatten().pluck('block').flatten().value()
+			item.find('.player').text x.player
+			item.find('.stones').text item.data('stones').length
+			item.find(".guess option[value='#{x.judge or x.guess}']").attr 'selected', true
+			item.find("select.guess").change (e)=>
+				console.log $(e.target).val()
+				@call_finishing 'suggest', item.data('stones')[0].n, $(e.target).val(), =>
+					console.log 333
+			#$(item)?.find(".opponent_guess").text suggest
+			item.removeClass('hide').show().hover =>
+				@redraw 
+					before_place: (stone)=>
+						if _.find(item.data('stones'), (x)-> x.n is stone.n)
+							@ctx.shadowOffSetX = 0
+							@ctx.shadowOffSetY = 0
+							@ctx.shadowColor = 'rgba(255,0,0,.8)'
+							@ctx.shadowBlur = 13
+					after_place: (stone)=>
+						@ctx.shadowBlur = 0
+		
+		redraw_modified = =>
+			@redraw 
+				before_place: (stone)=>
+					regiment = _.find analysis, (r)->
+						_.find r.stones, (x)-> x.n is stone.n
+					@ctx.shadowOffSetX = 0
+					@ctx.shadowOffSetY = 0
+					@ctx.shadowBlur = 13
+					switch regiment.judge or regiment.guess
+						when 'live'
+							@ctx.shadowBlur = 0
+						when 'dead'
+							@ctx.shadowColor = 'rgba(0,255,255,1)'
+						else
+							@ctx.shadowColor = 'rgba(255,0,0,.8)'
+				after_place: (stone)=>
+					@ctx.shadowBlur = 0
+		redraw_modified()
+		
+		$('.finishing:visible').mouseout => 
+			redraw_modified()
+		
 	on_disconnect: -> 
 		super()
 		@last_game_notice = $('#game-notice > *:visible').attr 'msg'
@@ -93,7 +142,7 @@ class Weiqi extends ConnectedBoard
 		console.log 'retract'
 	mine_retract: ->
 		show_notice 'started_please_move'
-	on_call_finishing: (msg, analysis)->
+	on_call_finishing: (msg)->
 		super msg
 		switch msg
 			when 'ask'
@@ -103,13 +152,20 @@ class Weiqi extends ConnectedBoard
 			when 'reject'
 				show_notice 'reject_calling_finishing_receiver'
 			when 'accept'
+				[msg, analysis] = arguments
 				show_notice 'accept_calling_finishing_receiver'
-				console.log analysis
+				@show_finishing_view analysis 
 			when 'stop'
 				if @next() is @seat()
 					show_notice 'stop_calling_finishing_receiver_move'
 				else
 					show_notice 'stop_calling_finishing_receiver_wait'
+			when 'suggest'
+				[msg, stone, suggest] = arguments
+				console.log arguments
+				item = _.find $('.finishing:visible ul li').toArray(), (x)->
+					_.find $(x).data('stones'), (y)-> y.n is stone
+				$(item)?.find(".opponent_guess").text suggest
 	
 $ ->
 	b = new Weiqi $('#gaming-board'), {LINE_COLOR: '#53595e', NINE_POINTS_COLOR: '#53595e', size: 600}
@@ -243,8 +299,8 @@ $ ->
 			show_notice 'reject_calling_finishing'
 	$('#game-notice a#accept_calling_finishing').click ->
 		$('#gaming-board:visible').data('data')?.call_finishing 'accept', (analysis)->
-			console.log analysis
 			show_notice 'accept_calling_finishing'
+			@show_finishing_view analysis
 	$('#game-notice a#stop_calling_finishing').click ->
 		$('#gaming-board:visible').data('data')?.call_finishing 'stop', ->
 			if b.next() is b.seat()

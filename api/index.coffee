@@ -3,9 +3,9 @@ crypto = require('crypto')
 check = require('validator').check
 Cache = require('expiring-lru-cache')
 shared = require './shared'
-flow = require './flow'
 rule = require './weiqi_rule'
 rating = require './rating'
+async = require 'async'
 
 SERVER_STARTED = new Date().getTime()
 
@@ -111,12 +111,9 @@ get_user = exports.get_user = (uid, cb)->
 			user.id = uid
 			cb undefined, user
 	else if _.isArray uid
-		flow.group _.map(
-			uid, (x)-> 
-				(cb)->
-					get_user x, cb
-		), -> 
-			cb undefined, _.chain(arguments).toArray().pluck(1).zip(uid).map((x)->[x[1], x[0]]).object().value()
+		async.map uid, ((x, cb)-> get_user x, cb), (err, users)->
+			cb undefined, _.chain(users).zip(uid).map((x)->[x[1], x[0]]).object().value()
+		
 
 KEY_REGISTER = 'registers'
 
@@ -227,8 +224,9 @@ init_game = exports.init_game = (opts, cb)->
 						cb()
 				) opts.social, (err)->
 					if opts.contract.players?.length
-						flow.serialize _.map(opts.contract.players, (x)-> (cb)-> player_attend gid, x, cb ), ->
-							cb undefined, gid
+						async.eachSeries opts.contract.players, ((x, cb)->
+							player_attend gid, x, (err)->cb()
+						), (err)-> cb undefined, gid
 					else
 						cb undefined, gid
 
@@ -300,9 +298,7 @@ get_game = exports.get_game = (gid, cb)->
 			return cb new Error "#{gid} not exists" if not data.status or not data.version
 			cb undefined, data
 	else if _.isArray gid
-		flow.group (_.map gid, (x)-> (cb)->get_game x, cb
-		), -> 
-			cb undefined, _.chain(arguments).toArray().pluck(1).value()
+		async.map gid, ((x, cb)->get_game x, cb), cb
 	else
 		cb new Error "unknown gid #{gid}"
 
@@ -1362,4 +1358,71 @@ analyze = exports.analyze = ->
 						cb err
 					else
 						cb undefined, analysis
+
+suggest_finishing = exports.suggest_finishing = ->
+	find_disagree = (analysis)->
+		_.chain(analysis).filter((r)->
+				r.judge is 'disagree'
+			).map((r)->
+				r.domains[0].stone_blocks[0].block[0].n
+			).value()
+	switch arguments.length
+		when 3
+			[gid, uid, cb] = arguments
+			get_game gid, (err, game)->
+				return cb err if err
+				return cb new Error "suggest_finishing: no analysis for #{gid}" if not game.analysis
+				return cb new Error "suggest_finishing: #{uid} is not in {gid}" if not (uid in game.players)
+				return cb new Error "suggest_finishing: unknown error" if game.players.length isnt 2
 				
+				if find_disagree(game.analysis).length
+					return cb new Error "disagreement in #{gid}"
+				
+				game.analysis[0].agree ?= []
+				game.analysis[0].agree.push uid if not (uid in game.analysis[0].agree)
+				client.hset gid, 'analysis', JSON.stringify(game.analysis), (err)->
+					if err
+						cb err
+					else
+						cb undefined, game.analysis[0].agree.length is 2
+		when 5
+			[gid, uid, stone, suggest, cb] = arguments
+			get_game gid, (err, game)->
+				return cb err if err
+				return cb new Error "suggest_finishing: no analysis for #{gid}" if not game.analysis
+				return cb new Error "suggest_finishing: #{uid} is not in {gid}" if not (uid in game.players)
+				return cb new Error "suggest_finishing: unknown error" if game.players.length isnt 2
+				
+				m = client.multi()
+				regiment = rule.find_regiment game.analysis, stone
+				return cb new Error "suggest_finishing: not find stone #{stone} in #{gid}" if not regiment
+				regiment.suggets ?= {}
+				regiment.suggets[uid] = suggest
+				if _.chain(game.players).map((p)->regiment.suggets[p]).compact().uniq().value().length is 2
+					regiment.judge = 'disagree'
+					game.analysis[0].agree = null
+				else
+					if suggest isnt (regiment.judge or regiment.guess)
+						game.analysis[0].agree = null
+					regiment.judge = suggest
+				m.hset gid, 'analysis', JSON.stringify(game.analysis)
+				m.exec (err)->
+					cache.del gid if not err
+					cb undefined, game.analysis, find_disagree(game.analysis)
+
+calc = exports.calc = (gid, cb)->
+	get_game gid, (err, game)->
+		return cb err if err
+		return cb new Error "calc: need analysis" if not game.analysis
+		regiments = rule.analyze game.moves
+		_.each game.analysis, (x)->
+			stone = x.domains[0].stone_blocks[0].block[0].n
+			r = rule.find_regiment regiments, stone
+			throw new Error "no regiment found for stone #{stone} in #{gid}" if not r
+			r.judge = x.judge or x.guess
+		nums = rule.calc regiments, game.moves
+		cb undefined,
+			black: nums.black.occupied - nums.black.repealed
+			white: nums.white.occupied - nums.white.repealed
+			nums: nums
+		

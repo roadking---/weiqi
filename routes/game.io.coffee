@@ -109,20 +109,33 @@ module.exports = (io, socket)->
 										if not err
 											io.of('/weiqi').in(gid).emit 'start', seats, 'black'
 											
-		socket.on 'call_finishing', (msg, cb)->
-			console.log "call_finishing #{msg}"
-			socket.get 'gid', (err, gid)->
-				return cb? fail:err if err
-				socket.get 'uid', (err, uid)->
-					return cb? fail:err if err
-					api.call_finishing gid, uid, msg, (err)->
-						if err
-							cb? err
-						else
-							if msg is 'accept'
-								api.analyze gid, true, (err, analysis)->
-									socket.broadcast.to(gid).emit 'call_finishing', msg, analysis
-									cb analysis
+		socket.on 'call_finishing', (msg)->
+			if msg is 'suggest'
+				[msg, stone, suggest, cb] = arguments
+				socket.get 'gid', (err, gid)->
+					return if err
+					socket.get 'uid', (err, uid)->
+						return if err
+						api.suggest_finishing gid, uid, stone, suggest, (err)->
+							if err
+								console.error err
 							else
-								socket.broadcast.to(gid).emit 'call_finishing', msg
+								socket.broadcast.to(gid).emit 'call_finishing', msg, stone, suggest
 								cb?()
+			else
+				[msg, cb] = arguments
+				socket.get 'gid', (err, gid)->
+					return if err
+					socket.get 'uid', (err, uid)->
+						return if err
+						api.call_finishing gid, uid, msg, (err)->
+							if err
+								cb? err
+							else
+								if msg is 'accept'
+									api.analyze gid, true, (err, analysis)->
+										socket.broadcast.to(gid).emit 'call_finishing', msg, analysis
+										cb analysis
+								else
+									socket.broadcast.to(gid).emit 'call_finishing', msg
+									cb?()

@@ -30,18 +30,92 @@
       show_notice('connected');
       if (this.initial.calling_finishing) {
         if (this.initial.calling_finishing.msg === 'ask' && this.initial.calling_finishing.uid === this.uid()) {
-          show_notice('ask_calling_finishing');
+          return show_notice('ask_calling_finishing');
         } else if (this.is_player() && this.initial.calling_finishing.msg === 'ask' && this.initial.calling_finishing.uid !== this.uid()) {
-          show_notice('ask_calling_finishing_receiver');
+          return show_notice('ask_calling_finishing_receiver');
         } else if (this.is_player() && this.initial.calling_finishing.msg === 'reject' && this.initial.calling_finishing.uid !== this.uid()) {
-          show_notice('reject_calling_finishing_receiver');
-        } else if (this.is_player() && this.initial.calling_finishing.msg === 'accept' && this.initial.calling_finishing.uid === this.uid()) {
-          show_notice('accept_calling_finishing');
-        } else if (this.is_player() && this.initial.calling_finishing.msg === 'accept' && this.initial.calling_finishing.uid !== this.uid()) {
-          show_notice('accept_calling_finishing_receiver');
+          return show_notice('reject_calling_finishing_receiver');
+        } else if (this.is_player() && this.initial.calling_finishing.msg === 'accept') {
+          if (this.initial.calling_finishing.uid === this.uid()) {
+            show_notice('accept_calling_finishing');
+          } else {
+            show_notice('accept_calling_finishing_receiver');
+          }
+          if (this.initial.analysis) {
+            return this.show_finishing_view(this.initial.analysis);
+          }
         }
       }
-      return console.log(this.initial.analysis);
+    };
+
+    Weiqi.prototype.show_finishing_view = function(analysis) {
+      var redraw_modified,
+        _this = this;
+
+      _.each(analysis, function(x) {
+        var item;
+
+        item = $('.finishing:visible li').first().clone().appendTo($('.finishing:visible ul'));
+        item.data('regiment', x);
+        item.data('stones', x.stones = _.chain(x.domains).pluck('stone_blocks').flatten().pluck('block').flatten().value());
+        item.find('.player').text(x.player);
+        item.find('.stones').text(item.data('stones').length);
+        item.find(".guess option[value='" + (x.judge || x.guess) + "']").attr('selected', true);
+        item.find("select.guess").change(function(e) {
+          console.log($(e.target).val());
+          return _this.call_finishing('suggest', item.data('stones')[0].n, $(e.target).val(), function() {
+            return console.log(333);
+          });
+        });
+        return item.removeClass('hide').show().hover(function() {
+          return _this.redraw({
+            before_place: function(stone) {
+              if (_.find(item.data('stones'), function(x) {
+                return x.n === stone.n;
+              })) {
+                _this.ctx.shadowOffSetX = 0;
+                _this.ctx.shadowOffSetY = 0;
+                _this.ctx.shadowColor = 'rgba(255,0,0,.8)';
+                return _this.ctx.shadowBlur = 13;
+              }
+            },
+            after_place: function(stone) {
+              return _this.ctx.shadowBlur = 0;
+            }
+          });
+        });
+      });
+      redraw_modified = function() {
+        return _this.redraw({
+          before_place: function(stone) {
+            var regiment;
+
+            regiment = _.find(analysis, function(r) {
+              return _.find(r.stones, function(x) {
+                return x.n === stone.n;
+              });
+            });
+            _this.ctx.shadowOffSetX = 0;
+            _this.ctx.shadowOffSetY = 0;
+            _this.ctx.shadowBlur = 13;
+            switch (regiment.judge || regiment.guess) {
+              case 'live':
+                return _this.ctx.shadowBlur = 0;
+              case 'dead':
+                return _this.ctx.shadowColor = 'rgba(0,255,255,1)';
+              default:
+                return _this.ctx.shadowColor = 'rgba(255,0,0,.8)';
+            }
+          },
+          after_place: function(stone) {
+            return _this.ctx.shadowBlur = 0;
+          }
+        });
+      };
+      redraw_modified();
+      return $('.finishing:visible').mouseout(function() {
+        return redraw_modified();
+      });
     };
 
     Weiqi.prototype.on_disconnect = function() {
@@ -169,7 +243,9 @@
       return show_notice('started_please_move');
     };
 
-    Weiqi.prototype.on_call_finishing = function(msg, analysis) {
+    Weiqi.prototype.on_call_finishing = function(msg) {
+      var analysis, item, stone, suggest, _ref1;
+
       Weiqi.__super__.on_call_finishing.call(this, msg);
       switch (msg) {
         case 'ask':
@@ -179,14 +255,25 @@
         case 'reject':
           return show_notice('reject_calling_finishing_receiver');
         case 'accept':
+          msg = arguments[0], analysis = arguments[1];
           show_notice('accept_calling_finishing_receiver');
-          return console.log(analysis);
+          return this.show_finishing_view(analysis);
         case 'stop':
           if (this.next() === this.seat()) {
             return show_notice('stop_calling_finishing_receiver_move');
           } else {
             return show_notice('stop_calling_finishing_receiver_wait');
           }
+          break;
+        case 'suggest':
+          msg = arguments[0], stone = arguments[1], suggest = arguments[2];
+          console.log(arguments);
+          item = _.find($('.finishing:visible ul li').toArray(), function(x) {
+            return _.find($(x).data('stones'), function(y) {
+              return y.n === stone;
+            });
+          });
+          return (_ref1 = $(item)) != null ? _ref1.find(".opponent_guess").text(suggest) : void 0;
       }
     };
 
@@ -382,8 +469,8 @@
       var _ref1;
 
       return (_ref1 = $('#gaming-board:visible').data('data')) != null ? _ref1.call_finishing('accept', function(analysis) {
-        console.log(analysis);
-        return show_notice('accept_calling_finishing');
+        show_notice('accept_calling_finishing');
+        return this.show_finishing_view(analysis);
       }) : void 0;
     });
     return $('#game-notice a#stop_calling_finishing').click(function() {

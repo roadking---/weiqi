@@ -21,7 +21,8 @@
     "ndir": "*",
     "maxmind": "*",
     "yamljs": "*",
-    "gauss": "*"
+    "gauss": "*",
+    "async": "*"
   },
   "engines": {
     "node": "0.10.*",

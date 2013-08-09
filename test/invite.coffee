@@ -1,24 +1,24 @@
 _ = require 'underscore'
 assert = require("assert")
 api = require '../api'
-flow = require '../api/flow'
+async = require 'async'
 
 describe 'social', ->
 	test_users = 'test3@test.com test4@test.com'.split ' '
 	password = '12345678'
 	users = null
 	beforeEach (done)-> 
-		flow.group _.map(test_users, (x)-> (cb)-> api.register {email:x, password:password}, (err, id)-> cb id), -> 
-			users = _.chain(arguments).toArray().pluck(0).value()
+		async.map test_users, ((x, cb)->api.register {email:x, password:password}, (err, id)-> cb undefined, id), (err, uids)->
+			users = uids
 			done()
 		
 	afterEach (done)->
-		flow.group _.map(test_users, (x)->(cb)->api.discard_user x, cb), -> done()
+		async.each test_users, ((x, cb)->api.discard_user x, cb), done
 			
 	describe 'invite', ->
 		it 'A invite B', (done)->
 			api.invite users[0], users[1], (err, invite_id)->
-				assert not err
+				assert not err, err
 				assert invite_id
 				api.get_sent_invitation users[0], (err, invites)->
 					assert not err

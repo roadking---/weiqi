@@ -263,7 +263,7 @@ analyze = (stones)->
 		if x.length is 2
 			if x[0].liberty_count is x[1].liberty_count
 				if x[0].liberty_blocks.length is x[1].liberty_blocks.length
-					x[0].guess = x[1].guess = '共活'
+					x[0].guess = x[1].guess = 'live' #共活
 				else
 					x[0].guess = 'dead'
 					x[1].guess = 'live'
@@ -313,12 +313,15 @@ segment = (array, fn)->
 		_.pluck rlt, 'items'
 	
 
-find_regiment = (regiments, pos)->
+find_regiment = (regiments, stone)->
 	_.find regiments, (r)->
 		_.find r.domains, (d)->
 			_.find d.stone_blocks, (sb)->
 				_.find sb.block, (b)->
-					b.pos[0] is pos[0] and b.pos[1] is pos[1]
+					if _.isArray stone
+						b.pos[0] is stone[0] and b.pos[1] is stone[1]
+					else
+						b.n is stone
 				
 exports?.find_regiment = find_regiment
 
@@ -342,3 +345,31 @@ match_shape = (positions, shape)->
 			positions.length is 4 and variance(positions) is variance([[0,0],[1,0],[0,1],[1,1]])
 
 exports.match_shape = match_shape
+
+exports.calc = (regiments, stones)->
+	repealed = _.chain(stones).filter((x)->x.repealed).countBy((x)->x.player).value()
+	_.chain(regiments).map((x)->
+		switch x.judge or x.guess
+			when 'live'
+				player: x.player
+				occupied: _.chain(x.liberty_blocks).pluck('liberties').flatten(true).value()
+			when 'dead'
+				stones_taken = _.chain(x.domains).pluck('stone_blocks').flatten().pluck('block').flatten().pluck('pos').value()
+				player: if x.player is 'black' then 'white' else 'black'
+				occupied: _.union(
+					stones_taken,
+					_.chain(x.liberty_blocks).pluck('liberties').flatten(true).value(),
+					_.chain(x.domains).pluck('liberty_blocks_peripheral').flatten().uniq().pluck('liberties').flatten(true).value()
+				)
+				stones_taken: stones_taken
+				
+	).groupBy((x)->x.player).pairs().map((x)->
+		[ 
+			x[0]
+			{
+				occupied: _.chain(x[1]).pluck('occupied').flatten(true).value().length
+				repealed: repealed[x[0]] ? 0
+			}
+		]
+	).object().value()
+	

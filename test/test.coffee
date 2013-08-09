@@ -1,15 +1,16 @@
 _ = require 'underscore'
 assert = require("assert")
 api = require '../api'
-flow = require '../api/flow'
+async = require 'async'
+rule = require '../api/weiqi_rule'
 
 describe 'user', ->
 	describe 'register', ->
 		data = 
 			email: 'reg@test.com'
 			password: '12345678'
-		before (done)-> api.discard_user data.email, (err)-> done()
-		after (done)-> api.discard_user data.email, (err)-> done()
+		before (done)-> api.discard_user data.email, done
+		after (done)-> api.discard_user data.email, done
 			
 		it 'normal', (done)->
 			api.register data, (err, uid)->
@@ -24,7 +25,7 @@ describe 'user', ->
 		data = 
 			email: 'login@test.com'
 			password: '12345678'
-		before (done)-> api.register data, (err, id)-> done()
+		before (done)-> api.register data, done
 		after (done)-> 
 			api.discard_user data.email, done
 			
@@ -62,10 +63,10 @@ describe 'game', ->
 				assert gid
 				test_gid = gid
 				cb()
-		flow.group funcs, ->done()
+		async.parallel funcs, done
 	afterEach (done)->
 		api.discard_game test_gid, ->
-			flow.group _.map(test_users, (x)->(cb)->api.discard_user x, cb), -> done()
+			async.each test_users, ((x, cb)->api.discard_user x, cb), ->done()
 			
 	describe 'attend', ->
 		it 'should success when init status', (done)->
@@ -118,14 +119,12 @@ describe 'game', ->
 				assert gid
 				test_gid = gid
 				cb()
-		flow.group funcs, ->
-			flow.group _.map(users, (x)-> (cb)->
-				api.player_attend test_gid, x, cb
-			), -> done()
+		async.parallel funcs, ->
+			async.each users, ((x, cb)-> api.player_attend test_gid, x, cb), ->done()
 			
 	afterEach (done)->
 		api.discard_game test_gid, ->
-			flow.group _.map(test_users, (x)->(cb)->api.discard_user x, cb), -> done()
+			async.each test_users, ((x, cb)->api.discard_user x, cb), ->done()
 			
 	describe 'taking_seat', ->
 		it 'should success', (done)->
@@ -181,11 +180,11 @@ describe 'game', ->
 				assert gid
 				test_gid = gid
 				cb()
-		flow.group funcs, -> done()
+		async.parallel funcs, ->done()
 			
 	afterEach (done)->
 		api.discard_game test_gid, ->
-			flow.group _.map(test_users, (x)->(cb)->api.discard_user x, cb), -> done()
+			async.each test_users, ((x, cb)->api.discard_user x, cb), ->done()
 			
 
 	describe 'start_game', ->
@@ -197,9 +196,7 @@ describe 'game', ->
 					done()
 		
 		it 'should fail with vacant seat, and finally succeed with both seats taken.', (done)->
-			flow.group _.map(users, (x)-> (cb)->
-				api.player_attend test_gid, x, cb
-			), ->
+			async.each users, ((x, cb)->api.player_attend test_gid, x, cb), ->
 				api.start_game test_gid, (err)->
 					assert err
 					api.taking_seat test_gid, black:users[0], (err, seats, all_arrived)-> api.start_game test_gid, (err)->
@@ -216,13 +213,13 @@ describe 'game', ->
 	password = '12345678'
 	users = null
 	beforeEach (done)-> 
-		flow.group _.map(test_users, (x)-> (cb)-> api.register {email:x, password:password}, (err, id)-> cb id), -> 
-			users = _.chain(arguments).toArray().pluck(0).value()
+		async.map test_users, ((x, cb)->api.register {email:x, password:password}, (err, id)-> cb undefined, id), (err, uids)->
+			users = uids
 			done()
 			
 	afterEach (done)->
 		api.discard_game test_gid, ->
-			flow.group _.map(test_users, (x)->(cb)->api.discard_user x, cb), -> done()
+			async.each test_users, ((x, cb)->api.discard_user x, cb), done
 			
 	describe 'init_game', ->
 		it 'auto start', (done)->
@@ -285,11 +282,11 @@ describe 'game', ->
 				assert gid
 				test_gid = gid
 				cb()
-		flow.group funcs, -> done()
+		async.parallel funcs, done
 			
 	afterEach (done)->
 		api.discard_game test_gid, ->
-			flow.group _.map(test_users, (x)->(cb)->api.discard_user x, cb), -> done()
+			async.each test_users, ((x, cb)->api.discard_user x, cb), done
 			
 	describe 'quit_game', ->
 		it 'should discard the game when she is the only player left', (done)->
@@ -315,7 +312,7 @@ describe 'game', ->
 						assert users[1] in data.players
 						done()
 		it 'quit when taking seat', (done)->
-			flow.group _.map(users, (x)->(cb)-> api.player_attend test_gid, x, cb), ->
+			async.each users, ((x, cb)->api.player_attend test_gid, x, cb), ->
 				api.taking_seat test_gid, black:users[0], (err, seats, all_arrived)-> api.get_game test_gid, (err, data)->
 					assert.equal data.seats.black, users[0]
 					assert.equal data.status, 'taking_seat'
@@ -328,7 +325,7 @@ describe 'game', ->
 							assert.equal data.status, 'init'
 							done()
 		it 'quit when started', (done)->
-			flow.group _.map(users, (x)->(cb)-> api.player_attend test_gid, x, cb), ->
+			async.each users, ((x, cb)-> api.player_attend test_gid, x, cb), ->
 				api.taking_seat test_gid, {black:users[0], white:users[1]}, (err, seats, all_arrived)-> api.start_game test_gid, (err)-> api.get_game test_gid, (err, data)->
 					assert.equal data.status, 'started'
 					api.player_quit test_gid, users[0], (err)->
@@ -355,13 +352,13 @@ describe 'game', ->
 			type: 'weiqi'
 		api.init_game opts, (err, gid)->
 			test_gid = gid
-			flow.group _.map(test_users, (x)-> (cb)-> api.register {email:x, password:password}, (err, id)-> cb id), -> 
-				users = _.chain(arguments).toArray().pluck(0).value()
-				flow.group _.map(users, (x)->(cb)-> api.player_attend test_gid, x, cb), -> api.taking_seat test_gid, {black:users[0], white:users[1]}, -> done()
-		
+			async.map test_users, ((x, cb)->api.register {email:x, password:password}, (err, id)-> cb undefined, id), (err, uids)->
+				users = uids
+				async.each users, ((x, cb)->api.player_attend test_gid, x, cb), -> 
+					api.taking_seat test_gid, {black:users[0], white:users[1]}, done
 	afterEach (done)->
 		api.discard_game test_gid, ->
-			flow.group _.map(test_users, (x)->(cb)->api.discard_user x, cb), -> done()
+			async.each test_users, ((x, cb)->api.discard_user x, cb), done
 	
 	describe 'move', ->
 		it 'normal', (done)->
@@ -497,7 +494,7 @@ describe 'game', ->
 							player: 'white'
 					}
 				]
-				flow.serialize _.map(moves, (x)->(cb)->api.move test_gid, x, cb), ->
+				async.eachSeries moves, ((x, cb)->api.move test_gid, x, cb), ->
 					assert not err
 					api.get_game test_gid, (err, game)->
 						assert not err
@@ -581,11 +578,11 @@ describe 'friend', ->
 	password = '12345678'
 	users = null
 	beforeEach (done)-> 
-		flow.group _.map(test_users, (x)-> (cb)-> api.register {email:x, password:password}, (err, id)-> cb id), -> 
-			users = _.chain(arguments).toArray().pluck(0).value()
+		async.map test_users, ((x, cb)->api.register {email:x, password:password}, (err, id)-> cb undefined, id), (err, uids)->
+			users = uids
 			done()
 	afterEach (done)->
-		flow.group _.map(test_users, (x)->(cb)->api.discard_user x, cb), -> done()
+		async.each test_users, ((x, cb)->api.discard_user x, cb), done
 	
 	describe 'follow', ->
 		it 'A follow B', (done)->
@@ -621,16 +618,17 @@ describe 'user', ->
 	password = '12345678'
 	users = null
 	beforeEach (done)-> 
-		flow.group _.map(test_users, (x)-> (cb)-> api.register {email:x, password:password}, (err, id)-> cb id), -> 
-			users = _.chain(arguments).toArray().pluck(0).value()
+		async.map test_users, ((x, cb)->api.register {email:x, password:password}, (err, id)-> cb undefined, id), (err, uids)->
+			users = uids
 			opts = initiator: users[0], type: 'weiqi'
 			api.init_game opts, (err, gid)->
 				test_gid = gid
-				flow.group _.map(users, (x)->(cb)-> api.player_attend test_gid, x, cb), -> api.taking_seat test_gid, {black:users[0], white:users[1]}, -> done()
+				async.each users, ((x, cb)->api.player_attend test_gid, x, cb), -> 
+					api.taking_seat test_gid, {black:users[0], white:users[1]}, done
 		
 	afterEach (done)->
 		api.discard_game test_gid, ->
-			flow.group _.map(test_users, (x)->(cb)->api.discard_user x, cb), -> done()
+			async.each test_users, ((x, cb)->api.discard_user x, cb), done
 			
 	describe.skip 'get_user_updates', ->
 		it 'normal', (done)->
@@ -647,8 +645,8 @@ describe 'user', ->
 	password = '12345678'
 	users = null
 	beforeEach (done)-> 
-		flow.group _.map(test_users, (x)-> (cb)-> api.register {email:x, password:password}, (err, id)-> cb id), -> 
-			users = _.chain(arguments).toArray().pluck(0).value()
+		async.map test_users, ((x, cb)->api.register {email:x, password:password}, (err, id)-> cb undefined, id), (err, uids)->
+			users = uids
 			opts = initiator: users[0], type: 'weiqi'
 			api.init_game opts, (err, gid)->
 				test_gid = gid
@@ -656,7 +654,7 @@ describe 'user', ->
 		
 	afterEach (done)->
 		api.discard_game test_gid, ->
-			flow.group _.map(test_users, (x)->(cb)->api.discard_user x, cb), -> done()
+			async.each test_users, ((x, cb)->api.discard_user x, cb), done
 			
 	describe.skip 'get_user_updates', ->
 		it 'my_new_game', (done)->
@@ -679,8 +677,8 @@ describe 'rating', ->
 	password = '12345678'
 	users = null
 	beforeEach (done)-> 
-		flow.group _.map(test_users, (x)-> (cb)-> api.register {email:x, password:password}, (err, id)-> cb id), -> 
-			users = _.chain(arguments).toArray().pluck(0).value()
+		async.map test_users, ((x, cb)->api.register {email:x, password:password}, (err, id)-> cb undefined, id), (err, uids)->
+			users = uids
 			opts = initiator: users[0], type: 'weiqi', players: users, seats:{black:users[0], white:users[1]}, start:'auto'
 			api.init_game opts, (err, test_gid)->
 				gid = test_gid
@@ -688,7 +686,7 @@ describe 'rating', ->
 		
 	afterEach (done)->
 		api.discard_game gid, ->
-			flow.group _.map(test_users, (x)->(cb)->api.discard_user x, cb), -> done()
+			async.each test_users, ((x, cb)->api.discard_user x, cb), done
 	
 	describe 'surrender', ->
 		it 'normal', (done)->
@@ -706,11 +704,11 @@ describe 'group', ->
 	password = '12345678'
 	users = null
 	beforeEach (done)-> 
-		flow.group _.map(test_users, (x)-> (cb)-> api.register {email:x, password:password}, (err, id)-> cb id), -> 
-			users = _.chain(arguments).toArray().pluck(0).value()
+		async.map test_users, ((x, cb)->api.register {email:x, password:password}, (err, id)-> cb undefined, id), (err, uids)->
+			users = uids
 			done()
 	afterEach (done)->
-		flow.group _.map(test_users, (x)->(cb)->api.discard_user x, cb), -> done()
+		async.each test_users, ((x, cb)->api.discard_user x, cb), done
 	describe 'create_group', ->
 		it 'normal', (done)->
 			api.create_group data = {managers:[users[0]], name:'test'}, (err, gid)->
@@ -737,12 +735,12 @@ describe 'social', ->
 	password = '12345678'
 	users = null
 	beforeEach (done)-> 
-		flow.group _.map(test_users, (x)-> (cb)-> api.register {email:x, password:password}, (err, id)-> cb id), -> 
-			users = _.chain(arguments).toArray().pluck(0).value()
+		async.map test_users, ((x, cb)->api.register {email:x, password:password}, (err, id)-> cb undefined, id), (err, uids)->
+			users = uids
 			done()
 	afterEach (done)->
 		api.now = -> Math.round new Date().getTime()/1000
-		flow.group _.map(test_users, (x)->(cb)->api.discard_user x, cb), -> done()
+		async.each test_users, ((x, cb)->api.discard_user x, cb), done
 	describe 'follow', ->
 		it 'A follow B and both have a new blog', (done)->
 			api.follow users[0], users[1], (err, rlt)->
@@ -870,7 +868,7 @@ describe 'social', ->
 		it 'get next page', (done)->
 			time = api.now()
 			api.now = -> time - 60*60*3
-			flow.serialize _.map([1..15], (x)-> (cb)->
+			async.eachSeries [1..15], ((x, cb)->
 				api.now = -> time - 60*60*x
 				api.send_post users[1], {content:x}, cb
 			), ->
@@ -896,7 +894,7 @@ describe 'social', ->
 		it 'get next page with more followed', (done)->
 			time = api.now()
 			api.now = -> time - 60*60*3
-			flow.serialize _.map([1..15], (x)-> (cb)->
+			async.eachSeries [1..15], ((x, cb)->
 				api.now = -> time - 60*60*x
 				api.send_post users[1], {content:"1_#{x}"}, -> api.send_post users[2], {content:"2_#{x}"}, cb
 			), ->
@@ -960,11 +958,11 @@ describe 'social', ->
 	password = '12345678'
 	users = null
 	beforeEach (done)-> 
-		flow.group _.map(test_users, (x)-> (cb)-> api.register {email:x, password:password}, (err, id)-> cb id), -> 
-			users = _.chain(arguments).toArray().pluck(0).value()
+		async.map test_users, ((x, cb)->api.register {email:x, password:password}, (err, id)-> cb undefined, id), (err, uids)->
+			users = uids
 			done()
 	afterEach (done)->
-		flow.group _.map(test_users, (x)->(cb)->api.discard_user x, cb), -> done()
+		async.each test_users, ((x, cb)->api.discard_user x, cb), done
 	describe 'send_post & fetch_blogs', ->
 		it 'normal', (done)->
 			api.send_post users[0], {content:'test'}, (err, pid)->
@@ -980,11 +978,11 @@ describe 'social', ->
 	password = '12345678'
 	users = null
 	beforeEach (done)-> 
-		flow.group _.map(test_users, (x)-> (cb)-> api.register {email:x, password:password}, (err, id)-> cb id), -> 
-			users = _.chain(arguments).toArray().pluck(0).value()
+		async.map test_users, ((x, cb)->api.register {email:x, password:password}, (err, id)-> cb undefined, id), (err, uids)->
+			users = uids
 			api.follow users[2], users[0], (err, rlt)-> api.follow users[3], users[1], (err, rlt)-> api.follow users[0], users[1], (err, rlt)-> done()
 	afterEach (done)->
-		flow.group _.map(test_users, (x)->(cb)->api.discard_user x, cb), -> done()
+		async.each test_users, ((x, cb)->api.discard_user x, cb), done
 	describe 'init_game', ->
 		it 'init a game and share with friends', (done)->
 			api.init_game {initiator: users[0], type: 'weiqi', social:true}, (err, gid)->
@@ -1097,11 +1095,11 @@ describe 'social', ->
 	password = '12345678'
 	users = null
 	beforeEach (done)-> 
-		flow.group _.map(test_users, (x)-> (cb)-> api.register {email:x, password:password}, (err, id)-> cb id), -> 
-			users = _.chain(arguments).toArray().pluck(0).value()
+		async.map test_users, ((x, cb)->api.register {email:x, password:password}, (err, id)-> cb undefined, id), (err, uids)->
+			users = uids
 			done()
 	afterEach (done)->
-		flow.group _.map(test_users, (x)->(cb)->api.discard_user x, cb), -> done()
+		async.each test_users, ((x, cb)->api.discard_user x, cb), done
 	describe 'get_page', ->
 		it 'player quit', (done)->
 			api.init_game {initiator: users[0], type: 'weiqi', social:true, players:users[0..1], seats:{black:users[0], white:users[1]}, start:'auto'}, (err, gid)->
@@ -1138,8 +1136,8 @@ describe 'comment', ->
 	password = '12345678'
 	users = null
 	beforeEach (done)-> 
-		flow.group _.map(test_users, (x)-> (cb)-> api.register {email:x, password:password}, (err, id)-> cb id), -> 
-			users = _.chain(arguments).toArray().pluck(0).value()
+		async.map test_users, ((x, cb)->api.register {email:x, password:password}, (err, id)-> cb undefined, id), (err, uids)->
+			users = uids
 			api.init_game {initiator: users[0], type: 'weiqi', players:users[0..1], seats:{black:users[0], white:users[1]}, social:true, start:'auto'}, (err, test_gid)->
 				gid = test_gid
 				done()
@@ -1147,7 +1145,7 @@ describe 'comment', ->
 	afterEach (done)->
 		api.now = -> Math.round new Date().getTime()/1000
 		api.discard_game gid, ->
-			flow.group _.map(test_users, (x)->(cb)->api.discard_user x, cb), -> done()
+			async.each test_users, ((x, cb)->api.discard_user x, cb), done
 			
 	describe 'add_comment', ->
 		it 'comment game as a player', (done)->
@@ -1181,7 +1179,7 @@ describe 'comment', ->
 					done()
 		it 'fetch more comments', (done)->
 			time = api.now()
-			flow.serialize _.map([1..20], (x)-> (cb)->
+			async.eachSeries [1..20], ((x, cb)->
 				api.now = -> time - 3600 * x
 				comment = ts: api.now(), text: x, step: '54', author: users[2]
 				api.add_comment gid, comment, cb
@@ -1234,11 +1232,11 @@ describe 'social', ->
 	password = '12345678'
 	users = null
 	beforeEach (done)-> 
-		flow.group _.map(test_users, (x)-> (cb)-> api.register {email:x, password:password}, (err, id)-> cb id), -> 
-			users = _.chain(arguments).toArray().pluck(0).value()
+		async.map test_users, ((x, cb)->api.register {email:x, password:password}, (err, id)-> cb undefined, id), (err, uids)->
+			users = uids
 			done()
 	afterEach (done)->
-		flow.group _.map(test_users, (x)->(cb)->api.discard_user x, cb), -> done()
+		async.each test_users, ((x, cb)->api.discard_user x, cb), done
 	describe 'delete_post', ->
 		it 'simplest case', (done)->
 			api.send_post users[0], {content:'test'}, (err, pid)->
@@ -1275,8 +1273,8 @@ describe 'game', ->
 	password = '12345678'
 	users = null
 	beforeEach (done)-> 
-		flow.group _.map(test_users, (x)-> (cb)-> api.register {email:x, password:password}, (err, id)-> cb id), -> 
-			users = _.chain(arguments).toArray().pluck(0).value()
+		async.map test_users, ((x, cb)->api.register {email:x, password:password}, (err, id)-> cb undefined, id), (err, uids)->
+			users = uids
 			api.init_game {initiator: users[0], type: 'weiqi', players:users[0..1], seats:{black:users[0], white:users[1]}, social:true, start:'auto'}, (err, test_gid)->
 				gid = test_gid
 				done()
@@ -1284,7 +1282,7 @@ describe 'game', ->
 	afterEach (done)->
 		api.now = -> Math.round new Date().getTime()/1000
 		api.discard_game gid, ->
-			flow.group _.map(test_users, (x)->(cb)->api.discard_user x, cb), -> done()
+			async.each test_users, ((x, cb)->api.discard_user x, cb), done
 			
 	describe 'retract', ->
 		it 'move and retract repeatedly', (done)->
@@ -1354,25 +1352,154 @@ describe 'game', ->
 							assert not err
 							assert not game.calling_finishing
 							done()
+describe 'game', ->
+	gid = null
+	test_users = 'test1@test.com test3@test.com test4@test.com'.split ' '
+	password = '12345678'
+	users = null
+	
+	beforeEach (done)-> 
+		async.map test_users, ((x, cb)->api.register {email:x, password:password}, (err, id)-> cb undefined, id), (err, uids)->
+			users = uids
+			api.init_game {initiator: users[0], type: 'weiqi', players:users[0..1], seats:{black:users[0], white:users[1]}, social:true, start:'auto'}, (err, test_gid)->
+				gid = test_gid
+				async.eachSeries _.chain([0..4]).map((x, i)->
+					[
+						{n: i, pos:[x, 5], player:'black'}
+						{n: i + 5, pos:[5, x], player:'black'}
+						{n: i + 10, pos:[5, 18 - x], player:'white'}
+						{n: i + 15, pos:[x, 13], player:'white'}
+					]
+				).flatten().map((x, i, all)->
+					next: all[i+1]?.move?.player ? 'black', move: x
+				).value(), ((x, cb)->api.move gid, x, cb), ->
+					api.call_finishing gid, users[0], 'ask', (err)->
+						assert not err
+						api.call_finishing gid, users[1], 'accept', (err)->
+							assert not err
+							done()
+		
+	afterEach (done)->
+		api.now = -> Math.round new Date().getTime()/1000
+		api.discard_game gid, ->
+			async.each test_users, ((x, cb)->api.discard_user x, cb), done
 		
 	describe 'analyze', ->
 		it 'normal', (done)->
-			flow.serialize _.chain([0..4]).map((x, i)->
-				[
-					{n: i, pos:[x, 5], player:'black'}
-					{n: i + 5, pos:[5, x], player:'black'}
-					{n: i + 10, pos:[5, 18 - x], player:'white'}
-					{n: i + 15, pos:[x, 13], player:'white'}
-				]
-			).flatten().map((x, i, all)->
-				next: all[i+1]?.move?.player ? 'black', move: x
-			).map((x)-> (cb)->
-				api.move gid, x, cb
-			).value(), ->
-				api.analyze gid, true, (err, analysis)->
+			api.analyze gid, true, (err, analysis)->
+				assert not err
+				assert analysis
+				api.get_game gid, (err, game)->
 					assert not err
-					assert analysis
-					api.get_game gid, (err, game)->
+					assert game.analysis
+					done()
+					
+	describe 'suggest_finishing', ->
+		it 'suggest for a regiment', (done)->
+			api.analyze gid, true, (err, analysis)->
+				assert not err
+				api.suggest_finishing gid, users[0], 0, 'dead', (err, analysis, disagree)->
+					assert not err
+					regiment = rule.find_regiment analysis, 0
+					assert.equal regiment.judge, 'dead'
+					assert.equal disagree.length, 0
+					api.suggest_finishing gid, users[1], 0, 'live', (err, analysis, disagree)->
 						assert not err
-						assert game.analysis
+						regiment = rule.find_regiment analysis, 0
+						assert.equal regiment.judge, 'disagree'
+						assert.equal disagree.length, 1
 						done()
+		it 'agree with no change', (done)->
+			api.analyze gid, true, (err, analysis)->
+				assert not err
+				api.suggest_finishing gid, users[0], (err, rlt)->
+					assert not err
+					assert not rlt
+					api.suggest_finishing gid, users[1], (err, rlt)->
+						assert not err
+						assert rlt
+						done()
+		it 'disagree error', (done)->
+			api.analyze gid, true, (err, analysis)->
+				assert not err
+				api.suggest_finishing gid, users[0], 0, 'dead', (err, analysis, disagree)->
+					assert not err
+					api.suggest_finishing gid, users[1], 0, 'live', (err, analysis, disagree)->
+						assert not err
+						assert disagree.length
+						api.suggest_finishing gid, users[1], (err, rlt)->
+							assert err
+							done()
+		it 'disagree settled', (done)->
+			api.analyze gid, true, (err, analysis)->
+				assert not err
+				api.suggest_finishing gid, users[0], 0, 'dead', (err, analysis, disagree)->
+					assert not err
+					api.suggest_finishing gid, users[1], 0, 'live', (err, analysis, disagree)->
+						assert not err
+						api.suggest_finishing gid, users[0], (err, rlt)->
+							assert err
+							api.suggest_finishing gid, users[1], 0, 'dead', (err, analysis, disagree)->
+								assert not err
+								api.get_game gid, (err, game)->
+									api.suggest_finishing gid, users[0], (err, rlt)->
+										assert not err
+										assert not rlt
+										done()
+		
+		it 'A agree and B suggest the same', (done)->
+			api.analyze gid, true, (err, analysis)->
+				assert not err
+				api.suggest_finishing gid, users[0], 0, 'dead', (err, analysis, disagree)->
+					assert not err
+					api.suggest_finishing gid, users[0], (err, rlt)->
+						assert not err
+						assert not rlt
+						api.get_game gid, (err, game)->
+							assert not err
+							assert.equal game.analysis[0].agree.length, 1
+							assert users[0] in game.analysis[0].agree
+							api.suggest_finishing gid, users[1], 0, 'dead', (err, analysis, disagree)->
+								assert not err
+								api.get_game gid, (err, game)->
+									assert not err
+									assert.equal game.analysis[0].agree.length, 1
+									assert users[0] in game.analysis[0].agree
+									api.suggest_finishing gid, users[1], (err, rlt)->
+										assert not err
+										assert rlt
+										done()
+		it 'A agree but B suggest different', (done)->
+			api.analyze gid, true, (err, analysis)->
+				assert not err
+				api.suggest_finishing gid, users[0], 0, 'dead', (err, analysis, disagree)->
+					assert not err
+					api.suggest_finishing gid, users[0], (err, rlt)->
+						assert not err
+						assert not rlt
+						api.suggest_finishing gid, users[1], 0, 'live', (err, analysis, disagree)->
+							assert not err
+							api.get_game gid, (err, game)->
+								assert not err
+								assert not game.analysis[0].agree
+								api.suggest_finishing gid, users[1], (err, rlt)->
+									assert err
+									done()
+	describe 'calc', ->
+		it 'normal', (done)->
+			api.analyze gid, true, (err, analysis)->
+				assert not err
+				api.suggest_finishing gid, users[0], (err, rlt)->
+					assert not err
+					assert not rlt
+					api.suggest_finishing gid, users[1], (err, rlt)->
+						assert not err
+						assert rlt
+						api.calc gid, (err, rlt)->
+							assert not err
+							assert.equal rlt.black, 25
+							assert.equal rlt.white, 25
+							api.end_game gid, rlt, (err, rlt)->
+								assert not err
+								assert rlt.draw
+								done()
