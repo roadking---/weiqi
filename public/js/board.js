@@ -40,6 +40,16 @@
       return this.board.attr('uid');
     };
 
+    BasicBoard.prototype.opponent = function() {
+      var _this = this;
+
+      if (this.is_player()) {
+        return _.find(this.initial.players, function(x) {
+          return x !== _this.uid();
+        });
+      }
+    };
+
     BasicBoard.prototype.next = function() {
       return this.board.attr('next');
     };
@@ -73,10 +83,6 @@
       }
       this.canvas = this.board.find('canvas.draw');
       this.canvas.attr({
-        width: this.opts.size,
-        height: this.opts.size
-      });
-      this.canvas.css({
         width: this.opts.size,
         height: this.opts.size
       });
@@ -254,6 +260,63 @@
 
   })(BasicBoard);
 
+  window.HtmlBoard = (function(_super) {
+    __extends(HtmlBoard, _super);
+
+    function HtmlBoard(board, opts) {
+      var _base, _base1, _base2, _ref, _ref1, _ref2,
+        _this = this;
+
+      this.board = board;
+      this.opts = opts;
+      HtmlBoard.__super__.constructor.call(this, this.board, this.opts);
+      if ((_ref = (_base = this.opts).click) == null) {
+        _base.click = true;
+      }
+      if ((_ref1 = (_base1 = this.opts).black) == null) {
+        _base1.black = '#0f1926';
+      }
+      if ((_ref2 = (_base2 = this.opts).white) == null) {
+        _base2.white = '#fffcf7';
+      }
+      this.on_next_player(this.next());
+      this.show_number = this.board.find('#num_btn i').hasClass('show-number');
+      this.show_steps_to = null;
+      this.board.height(this.board.width());
+      this.draw_board();
+      _.each(this.initial.moves, function(x) {
+        return _this.place(x);
+      });
+    }
+
+    HtmlBoard.prototype.place = function(move) {
+      var stone;
+
+      stone = $('<div></div>').appendTo(this.board).addClass(move.player).attr('n', move.n).attr('x', move.pos[0]).attr('y', move.pos[1]).text(move.n);
+      stone.css({
+        left: this.interval * move.pos[0] + this.board.offset().left + this.opts.margin - stone.width() / 2,
+        top: this.interval * move.pos[1] + this.board.offset().top + this.opts.margin - stone.height() / 2
+      });
+      if (move.repealed) {
+        stone.addClass('repealed');
+      }
+      if (this.show_num) {
+        return stone.addClass('show_num');
+      }
+    };
+
+    HtmlBoard.prototype.redraw = function() {};
+
+    HtmlBoard.prototype.find_stones = function(nums) {
+      return this.board.find(_.map(nums, function(x) {
+        return "[n=\"" + x + "\"]";
+      }).join(','));
+    };
+
+    return HtmlBoard;
+
+  })(CanvasBoard);
+
   window.Board = (function(_super) {
     __extends(Board, _super);
 
@@ -317,8 +380,16 @@
     };
 
     Board.prototype.toggle_num_shown = function() {
+      var _this = this;
+
       this.show_num = !this.show_num;
-      return this.redraw();
+      return this.board.find('.black, .white').each(function(i, x) {
+        if (_this.show_num) {
+          return $(x).addClass('show_num');
+        } else {
+          return $(x).removeClass('show_num');
+        }
+      });
     };
 
     Board.prototype.get_moves = function() {
@@ -334,7 +405,7 @@
 
     return Board;
 
-  })(CanvasBoard);
+  })(HtmlBoard);
 
   window.PlayBoard = (function(_super) {
     __extends(PlayBoard, _super);
@@ -494,7 +565,9 @@
         console.log('surrender ' + uid);
         return typeof this.on_surrender === "function" ? this.on_surrender(uid) : void 0;
       });
-      this.socket.on('call_finishing', this.on_call_finishing);
+      this.socket.on('call_finishing', function() {
+        return _this.on_call_finishing.apply(_this, arguments);
+      });
       return this.init_socket(function() {
         return typeof _this.on_connect === "function" ? _this.on_connect() : void 0;
       });

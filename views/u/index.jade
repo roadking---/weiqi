@@ -1,0 +1,110 @@
+extends ../layout
+
+block title
+	title= lingua.title_user_page({name:ref_user.nickname, title:lingua['title_' + ref_user.title]})
+	
+block append scripts
+	//script(type='text/javascript', src='/js/thumbnail.js')
+	script(src='/js/BoardCanvas.js')
+	script(type='text/javascript', src='/js/u.js', async)
+
+block content
+	#u.container
+		#heading
+			h1= ref_user.nickname
+				span.title= lingua['title_' + ref_user.title]
+			
+		#profile
+		#following
+		#invites
+			#received
+			#sent
+		#current
+		#recent_history
+		
+		script#following_tpl(type='text/template').
+		script#received_invites_tpl(type='text/template').
+			<% if(received_invites.length){ %>
+				<h6>#{lingua.invite_received}</h6>
+				<% _.each(received_invites, function(x){ %>
+					<a href='/receive_invite/<%=x.sender%>', target='_blank'>
+						<sapn>refs[x.sender].nickname</span>
+						<span class='title'><%= player_titles[refs[x.sender].title] %></span>
+					</a>
+				<% }); %>
+			<% } %>
+		script#sent_invites_tpl(type='text/template').
+			<% if(received_invites.length){ %>
+				<h6>#{lingua.invite_received}</h6>
+				<% _.each(received_invites, function(x){ %>
+					<a href='/receive_invite/<%=x.receiver%>', target='_blank'>
+						<sapn>refs[x.receiver].nickname</span>
+						<span class='title'><%= player_titles[refs[x.receiver].title] %></span>
+					</a>
+				<% }); %>
+			<% } %>
+		script#profile_tpl(type='text/template').
+			<div id='performance'>
+				<p>
+					<span>#{lingua.rate}</span>
+					<span title='#{lingua.rate}'><%= refs[uid].rate ? refs[uid].rate : 'N/A' %></span>
+				</p>
+				<% total_games = lingua_tpl('#{_.escape(lingua.total_games)}'); win = lingua_tpl('#{_.escape(lingua.win)}'); loss = lingua_tpl('#{_.escape(lingua.loss)}'); %>
+				<p><%= total_games({num:refs[uid].total_games||0}) %> <%= win({num:refs[uid].wins||0}) %> <%= loss({num:refs[uid].losses||0}) %></p>
+			</div>
+		script#heading_tpl(type='text/template').
+			<% if(myself && myself != uid){ %>
+				<% if(query.is_followed){ %>
+					<a class='follow'></a>
+				<% } else { %>
+					<a class='unfollow'></a>
+				<% } %>
+				<a class='invite' href='/invite/<%=uid%>'><img src='/img/icons/prayer.svg'><span>#{lingua.challenge_you}</span></a>
+			<% } %>
+		script#current_game_tpl(type='text/template').
+			<% if(current.length) { %>
+				<ul>
+					<% _.each(current, function(gid){ my_seat = _.invert(refs[gid].seats)[uid]; opponent = _.without(refs[gid].players, uid)[0];  %>
+						<li gid='<%=gid%>'>
+							<% if(my_seat) { %>
+								<span><%= (my_seat == 'black') ? '#{lingua.black}' : '#{lingua.white}' %></span>
+								<span>#{lingua.with}</span>
+								<%= player_tpl({user:refs[opponent]}) %>
+							<% } %>
+							<a href='/game/<%=gid%>'><div class='thumb'/></a>
+							<% if(myself && myself == uid) { %>
+								<% if(refs[gid].status == 'taking_seat' && !_.invert(refs[gid].seats)[uid]) { %> <em>#{lingua.notice_take_seat}</em> <% } %>
+								<% if(refs[gid].status == 'started' && refs[gid].seats[refs[gid].next] == uid ) { %> <em>#{lingua.notice_my_turn}</em> <% } %>
+							<% } %>
+						</li>
+					<% }); %>
+				</ul>
+			<% } %>
+		
+		script#recent_history_tpl(type='text/template').
+			<% if(recent_history.length) { %>
+				<% total_moves = lingua_tpl('#{_.escape(lingua.total_moves)}'); %>
+				<ul>
+					<% _.each(current, function(gid){ %>
+						<li>
+							<% opponent = _.without(refs[gid].players, uid)[0]; %>
+							<% if(refs[gid].result) { %>
+								<span class="ts"><%= moment( refs[gid].result.ts *1000).format('YYYY/MM/DD HH:mm') %></span>
+							<% } %>
+							<span class="total_moves"><%= total_moves({moves:refs[gid].moves.length}) %></span>
+							
+							<% if(refs[gid].result){ %>
+								<% if(refs[gid].result.win){ %>
+									<span><%= refs[gid].result.win == 'black' ? '#{lingua.seat_black}' : '#{lingua.seat_white}' %></span>
+									<% if(myself){ %>
+										<span><%= myself == refs[gid].seats[refs[gid].result.win] ? '#{lingua.win_vs}' : '#{lingua.fail_vs}' %></span>
+									<% } %>
+								<% } %>
+							<% } %>
+							<%= player_tpl({user:refs[opponent]}) %>
+							<a href='/game/<%=gid%>')>>></a>
+						</li>
+					<% }); %>
+				</ul>
+			<% } %>
+		

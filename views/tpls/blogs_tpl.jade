@@ -1,0 +1,69 @@
+script(type='text/template', name='player_quit').
+	<p>player quit <%= player_tpl({user:refs[blog.player]}) %></p>
+script(type='text/template', name='player_attend').
+	<%= player_tpl({user:refs[blog.uid], clazz:'player'}) %> #{lingua.player_attend_blog}
+script(type='text/template', name='forward').
+	<p><%= blog.comment %></p>
+	<div class='forwarded_blog'>
+		<%= tpl("script[name='"+blog.original_blog.type+"']")({blog:blog.original_blog, refs:refs}) %>
+	</div>
+script(type='text/template', name='init_game').
+	<% if(blog.scenario == 'init_and_wait'){ %>
+		<% if(blog.v == .1){ %>
+			<div class='text'><a href='/game/weiqi/<%=blog.gid%>'>#{lingua.init_and_wait_0_1_blog}</a></div>
+			<div class='attached'>
+				<% user = player_tpl({user:refs[blog.initiator.id]}); wins = blog.initiator.wins; losses = blog.initiator.losses; %>
+				<% if(! blog.initiator.total_games){ %>
+					#{lingua.init_and_wait_0_1_attached_new_user}
+				<% } else if(blog.initiator.total_games < 5){ %>
+					#{lingua.init_and_wait_0_1_attached_less_frequent_user}
+				<% } else { %>
+					<% rate = blog.initiator.rate; win_ratio = blog.initiator.win_ratio %>
+					#{lingua.init_and_wait_0_1_attached_frequent_user}
+				<% } %>
+			</div>
+		<% } %>
+	<% } else { %>
+		<% if(blog.v == .1){ %>
+			<div class='text'>
+				<% player1 = player_tpl({user:refs[blog.players[0].id]}); player2 = player_tpl({user:refs[blog.players[1].id]}); %>
+				#{lingua.init_and_start_0_1_blog}
+			</div>
+			<div class='attached'>
+				<% _.each(blog.players, function(p){ %>
+					<% user = refs[p.id]; wins = p.wins; losses = p.losses; %>
+					<div class='player'>
+						<% if(! p.total_games){ %>
+							#{lingua.init_and_start_0_1_attached_new_user}
+						<% } else if(p.total_games < 5) { %>
+							#{lingua.init_and_start_0_1_attached_less_frequent_user}
+						<% } else { %>
+							<% rate = blog.initiator.rate; win_ratio = blog.initiator.win_ratio %>
+							#{lingua.init_and_start_0_1_attached_frequent_user}
+						<% } %>
+					</div>
+				<% }); %>
+			</div>
+		<% } %>
+	<% } %>
+script#blog_tpl(type='text/template').
+	<ul>
+		<% _.each(blogs, function(blog){ %>
+			<li class='<%=blog.type%>'>
+				<header>
+					<% if(blog.author) { %>
+						<%= player_tpl({user:refs[blog.author], clazz:'author'}) %>
+					<% } else { %>
+						<a class='author' href='/game/<%= blog.gid %>'>Game</a>
+					<% } %>
+					<% if(myself == blog.author){ %><span class='del'>&times;</span><% } %>
+				</header>
+				<article>
+					<%= tpl("script[name='"+blog.type+"']")({blog:blog, refs:refs}) %>
+				</article>
+				<footer>
+					<span class='ts'><%= moment(blog.ts*1000).format('YYYY/MM/DD HH:mm') %></span>
+				</footer>
+			</li>
+		<% }); %>
+	</ul>

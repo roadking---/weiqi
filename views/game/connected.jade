@@ -1,0 +1,22 @@
+extends ../layout
+
+block append scripts
+	script(src='/js/cookie.min.js')
+	script(src='/socket.io/socket.io.js')
+	script(src='/js/thumbnail.js')
+	script(type='text/javascript', src='/js/backbone-min.js')
+	script(src='/js/BoardCanvas.js')
+	script(src='/js/connected.js')
+block content
+	#game-view-outer
+		#game-view
+			header
+				h1#game-caption
+				a#details-link(href="#details"): i.icon-info-sign
+			div.in-range
+				#gaming-board
+				include toolbox
+			
+		aside
+			include bulletin
+	

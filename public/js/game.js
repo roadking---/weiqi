@@ -49,72 +49,52 @@
     };
 
     Weiqi.prototype.show_finishing_view = function(analysis) {
-      var redraw_modified,
-        _this = this;
+      var _this = this;
 
-      _.each(analysis, function(x) {
-        var item;
+      return _.each(analysis, function(x) {
+        var item, _ref1, _ref2, _ref3;
 
-        item = $('.finishing:visible li').first().clone().appendTo($('.finishing:visible ul'));
-        item.data('regiment', x);
-        item.data('stones', x.stones = _.chain(x.domains).pluck('stone_blocks').flatten().pluck('block').flatten().value());
+        item = $('.finishing:visible li').first().clone().appendTo($('.finishing:visible ul')).removeClass('hide').data('regiment', x).data('stones', x.stones = _.chain(x.domains).pluck('stone_blocks').flatten().pluck('block').flatten().value()).hover(function() {
+          return _this.find_stones(_.pluck(item.data('stones'), 'n')).addClass('selected');
+        }, function() {
+          return _this.board.find('.black, .white').each(function(i, stone) {
+            return $(stone).removeClass('selected');
+          });
+        });
         item.find('.player').text(x.player);
         item.find('.stones').text(item.data('stones').length);
-        item.find(".guess option[value='" + (x.judge || x.guess) + "']").attr('selected', true);
+        item.find(".guess option[value='" + (((_ref1 = x.suggests) != null ? _ref1[_this.uid()] : void 0) || x.judge || x.guess) + "']").attr("selected", true);
         item.find("select.guess").change(function(e) {
-          console.log($(e.target).val());
-          return _this.call_finishing('suggest', item.data('stones')[0].n, $(e.target).val(), function() {
-            return console.log(333);
-          });
-        });
-        return item.removeClass('hide').show().hover(function() {
-          return _this.redraw({
-            before_place: function(stone) {
-              if (_.find(item.data('stones'), function(x) {
-                return x.n === stone.n;
-              })) {
-                _this.ctx.shadowOffSetX = 0;
-                _this.ctx.shadowOffSetY = 0;
-                _this.ctx.shadowColor = 'rgba(255,0,0,.8)';
-                return _this.ctx.shadowBlur = 13;
-              }
-            },
-            after_place: function(stone) {
-              return _this.ctx.shadowBlur = 0;
-            }
-          });
-        });
-      });
-      redraw_modified = function() {
-        return _this.redraw({
-          before_place: function(stone) {
-            var regiment;
+          var suggest;
 
-            regiment = _.find(analysis, function(r) {
-              return _.find(r.stones, function(x) {
-                return x.n === stone.n;
-              });
-            });
-            _this.ctx.shadowOffSetX = 0;
-            _this.ctx.shadowOffSetY = 0;
-            _this.ctx.shadowBlur = 13;
-            switch (regiment.judge || regiment.guess) {
-              case 'live':
-                return _this.ctx.shadowBlur = 0;
-              case 'dead':
-                return _this.ctx.shadowColor = 'rgba(0,255,255,1)';
-              default:
-                return _this.ctx.shadowColor = 'rgba(255,0,0,.8)';
+          suggest = $(e.target).val();
+          return _this.call_finishing('suggest', item.data('stones')[0].n, suggest, function() {
+            var _base, _ref2;
+
+            if ((_ref2 = (_base = $(item).data('regiment')).suggests) == null) {
+              _base.suggests = {};
             }
-          },
-          after_place: function(stone) {
-            return _this.ctx.shadowBlur = 0;
-          }
+            $(item).data('regiment').suggests[_this.uid()] = suggest;
+            if ($(item).data('regiment').suggests[_this.opponent()]) {
+              if ($(item).data('regiment').suggests[_this.opponent()] === suggest) {
+                $(item).data('regiment').judge = suggest;
+              } else {
+                $(item).data('regiment').judge = 'disagree';
+              }
+            } else {
+              $(item).data('regiment').judge = suggest;
+            }
+            return _this.find_stones(_.pluck($(item).data('stones'), 'n')).removeClass('disagree live dead').addClass($(item).data('regiment').judge);
+          });
         });
-      };
-      redraw_modified();
-      return $('.finishing:visible').mouseout(function() {
-        return redraw_modified();
+        if ((_ref2 = x.suggests) != null ? _ref2[_this.opponent()] : void 0) {
+          if ((_ref3 = $(item)) != null) {
+            _ref3.find(".opponent_guess").text(x.suggests[_this.opponent()]);
+          }
+        }
+        console.log(x.judge || x.guess);
+        _this.find_stones(_.pluck(item.data('stones'), 'n')).addClass(x.judge || x.guess);
+        return item.show();
       });
     };
 
@@ -244,7 +224,7 @@
     };
 
     Weiqi.prototype.on_call_finishing = function(msg) {
-      var analysis, item, stone, suggest, _ref1;
+      var analysis, item, stone, suggest, _base, _ref1;
 
       Weiqi.__super__.on_call_finishing.call(this, msg);
       switch (msg) {
@@ -266,14 +246,32 @@
           }
           break;
         case 'suggest':
-          msg = arguments[0], stone = arguments[1], suggest = arguments[2];
-          console.log(arguments);
-          item = _.find($('.finishing:visible ul li').toArray(), function(x) {
-            return _.find($(x).data('stones'), function(y) {
-              return y.n === stone;
+          if (this.is_player()) {
+            msg = arguments[0], stone = arguments[1], suggest = arguments[2];
+            console.log(arguments);
+            item = _.find($('.finishing:visible ul li').toArray(), function(x) {
+              return _.find($(x).data('stones'), function(y) {
+                return y.n === stone;
+              });
             });
-          });
-          return (_ref1 = $(item)) != null ? _ref1.find(".opponent_guess").text(suggest) : void 0;
+            $(item).find(".opponent_guess").text(suggest);
+            if ((_ref1 = (_base = $(item).data('regiment')).suggests) == null) {
+              _base.suggests = {};
+            }
+            $(item).data('regiment').suggests[this.opponent()] = suggest;
+            if ($(item).data('regiment').suggests[this.uid()]) {
+              if ($(item).data('regiment').suggests[this.uid()] === suggest) {
+                $(item).data('regiment').judge = suggest;
+              } else {
+                $(item).data('regiment').judge = 'disagree';
+              }
+            } else {
+              console.log(334);
+              $(item).data('regiment').judge = suggest;
+              $(item).find(".guess option[value='" + suggest + "']").attr("selected", true);
+            }
+            return this.find_stones(_.pluck($(item).data('stones'), 'n')).removeClass('disagree live dead').addClass($(item).data('regiment').judge);
+          }
       }
     };
 
@@ -470,7 +468,7 @@
 
       return (_ref1 = $('#gaming-board:visible').data('data')) != null ? _ref1.call_finishing('accept', function(analysis) {
         show_notice('accept_calling_finishing');
-        return this.show_finishing_view(analysis);
+        return b.show_finishing_view(analysis);
       }) : void 0;
     });
     return $('#game-notice a#stop_calling_finishing').click(function() {

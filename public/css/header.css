@@ -1,17 +1,68 @@
-#header_banner {
-  background-color: #fcdd4e;
-  padding: 10px 0;
+header {
   border-bottom: 1px dotted #fff;
+  max-width: 1320px;
+  margin: 0 auto;
 }
-#header_banner ul.nav {
-  vertical-align: middle;
-  margin: 0;
+header nav {
+  height: 52px;
+  background-color: #4a4a4a;
 }
-#header_banner ul.nav a {
-  color: #000;
+header nav #logo {
+  float: left;
+  width: 230px;
+  background-color: #428bca;
+  overflow: hidden;
+  font-size: 18px;
   font-weight: bold;
+  color: #fff;
+  display: inline-block;
+  text-align: center;
+  text-decoration: none;
+  line-height: 52px;
 }
-#header_banner ul.nav a:hover {
-  background-color: #53595e;
-  color: #fffcf7;
+header nav ul.nav {
+  display: block;
+  float: left;
+  font-size: 14px;
+  margin: 0;
+  list-style: none;
+}
+header nav ul.nav li {
+  float: left;
+}
+header nav ul.nav li a {
+  color: #eee;
+  text-decoration: none;
+  padding: 0 20px;
+  height: 52px;
+  line-height: 52px;
+  display: block;
+  font-weight: bold;
+  overflow: hidden;
+}
+header nav ul.nav li a:hover {
+  background-color: #72d0eb;
+  color: #fff;
+}
+header nav ul.nav li.active a {
+  background-color: #72d0eb;
+  color: #000;
+}
+header #login-or-register {
+  background: #f7f7f7;
+  border: 1px solid #bbb;
+}
+header #login-or-register a {
+  width: 40%;
+  display: inline-block;
+  text-align: center;
+  font-size: 30px;
+  text-decoration: none;
+  height: 80px;
+  line-height: 80px;
+}
+header #login-or-register a span {
+  vertical-align: middle;
+  padding: 5px;
+  display: inline-block;
 }

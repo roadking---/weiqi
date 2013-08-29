@@ -1274,6 +1274,10 @@ get_refs = exports.get_refs = (data, cb)->
 			_.map games, (x)-> [x.initiator, x.players]
 			data.users
 		]).flatten().uniq().compact().value(), (err, users)->
+			users = _.chain(users).pairs().map((x)->
+				x[1] = _.omit x[1], 'password', 'email'
+				x
+			).object().value()
 			refs = _.defaults refs, users
 			_.chain(refs).keys().each (x)-> delete refs[x] if not refs[x]
 			cb undefined, refs
@@ -1340,12 +1344,11 @@ analyze = exports.analyze = ->
 				return cb err if err
 				analysis = rule.analyze game.moves
 				analysis = _.map analysis, (r)->
-					r.domains = _.map r.domains, (d)-> 
-						#d.liberty_blocks = _.map d.liberty_blocks, (lb)-> _.omit lb, 'stone_blocks'
-						d.stone_blocks = _.map d.stone_blocks, (sb)-> _.omit sb, 'opposite', 'liberty', 'liberty_blocks', 'liberty_blocks_owned'
-						_.omit d, 'liberty_blocks_peripheral', 'adjacent_domains', 'liberty_blocks'
-					r.liberty_blocks = _.map r.liberty_blocks, (lb)-> _.omit lb, 'stone_blocks'
-					r = _.omit r, 'adjacent_regiments'
+					_.chain(r).pick('player', 'guess').extend(
+						stones: _.chain(r.domains).pluck('stone_blocks').flatten().pluck('block').flatten().pluck('n').value().sort()
+						liberties: _.chain(r.liberty_blocks).pluck('liberties').flatten(true).value()
+					).value()
+				
 				((save, cb)->
 					if save
 						client.hset gid, 'analysis', JSON.stringify(analysis), (err)->
@@ -1364,7 +1367,7 @@ suggest_finishing = exports.suggest_finishing = ->
 		_.chain(analysis).filter((r)->
 				r.judge is 'disagree'
 			).map((r)->
-				r.domains[0].stone_blocks[0].block[0].n
+				r.stones[0]
 			).value()
 	switch arguments.length
 		when 3
@@ -1394,11 +1397,11 @@ suggest_finishing = exports.suggest_finishing = ->
 				return cb new Error "suggest_finishing: unknown error" if game.players.length isnt 2
 				
 				m = client.multi()
-				regiment = rule.find_regiment game.analysis, stone
+				regiment = _.find game.analysis, (x)-> stone in x.stones
 				return cb new Error "suggest_finishing: not find stone #{stone} in #{gid}" if not regiment
-				regiment.suggets ?= {}
-				regiment.suggets[uid] = suggest
-				if _.chain(game.players).map((p)->regiment.suggets[p]).compact().uniq().value().length is 2
+				regiment.suggests ?= {}
+				regiment.suggests[uid] = suggest
+				if _.chain(game.players).map((p)->regiment.suggests[p]).compact().uniq().value().length is 2
 					regiment.judge = 'disagree'
 					game.analysis[0].agree = null
 				else
@@ -1416,7 +1419,7 @@ calc = exports.calc = (gid, cb)->
 		return cb new Error "calc: need analysis" if not game.analysis
 		regiments = rule.analyze game.moves
 		_.each game.analysis, (x)->
-			stone = x.domains[0].stone_blocks[0].block[0].n
+			stone = x.stones[0]
 			r = rule.find_regiment regiments, stone
 			throw new Error "no regiment found for stone #{stone} in #{gid}" if not r
 			r.judge = x.judge or x.guess
@@ -1425,4 +1428,5 @@ calc = exports.calc = (gid, cb)->
 			black: nums.black.occupied - nums.black.repealed
 			white: nums.white.occupied - nums.white.repealed
 			nums: nums
-		
+
+submit_manuscript = (moves, sb)->

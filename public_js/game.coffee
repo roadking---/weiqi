@@ -12,6 +12,7 @@ class Weiqi extends ConnectedBoard
 		super()
 		console.log 'connected'
 		show_notice 'connected'
+		
 		if @initial.calling_finishing
 			if @initial.calling_finishing.msg is 'ask' and @initial.calling_finishing.uid is @uid()
 				show_notice 'ask_calling_finishing'
@@ -29,50 +30,40 @@ class Weiqi extends ConnectedBoard
 			
 	show_finishing_view: (analysis)->
 		_.each analysis, (x)=>
-			item = $('.finishing:visible li').first().clone().appendTo $('.finishing:visible ul')
-			item.data 'regiment', x
-			item.data 'stones', x.stones = _.chain(x.domains).pluck('stone_blocks').flatten().pluck('block').flatten().value()
+			item = $('.finishing:visible li').first().clone().appendTo($('.finishing:visible ul')).removeClass('hide') \
+			.data('regiment', x) \
+			.data('stones', x.stones = _.chain(x.domains).pluck('stone_blocks').flatten().pluck('block').flatten().value()) \
+			.hover \
+			=>
+				@find_stones(_.pluck item.data('stones'), 'n').addClass 'selected'
+			, =>
+				@board.find('.black, .white').each (i, stone)->
+					$(stone).removeClass 'selected'
+			
 			item.find('.player').text x.player
 			item.find('.stones').text item.data('stones').length
-			item.find(".guess option[value='#{x.judge or x.guess}']").attr 'selected', true
+			item.find(".guess option[value='#{x.suggests?[@uid()] or x.judge or x.guess}']").attr("selected", true)
 			item.find("select.guess").change (e)=>
-				console.log $(e.target).val()
-				@call_finishing 'suggest', item.data('stones')[0].n, $(e.target).val(), =>
-					console.log 333
-			#$(item)?.find(".opponent_guess").text suggest
-			item.removeClass('hide').show().hover =>
-				@redraw 
-					before_place: (stone)=>
-						if _.find(item.data('stones'), (x)-> x.n is stone.n)
-							@ctx.shadowOffSetX = 0
-							@ctx.shadowOffSetY = 0
-							@ctx.shadowColor = 'rgba(255,0,0,.8)'
-							@ctx.shadowBlur = 13
-					after_place: (stone)=>
-						@ctx.shadowBlur = 0
-		
-		redraw_modified = =>
-			@redraw 
-				before_place: (stone)=>
-					regiment = _.find analysis, (r)->
-						_.find r.stones, (x)-> x.n is stone.n
-					@ctx.shadowOffSetX = 0
-					@ctx.shadowOffSetY = 0
-					@ctx.shadowBlur = 13
-					switch regiment.judge or regiment.guess
-						when 'live'
-							@ctx.shadowBlur = 0
-						when 'dead'
-							@ctx.shadowColor = 'rgba(0,255,255,1)'
+				suggest = $(e.target).val()
+				@call_finishing 'suggest', item.data('stones')[0].n, suggest, =>
+					$(item).data('regiment').suggests ?= {}
+					$(item).data('regiment').suggests[@uid()] = suggest
+					
+					if $(item).data('regiment').suggests[@opponent()]
+						if $(item).data('regiment').suggests[@opponent()] is suggest
+							$(item).data('regiment').judge = suggest
 						else
-							@ctx.shadowColor = 'rgba(255,0,0,.8)'
-				after_place: (stone)=>
-					@ctx.shadowBlur = 0
-		redraw_modified()
-		
-		$('.finishing:visible').mouseout => 
-			redraw_modified()
-		
+							$(item).data('regiment').judge = 'disagree'
+					else
+						$(item).data('regiment').judge = suggest
+					@find_stones(_.pluck $(item).data('stones'), 'n').removeClass('disagree live dead').addClass($(item).data('regiment').judge)
+			
+			if x.suggests?[@opponent()]
+				$(item)?.find(".opponent_guess").text x.suggests[@opponent()]
+			
+			console.log x.judge or x.guess
+			@find_stones(_.pluck item.data('stones'), 'n').addClass x.judge or x.guess
+			item.show()
 	on_disconnect: -> 
 		super()
 		@last_game_notice = $('#game-notice > *:visible').attr 'msg'
@@ -161,12 +152,24 @@ class Weiqi extends ConnectedBoard
 				else
 					show_notice 'stop_calling_finishing_receiver_wait'
 			when 'suggest'
-				[msg, stone, suggest] = arguments
-				console.log arguments
-				item = _.find $('.finishing:visible ul li').toArray(), (x)->
-					_.find $(x).data('stones'), (y)-> y.n is stone
-				$(item)?.find(".opponent_guess").text suggest
-	
+				if @is_player()
+					[msg, stone, suggest] = arguments
+					console.log arguments
+					item = _.find $('.finishing:visible ul li').toArray(), (x)->
+						_.find $(x).data('stones'), (y)-> y.n is stone
+					$(item).find(".opponent_guess").text suggest
+					$(item).data('regiment').suggests ?= {}
+					$(item).data('regiment').suggests[@opponent()] = suggest
+					if $(item).data('regiment').suggests[@uid()]
+						if $(item).data('regiment').suggests[@uid()] is suggest
+							$(item).data('regiment').judge = suggest
+						else
+							$(item).data('regiment').judge = 'disagree'
+					else
+						console.log 334
+						$(item).data('regiment').judge = suggest
+						$(item).find(".guess option[value='#{suggest}']").attr("selected", true)
+					@find_stones(_.pluck $(item).data('stones'), 'n').removeClass('disagree live dead').addClass($(item).data('regiment').judge)
 $ ->
 	b = new Weiqi $('#gaming-board'), {LINE_COLOR: '#53595e', NINE_POINTS_COLOR: '#53595e', size: 600}
 	
@@ -300,7 +303,7 @@ $ ->
 	$('#game-notice a#accept_calling_finishing').click ->
 		$('#gaming-board:visible').data('data')?.call_finishing 'accept', (analysis)->
 			show_notice 'accept_calling_finishing'
-			@show_finishing_view analysis
+			b.show_finishing_view analysis
 	$('#game-notice a#stop_calling_finishing').click ->
 		$('#gaming-board:visible').data('data')?.call_finishing 'stop', ->
 			if b.next() is b.seat()

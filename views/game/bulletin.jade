@@ -1,0 +1,70 @@
+#bulletin
+#bulletin-tpls
+	script(type='text/template', name='init_waiting')
+		p= lingua.init_waiting
+	script(type='text/template', name='init_attending')
+		p
+			a.btn.btn-primary(href='/attend/#{gid}')= lingua.start_game
+	script(type='text/template', name='started_please_move')
+		p= lingua.started_please_move
+	script(type='text/template', name='started_please_wait')
+		p= lingua.started_please_wait
+	script(type='text/template', name='retract_by_opponent')
+		p= lingua.retract_by_opponent
+	script(type='text/template', name='retract_by')
+		p retract by
+		
+	script(type='text/template', name='disconnect')
+		p.conn= lingua.connection_lost
+	script(type='text/template', name='connected')
+		p.conn= lingua.connected
+	script(type='text/template', name='reconnected')
+		p.conn= lingua.reconnected
+	script(type='text/template', name='connect_failed')
+		p.conn= lingua.connect_failed
+	script(type='text/template', name='connecting')
+		p.conn= lingua.connecting
+	
+	script(type='text/template', name='call_finishing_ask')
+		p= lingua.call_finishing_ask
+			br
+			span= lingua.or1
+			a#call_finishing_cancel= lingua.call_finishing_cancel
+	script(type='text/template', name='call_finishing_ask_received')
+		p= lingua.call_finishing_ask_received
+			br
+			a#accept_calling_finishing= lingua.accept_calling_finishing
+			span= lingua.or2
+			a#reject_calling_finishing= lingua.reject_calling_finishing
+	script(type='text/template', name='call_finishing_cancel_received')
+		p= lingua.call_finishing_cancel_received
+	
+	script(type='text/template', name='call_finishing_reject')
+		p= lingua.call_finishing_reject
+	script(type='text/template', name='call_finishing_reject_received')
+		p!= lingua.call_finishing_reject_received
+	
+	script(type='text/template', name='call_finishing_accept')
+		#finishing
+			a#stop_calling_finishing= lingua.stop_calling_finishing_btn
+			ul#regiments
+			a#confirm Confirm
+	script#regiment-tpl(type='text/template').
+		<li>
+			<span class='player'><%= data.player %></span>
+			<% my_guess = data.suggests && data.suggests[myself] ? data.suggests[myself] : ''; opponent_guess = data.suggests && data.suggests[opponent] ? data.suggests[opponent] : ''; %>
+			<div class='guess'>
+				<a value='live' class='live <%= opponent_guess=='live' ? 'opponent-selected' : '' %>'>#{lingua.guess_live}</a>
+				<a value='dead' class='dead <%= opponent_guess=='dead' ? 'opponent-selected' : '' %>'>#{lingua.guess_dead}</a>
+			</div>
+		</li>
+	
+	script(type='text/template', name='call_finishing_stop_move')
+		p= lingua.call_finishing_stop_move
+	script(type='text/template', name='call_finishing_stop_wait')
+		p= lingua.call_finishing_stop_wait
+	script(type='text/template', name='call_finishing_stop_received_move')
+		p= lingua.call_finishing_stop_received_move
+	script(type='text/template', name='call_finishing_stop_received_wait')
+		p= lingua.call_finishing_stop_received_wait
+	

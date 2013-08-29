@@ -13,6 +13,7 @@ app.configure ->
 	app.set('port', process.env.PORT || 5000)
 	app.set('views', __dirname + '/views')
 	app.set('view engine', 'jade')
+	app.set('jsonp callback name', 'init');
 	app.use(express.favicon())
 	app.use(express.logger('dev'))
 	app.use(express.bodyParser())
@@ -25,21 +26,15 @@ app.configure ->
 	app.use express.csrf()
 	app.use (req, res, next)->
 		res.locals.csrf = req.session?._csrf
-		res.locals.title = title_fn = (t)-> res.locals.lingua['title_' + t] ? ''
-		res.locals.win_ratio_fn = (r)-> Math.round(r*1000)/10 + '%'
-		user_title_fn = jade.compile(fs.readFileSync(__dirname + '/views/view_fn/user_title_fn.jade').toString(), filename: __dirname + '/views/widget/user_title.jade')
-		res.locals.user_title_fn = _.wrap user_title_fn, (fn, args)->
-			args.title = title_fn
-			fn args
 		next()
 	app.use(app.router)
 	app.use(require('stylus').middleware(__dirname + '/public'))
 	app.use (req, res, next)->
-		#if /jquery/.test(req.path) or /bootstrap/.test(req.path)
-		#	res.set 'Pragma':'public', 'Cache-Control':"max-age=#{60*60*24*3}", 'Expires':new Date().add(day:3).toString('ddd, dd MMM yyyy hh:mm:ss') + ' GMT'
+		if _.find('underscore moment socket.io.js zepto.min socket.io .svg'.split(' '), (x)->req.path.indexOf(x) > -1)
+			res.set 'Cache-Control':"max-age=#{60*60*24*30}"
 		next()
 	app.use(express.static(path.join(__dirname, 'public')))
-	app.use (req, res, next)-> res.send 404, 'Sorry cant find that!'
+	app.use (req, res, next)-> res.send 404, "Sorry can't find that!"
 
 app.configure 'development', ->
 	app.use(express.errorHandler())
@@ -49,6 +44,7 @@ fs = require 'fs'
 app.locals
 	_: require 'underscore'
 	moment: require 'moment'
+	player_titles: 'origianl_life_master national_master expert A B C D E F G H I J'.split(' ')
 	
 
 require('./routes/routes').set app

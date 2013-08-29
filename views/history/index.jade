@@ -1,5 +1,7 @@
 extends ../layout
 
+block zepto
+	script(type='text/javascript', src='//cdnjs.cloudflare.com/ajax/libs/jquery/2.0.0/jquery.min.js')
 block scripts
 	link(rel="stylesheet", href="http://cdn.oesmith.co.uk/morris-0.4.3.min.css")
 	script(src="//cdnjs.cloudflare.com/ajax/libs/raphael/2.1.0/raphael-min.js")
@@ -7,31 +9,36 @@ block scripts
 	script(src="/js/history.js")
 
 block title
-	title= lingua.title_history({name:me.nickname, title:title(me.title)})
+	title= lingua.title_history({name:ref_user.nickname, title:title(ref_user.title)})
 
 block content
-	include ../widget/user_title
-	.container
-		#rate-chart(data=JSON.stringify(_.chain(games).pluck('record').map(function(x){return _.pick(x, 'rate', 'ts')}).value()))
+	#history
+		#rate-chart
 		#records
-			each g in games
-				- var result = g.result ? (g.result.win ? (me.id == g.seats[g.result.win] ? 'win' : 'loss') : 'draw') : 'n/a';
-				.history(id=g.id, result=result)
-					//- console.log(g);
-					if g.seats
-						h6
-							mixin user_title(refs[g.seats.black])
-							span.seat= lingua.black_short
-							span	vs 
-							mixin user_title(refs[g.seats.white])
-							span.seat= lingua.white_short
+		
+	script#records-tpl(type='text/template').
+		<% if(records.length){ %>
+			<ul>
+				<% _.each(records, function(r){ %>
+					<li>
+						<h6>
+							<%= player_tpl({user:refs[refs[r.gid].seats.black]}) %>
+							<span class='seat'>#{lingua.black_short}</span>
+							<span> vs </span>
+							<%= player_tpl({user:refs[refs[r.gid].seats.white]}) %>
+							<span class='seat'>#{lingua.white_short}</span>
 							
-							if g.result
-								if g.result.case == 'white surrenders'
-									span.result= lingua.black_won_without_number
-								else if g.result.case == 'black surrenders'
-									span.result= lingua.white_won_without_number
-						
-						span.rate= g.record.rate
-						span.ts(_ts=g.record.ts)
-
+							<% if(refs[r.gid].result){ %>
+								<% if(refs[r.gid].result.case == 'white surrenders'){ %>
+									<span class='result'>#{lingua.black_won_without_number}</span>
+								<% } else if(refs[r.gid].result.case == 'black surrenders') { %>
+									<span class='result'>#{lingua.white_won_without_number}</span>
+								<% } %>
+							<% } %>
+						</h6>
+						<span class='rate'><%= r.rate %></span>
+						<span class="ts"><%= moment( r.ts *1000).format('YYYY/MM/DD HH:mm') %></span>
+					</li>
+				<% }); %>
+			</ul>
+		<% } %>

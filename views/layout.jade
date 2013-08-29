@@ -5,27 +5,28 @@ html
 			title Move
 		meta(name='viewport', content='width=device-width, initial-scale=1.0')
 		
+		block zepto
+			script(type='text/javascript', src='/js/zepto.min.js')
+		
 		if process.env.NODE_ENV == 'development'
-			link(rel='stylesheet', href='/css/bootstrap.min.css')
-			link(rel='stylesheet', href='/css/bootstrap-responsive.min.css')
+			//link(rel='stylesheet', href='/css/bootstrap.min.css')
+			//link(rel='stylesheet', href='/css/bootstrap-responsive.min.css')
 			link(rel='stylesheet', href='/css/style.css')
-			link(rel='stylesheet', href='/css/header.css')
-			script(type='text/javascript', src='/js/jquery-1.9.1.min.js')
-			script(type='text/javascript', src='/js/bootstrap.min.js')
+			//script(type='text/javascript', src='/js/jquery.min.js')
+			
+			//script(type='text/javascript', src='/js/bootstrap.min.js')
 			script(type='text/javascript', src='/js/underscore-min.js')
 			script(type='text/javascript', src='/js/moment.min.js')
-			script(type='text/javascript', src='/js/jquery.cookie.min.js')
 		else
 			include ../public/css/style.css
-			include ../public/css/header.css
 			link(rel='stylesheet', href='//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.1/css/bootstrap-combined.min.css')
-			script(type='text/javascript', src='//cdnjs.cloudflare.com/ajax/libs/jquery/2.0.0/jquery.min.js')
 			script(type='text/javascript', src='//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.1/js/bootstrap.min.js')
 			script(type='text/javascript', src='//cdnjs.cloudflare.com/ajax/libs/underscore.js/1.4.4/underscore-min.js')
 			script(type='text/javascript', src='//cdnjs.cloudflare.com/ajax/libs/moment.js/2.0.0/moment.min.js')
-			script(type='text/javascript', src='//cdnjs.cloudflare.com/ajax/libs/jquery-cookie/1.3.1/jquery.cookie.min.js')
+			
 		//link(rel="shortcut icon", href="/img/favicon.ico", type="image/x-icon")
 		
+				
 		
 		block scripts
 			
@@ -33,9 +34,23 @@ html
 		include header
 		block content
 		a#go2top: i.icon-chevron-up
-		#footer
-			a about us
+		include footer
 		
 		include ../public/js/go2top.js
-		include ../public/js/layout.js
-		
+		script#player_tpl(type='text/template').
+			<a href='/u/<%=user.id%>' class='user <%= arguments[0].clazz ? clazz : '' %>'>
+				<span class='name'><%= user.nickname %></span>
+				<span class='title'><%= player_titles[user.title] %></span>
+			</a>
+		script.
+			function lingua_tpl(str){return _.chain(str).unescape().template().value();}
+			simple_tpl = function(selector){return _.chain($(selector).html()).unescape().template().value();}
+			player_titles = JSON.parse(_.unescape('#{JSON.stringify( _.chain(player_titles).map(function(x){return [x, lingua['title_' + x]];}).object().value() )}'));
+			player_tpl = simple_tpl('#player_tpl');
+			function tpl(selector){
+				if(!window._tpls) window._tpls = {}
+				if(_tpls[selector]) return _tpls[selector];
+				return _tpls[selector] = _.bind(simple_tpl(selector), {tpl:tpl, lingua_tpl:lingua_tpl, player_titles:player_titles, player_tpl:player_tpl});
+			}
+			
+			

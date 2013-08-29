@@ -1,5 +1,6 @@
 _ = require 'underscore'
 api = require '../api'
+async = require 'async'
 user = require './user'
 
 module.exports = (io, socket)->
@@ -27,46 +28,48 @@ module.exports = (io, socket)->
 			console.log 'room ' + room
 			socket.set 'gid', room
 		
-		socket.on 'disconnect', ->
+		
+		prepare = (cb)->
 			socket.get 'gid', (err, gid)->
-				return if err 
+				return cb? err if err
 				socket.get 'uid', (err, uid)->
-					socket.broadcast.to(gid).emit 'player_disconnect', uid
+					return cb? err if err
+					cb? undefined, gid, uid
+		
+		socket.on 'disconnect', ->
+			prepare (err, gid, uid)->
+				socket.broadcast.to(gid).emit 'player_disconnect', uid
 				
-		socket.on 'move', (req, cb)->
-			socket.get 'gid', (err, gid)->
-				return cb? fail:err if err 
+		socket.on 'move', (step, cb)->
+			prepare (err, gid, uid)->
+				return cb? fail:err if err
 				api.get_game gid, (err, game)-> 
-					console.log 'move: ' + JSON.stringify req
-					return cb? fail:err.message if err
-					
+					console.log 'move: ' + JSON.stringify step
 					if game.status isnt 'started'
 						console.error "#{gid} not started"
 						return cb? fail:"#{gid} not started"
 					
-					socket.get 'uid', (err, uid)->
-						return cb? fail:err.message if err 
-						if uid not in game.players
-							console.error "#{uid} is not a player in #{gid}"
-							return cb? fail:'you are not a player'
-						
-						if game.next isnt req.player
-							console.error "it is turn for #{game.next} and not for #{req.player}"
-							return cb? fail:'it is not your turn'
-						if game.seats[game.next] isnt uid
-							console.error "#{uid} is not the player of #{game.next}"
-							return cb? fail:"you are not the player of #{game.next}"
-						req.n ?= game.moves.length
-						
-						next = if game.next is 'black' then 'white' else 'black'
-						api.move gid, {next:next, move:req}, (err, rlt)->
-							return cb? fail:(err.message ? 'unknown error'), gid:gid if err
-							socket.get 'user', (err, user)-> console.info "move: #{user}: " + JSON.stringify req if not err
-							socket.broadcast.to(gid).emit 'move', [req], next
-							cb? success:true, next:next
+					if uid not in game.players
+						console.error "#{uid} is not a player in #{gid}"
+						return cb? fail:'you are not a player'
+					
+					if game.next isnt step.player
+						console.error "it is turn for #{game.next} and not for #{step.player}"
+						return cb? fail:'it is not your turn'
+					if game.seats[game.next] isnt uid
+						console.error "#{uid} is not the player of #{game.next}"
+						return cb? fail:"you are not the player of #{game.next}"
+					step.n ?= game.moves.length
+					
+					next = if game.next is 'black' then 'white' else 'black'
+					api.move gid, {next:next, move:step}, (err, rlt)->
+						return cb? fail:(err.message ? 'unknown error'), gid:gid if err
+						socket.get 'user', (err, user)-> console.info "move: #{user}: " + JSON.stringify step if not err
+						socket.broadcast.to(gid).emit 'move', next, step, taken=_.chain(rlt.block_taken).flatten().pluck('n').value()
+						cb? success:true, step:step, next:next, taken:taken
 		
 		socket.on 'comment', (gid, comment, cb)->
-			socket.get 'gid', (err, gid)->
+			prepare (err, gid, uid)->
 				return cb? fail:err if err 
 				api.add_comment gid, comment, ->
 					api.get_user comment.author, (err, author)->
@@ -74,68 +77,60 @@ module.exports = (io, socket)->
 						io.of('/weiqi').in(gid).emit 'comment', comment
 		
 		socket.on 'retract', (cb)->
-			socket.get 'gid', (err, gid)->
+			prepare (err, gid, uid)->
 				return cb? fail:err if err 
-				socket.get 'uid', (err, uid)->
-					return cb 'fail' if err
-					api.retract uid, gid, (err)->
-						if err
-							cb 'fail' if err
-						else
-							socket.broadcast.to(gid).emit 'retract', uid
-							cb 'success'
+				api.retract uid, gid, (err)->
+					if err
+						cb 'fail' if err
+					else
+						socket.broadcast.to(gid).emit 'retract', uid
+						cb 'success'
 		
 		socket.on 'taking_seat', (req, cb)->
-			socket.get 'gid', (err, gid)->
+			prepare (err, gid, uid)->
 				return cb? fail:err if err 
-				socket.get 'uid', (err, uid)->
-					return cb? fail:err if err 
-					console.info "taking seat: #{uid} #{req}"
-					api.taking_seat gid, _.object([[req,uid]]), (err, seats, all_arrived)->
-						if err
-							cb? 'fail'
-						else
-							api.get_user _.values(seats), (err, users)->
-								seats = _.chain(seats).pairs().map((x)->
-									[
-										x[0]
-										_.pick users[x[1]], 'id', 'nickname', 'title'
-									]
-								).object().value()
-								cb? seats
-								socket.broadcast.to(gid).emit 'taking_seat', seats
-								if all_arrived
-									api.start_game gid, (err)->
-										if not err
-											io.of('/weiqi').in(gid).emit 'start', seats, 'black'
+				console.info "taking seat: #{uid} #{req}"
+				api.taking_seat gid, _.object([[req,uid]]), (err, seats, all_arrived)->
+					if err
+						cb? 'fail'
+					else
+						api.get_user _.values(seats), (err, users)->
+							seats = _.chain(seats).pairs().map((x)->
+								[
+									x[0]
+									_.pick users[x[1]], 'id', 'nickname', 'title'
+								]
+							).object().value()
+							cb? seats
+							socket.broadcast.to(gid).emit 'taking_seat', seats
+							if all_arrived
+								api.start_game gid, (err)->
+									if not err
+										io.of('/weiqi').in(gid).emit 'start', seats, 'black'
 											
 		socket.on 'call_finishing', (msg)->
 			if msg is 'suggest'
 				[msg, stone, suggest, cb] = arguments
-				socket.get 'gid', (err, gid)->
+				prepare (err, gid, uid)->
 					return if err
-					socket.get 'uid', (err, uid)->
-						return if err
-						api.suggest_finishing gid, uid, stone, suggest, (err)->
-							if err
-								console.error err
-							else
-								socket.broadcast.to(gid).emit 'call_finishing', msg, stone, suggest
-								cb?()
+					api.suggest_finishing gid, uid, stone, suggest, (err)->
+						if err
+							console.error err
+						else
+							socket.broadcast.to(gid).emit 'call_finishing', msg, stone, suggest
+							cb?()
 			else
 				[msg, cb] = arguments
-				socket.get 'gid', (err, gid)->
+				prepare (err, gid, uid)->
 					return if err
-					socket.get 'uid', (err, uid)->
-						return if err
-						api.call_finishing gid, uid, msg, (err)->
-							if err
-								cb? err
+					api.call_finishing gid, uid, msg, (err)->
+						if err
+							cb? err
+						else
+							if msg is 'accept'
+								api.analyze gid, true, (err, analysis)->
+									socket.broadcast.to(gid).emit 'call_finishing', msg, analysis
+									cb analysis
 							else
-								if msg is 'accept'
-									api.analyze gid, true, (err, analysis)->
-										socket.broadcast.to(gid).emit 'call_finishing', msg, analysis
-										cb analysis
-								else
-									socket.broadcast.to(gid).emit 'call_finishing', msg
-									cb?()
+								socket.broadcast.to(gid).emit 'call_finishing', msg
+								cb?()

@@ -15,15 +15,21 @@ block append scripts
 	script(src='/js/board.js')
 	script(src='/js/thumbnail.js')
 	script(src='/js/weiqi_rule.js')
+	script(type='text/javascript', src='/js/backbone-min.js')
 	//script(src='/js/publish.js')
-	script(src='/js/game.js')
+	//script(src='/js/game.js')
+	script(src='/js/board_bb.js')
 
 block content
+	- console.timeEnd('c');
+	include board
+	include game_title
+	
 	if game.status == 'taking_seat'
 		include seats.jade
 	
-	#game-view-outer.row-fluid
-		#game-view.span9
+	#game-view-outer
+		#game-view
 			#tabs.nav.nav-tabs
 				li.active: a#gaming(href='#')= lingua.gaming
 				li: a#trying(href='#')= lingua.tring
@@ -42,31 +48,36 @@ block content
 						h3#game-result= lingua.black_won_without_number
 					else if game.result.case == 'black surrenders'
 						h3#game-result= lingua.white_won_without_number
-	
-			include board
-			mixin board('gaming-board', game)
+			header
+				h1#game-caption
+					mixin game_title(game)
+					a#details-link(href="#details"): i.icon-info-sign
+			div.in-range
+				//mixin board('gaming-board', game)
+				#gaming-board
+				script#game-data(type='text/json')!= JSON.stringify(game)
+				
+				include toolbox
+			
 			#surrender-view.hide
 				a#confirm-surrender.btn(href='/surrender/#{gid}')= lingua.surrender
-			#detail-view.hide
-				.row-fluid
-					.offset1= lingua['status_' + game.status]
+			#details
+				h2 details
+				div= lingua['status_' + game.status]
 				each x in game.players
 					.row-fluid
 						.span2.offset1: a(href='/u/#{x}')= refs[x].nickname
 						.span2.offset1: span.rate= refs[x].rate
-		aside.span3
+		aside
 			#aside-tabs.nav.nav-tabs
 				li.active: a#aside-game(href='#') game
 				li: a#aside-comments(href='#')= lingua.comment
 			#game-controls
 				include game_notice
 				mixin list_players(players, game.seats)
-				include toolbox
+				
 			#blogs-view.hide
 				include ../blogs/publish
 				#blogs(_me=user?user.nickname:'anonymous')
 					include ../blogs/blog_list
-	
-	- console.log(game);
-	
 	

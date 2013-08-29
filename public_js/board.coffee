@@ -14,8 +14,12 @@ class BasicBoard
 	redraw: ->
 	is_player: -> @board.attr('iam') is 'player'
 	uid: -> @board.attr('uid')
+	opponent: -> 
+		if @is_player()
+			_.find @initial.players, (x)=> x isnt @uid()
 	next: -> @board.attr('next')
 	seat: -> @board.attr('seat')
+		
 class window.CanvasBoard extends BasicBoard
 	constructor: (@board, @opts)->
 		super @board, @opts
@@ -24,7 +28,7 @@ class window.CanvasBoard extends BasicBoard
 		@opts.white ?= '#fffcf7'
 		@canvas = @board.find('canvas.draw')	
 		@canvas.attr width: @opts.size, height: @opts.size
-		@canvas.css width: @opts.size, height: @opts.size
+		#@canvas.css width: @opts.size, height: @opts.size
 		@interval = (@canvas.height() - 2 * @opts.margin)/(@LINES-1)
 		@ctx = @canvas[0].getContext("2d")
 		@on_next_player @next()
@@ -148,7 +152,37 @@ class window.CanvasBoard extends BasicBoard
 			
 	on_click: (pos)-> console.log pos
 
-class window.Board extends CanvasBoard
+class window.HtmlBoard extends CanvasBoard
+	constructor: (@board, @opts)->
+		super @board, @opts
+		@opts.click ?= true
+		@opts.black ?= '#0f1926'
+		@opts.white ?= '#fffcf7'
+		@on_next_player @next()
+		@show_number = @board.find('#num_btn i').hasClass 'show-number'
+		@show_steps_to = null
+		
+		@board.height @board.width()
+		@draw_board()
+		
+		_.each @initial.moves, (x)=> @place x
+			
+	place: (move)->
+		stone = $('<div></div>').appendTo(@board).addClass(move.player).attr('n', move.n).attr('x', move.pos[0]).attr('y', move.pos[1]).text(move.n)
+		stone.css
+			left: @interval * move.pos[0] + @board.offset().left + @opts.margin - stone.width()/2
+			top: @interval * move.pos[1] + @board.offset().top + @opts.margin - stone.height()/2
+			
+		if move.repealed
+			stone.addClass 'repealed'
+		if @show_num
+			stone.addClass 'show_num'
+			
+	redraw: ->
+	
+	find_stones: (nums)-> @board.find _.map(nums, (x)-> "[n=\"#{x}\"]").join(',')
+
+class window.Board extends HtmlBoard
 	constructor: (@board, @opts)->
 		super @board, @opts
 		@try_mode = false
@@ -182,7 +216,11 @@ class window.Board extends CanvasBoard
 			@on_show_steps @show_steps_to ? @initial.moves.length - 1
 	toggle_num_shown: ->
 		@show_num = not @show_num
-		@redraw()
+		@board.find('.black, .white').each (i, x)=>
+			if @show_num
+				$(x).addClass 'show_num'
+			else
+				$(x).removeClass 'show_num'
 	
 	get_moves: ->
 		current: @initial.moves
@@ -278,7 +316,7 @@ class window.ConnectedBoard extends window.PlayBoard
 		@socket.on 'surrender', (uid)->
 			console.log 'surrender ' + uid
 			@on_surrender? uid
-		@socket.on 'call_finishing', @on_call_finishing
+		@socket.on 'call_finishing', =>@on_call_finishing.apply this, arguments
 		
 		@init_socket =>
 			@on_connect?()

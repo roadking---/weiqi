@@ -1,0 +1,13 @@
+script#users_list_tpl(type='text/template').
+	<ul class='users_list'>
+		<% _.chain(users).sortBy(function(x){return -x.num;}).each(function(u){ %>
+			<li>
+				<a href='<%= u.href ? u.href : "/u/"+u.id %>'>
+					<img src="http://www.daqianduan.com/wp-content/uploads/2012/02/default.png" alt="">
+					<em class='nickname'><%= u.nickname %></em>
+					<em class='title'><%= u.title %></em>
+					<strong>+<%= u.num %></strong>
+				</a>
+			</li>
+		<% }); %>
+	</ul>

@@ -1,21 +1,46 @@
+vendor(prop, args)
+	-webkit-{prop} args
+	-moz-{prop} args
+	-ms-{prop} args
+	-o-{prop} args
+	{prop} args
+
 body
 	background-color #f5f5f5
+	margin 0
+	font-family "Microsoft Yahei", "Helvetica Neue", Helvetica, Arial, sans-serif
+	line-height 23px
+	font-size 18px
+	color #555
+	overflow-x hidden
 
-border-radius()
-	-webkit-border-radius arguments
-	-moz-border-radius arguments
-	border-radius arguments
+@import "footer"
 
-box-shadow()
-	-webkit-box-shadow arguments
-	-moz-box-shadow arguments
-	box-shadow arguments
-  	
 #form-signin, #form-register
 	max-width 300px
 	background-color #fff
 	padding 19px 29px 29px
 	margin 0 auto 20px
-	border: 1px solid #e5e5e5
-	border-radius 5px
-	box-shadow 0 1px 2px rgba(0,0,0,.05)
+	border 1px solid #e5e5e5
+	vendor('border-radius', 5px)
+	vendor('box-shadow', 0 1px 2px rgba(0,0,0,.05))
+	input + input
+		margin-top 6px
+
+a#logo
+	display block
+	padding 5px
+	margin 100px 0 40px 0
+
+#otherwise
+	margin-top 30px
+	a#register, a#login
+		text-decoration underline
+
+.container
+	min-height 600px
+
+h1
+	font-size 2.2em
+	font-weight normal
+	margin 40px 0

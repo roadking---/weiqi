@@ -1,14 +1,59 @@
-#header_banner
-	background-color #fcdd4e
-	padding 10px 0
+header
 	border-bottom 1px dotted white
-	ul.nav
-		vertical-align middle
-		margin 0
-		a
-			color black
+	nav
+		nav_height = 52px
+		height nav_height
+		background-color #4a4a4a
+		#logo
+			float left
+			width 230px
+			background-color #428bca
+			overflow hidden
+			font-size 18px
 			font-weight bold
-			&:hover
-				background-color #53595e
-				color #fffcf7
-			
+			color #fff
+			display inline-block
+			text-align center
+			text-decoration none
+			line-height nav_height
+		ul.nav
+			display block
+			float left
+			font-size 14px
+			margin 0
+			list-style none
+			li
+				float left
+				a
+					color #eee
+					text-decoration none
+					padding 0 20px
+					height nav_height
+					line-height nav_height
+					display block
+					font-weight bold
+					overflow hidden
+					&:hover
+						background-color #72d0eb
+						color #fff
+			li.active
+				a
+					background-color #72d0eb
+					color #000
+
+	#login-or-register
+		background #f7f7f7
+		border 1px solid #bbb
+		a
+			width 40%
+			display inline-block
+			text-align center
+			font-size 30px
+			text-decoration none
+			height 80px
+			line-height 80px
+			span
+				vertical-align middle
+				padding 5px
+				display inline-block
+				

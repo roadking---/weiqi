@@ -55,7 +55,6 @@ exports.login = (req, res, next)->
 	if req.method is 'POST'
 		data = _.chain(req.body).pairs().map((x)->[x[0], sanitize(x[1]).xss()]).object().value()
 		api.login data.email, data.password, (err, id)->
-			console.log err
 			if err
 				res.render 'user/login'
 			else

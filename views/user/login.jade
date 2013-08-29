@@ -1,13 +1,25 @@
-extends ../layout_sign
+extends layout_sign
+
+block title
+	title= lingua.please_sign_in
 
 block content
-	#form-signin.container
-		form(method='POST')
-			h2= lingua.please_sign_in
-			#form_body
-				input(type='hidden', name='_csrf', value='#{csrf}')
-				input.input-block-level(type='email', name='email', autofocus='autofocus', placeholder=lingua.email_address)
-				input.input-block-level(type='password', name='password', placeholder=lingua.password)
-				input.btn.btn-large.btn-primary(type='submit', value=lingua.login)
-	script.
-		$('nav #login').parent().addClass('active');
+	.container
+		.row
+			.span3.offset2 
+				a#logo(href='/') Logo
+		.row
+			.span5.offset1
+				#form-signin
+					form(method='POST')
+						h1= lingua.please_sign_in
+						#form_body
+							input.input-block-level(type='email', name='email', autofocus='autofocus', placeholder=lingua.email_address)
+							input.input-block-level(type='password', name='password', placeholder=lingua.password)
+							input.btn.btn-large.btn-primary(type='submit', value=lingua.login)
+							input(type='hidden', name='_csrf', value='#{csrf}')
+							
+			.span4.offset1
+				#otherwise
+					a#register(href='/register') Register
+					

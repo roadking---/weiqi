@@ -1400,12 +1400,12 @@ describe 'game', ->
 				assert not err
 				api.suggest_finishing gid, users[0], 0, 'dead', (err, analysis, disagree)->
 					assert not err
-					regiment = rule.find_regiment analysis, 0
+					regiment = _.find analysis, (x)-> 0 in x.stones
 					assert.equal regiment.judge, 'dead'
 					assert.equal disagree.length, 0
 					api.suggest_finishing gid, users[1], 0, 'live', (err, analysis, disagree)->
 						assert not err
-						regiment = rule.find_regiment analysis, 0
+						regiment = _.find analysis, (x)-> 0 in x.stones
 						assert.equal regiment.judge, 'disagree'
 						assert.equal disagree.length, 1
 						done()

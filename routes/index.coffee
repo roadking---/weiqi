@@ -1,51 +1,53 @@
 _ = require 'underscore'
-maxmind = require('maxmind')
+#maxmind = require('maxmind')
 api = require '../api'
-flow = require '../api/flow'
-live = require './live'
+async = require 'async'
 jade = require 'jade'
-
 
 _.each 'user'.split(' '), (x)->
 	exports[x] = require './' + x
 
 #maxmind.init './GeoIP.dat', indexCache:true
-exports.index = (req, res, next)->
+exports.home = (req, res, next)->
 	ip = req.query.ip or req.headers['x-forwarded-for'] or req.ip
 	ip = '119.254.243.114'
 	#country = maxmind.getCountry ip
 	
-	flow.group [
+	blog_id = req.session.user?.id ? 'test'
+	async.parallel [
 		(cb)->
 			api.client.zrange 'weiqi_pending', 0, -1, (err, pendings)->
-				api.get_game pendings, (err, pendings)->
-					cb 'pendings', pendings = _.reject pendings, (x)-> req.session.user and req.session.user.id in x.players
+				if pendings.length
+					api.get_game pendings, (err, pendings)->
+						cb undefined, ['pendings', _.chain(pendings).reject((x)-> req.session.user and req.session.user.id in x.players).pluck('id').value()]
+				else
+					cb()
 		(cb)->
 			if req.session.user
 				api.client.zrange [req.session.user.id, 'weiqi'].join('|'), 0, -1, (err, attendings)->
-					api.get_game attendings, (err, attendings)->
-						cb 'attendings', attendings
+					cb undefined, ['attendings', attendings]
 			else
 				cb()
 		(cb)->
-			api.fetch_live_shows (err, live_shows)->
+			api.fetch_live_shows (err, live_show)->
 				return cb() if err
-				if live_shows?.length
-					api.get_game live_shows[0], (err, live_show)->
-						cb 'live_show', live_show
-				else
-					cb()
-	], ->
-		games = _.chain(arguments).toArray().compact().object().value()
-		blog_id = req.session.user?.id ? 'test'
-		api.get_page blog_id,  (err, blogs)->
-			api.get_refs {blogs:blogs, games:_.chain(games).values().flatten().compact().pluck('id').value()}, (err, refs)->
-				res.render 'home',
-					refs: refs
-					games: games
-					blogs: blogs
-					blog_id: blog_id
-
+				cb undefined, ['live_show', live_show]
+				
+		(cb)->
+			api.get_page blog_id,  (err, blogs)-> cb err, ['blogs', blogs]
+	], (err, results)->
+		return next err if err
+		results = _.chain(results).compact().object().value()
+		games = _.pick results, 'pendings', 'attendings', 'live_show'
+		api.get_refs {blogs:results.blogs, games:_.chain(games).values().flatten().compact().value()}, (err, refs)->
+			return next err if err
+			res.set 'Content-Type': 'text/plain'
+			res.send 'var data = ' + JSON.stringify
+				refs: refs
+				games: games
+				blogs: results.blogs
+				blog_id: blog_id
+				myself: req.session.user?.id
 
 exports.new = (req, res, next)->
 	return res.redirect '/login' if not req.session.user
@@ -58,27 +60,28 @@ exports.new = (req, res, next)->
 			next err if err
 			res.redirect "/game/weiqi/#{gid}"
 		
-exports.game = (req, res, next)->
+exports.connected = (req, res, next)->
 	gid = req.game.id
-	api.get_comments gid, api.COMMENTS, (err, comments)->
+	console.time 'a'
+	async.parallel [
+		(cb)->api.get_comments gid, api.COMMENTS, cb
+		(cb)->api.get_blogs gid, cb
+	], (err, results)->
+		console.timeEnd 'a'
+		console.time 'b'
 		return next err if err
-		api.get_blogs gid, (err, blogs)->
+		[comments, blogs] = results
+		api.get_refs {blogs:blogs, games:[gid]}, (err, refs)->
+			console.timeEnd 'b'
 			return next err if err
-			api.get_refs {blogs:blogs, games:[gid]}, (err, refs)->
-				return next err if err
-				_.chain(comments).values().flatten().each (x)-> x.nickname = refs[x.author].nickname
-				res.render 'game', 
-					gid: gid
-					game:req.game
-					refs: refs
-					comments: comments
-					blogs: blogs
-					players: if req.game.seats
-						_.chain(req.game.seats).pairs().map((x)->[
-							x[0], 
-							id: x[1], nickname: refs[x[1]].nickname, title: res.locals.title(refs[x[1]].title)
-						]).object().value()
-							
+			_.chain(comments).values().flatten().each (x)-> x.nickname = refs[x.author].nickname
+			res.json
+				game:req.game
+				refs: refs
+				comments: comments
+				blogs: blogs
+				user: req.session.user?.id
+				myself: req.session.user?.id
 			
 exports.attend = (req, res, next)->
 	return res.redirect '/login' if not req.session.user
@@ -116,78 +119,42 @@ exports.quit = (req, res, next)->
 			exports.io.of("/weiqi").in(req.params.id).emit 'quit', uid:req.session.user.id, name:req.session.user.nickname
 			res.redirect "/game/weiqi/#{req.params.id}"
 
-exports.user_page = (req, res, next)->
-	uid = req.params.id
-	if not uid
-		if not req.session.user
-			return res.redirect '/login'
-		uid = req.session.user.id
+exports.u = (req, res, next)->
+	uid = req.params.ref_user
 	
-	console.log new Date().getTime() + " 1"
-	api.get_user uid, (err, user)->
-		return next err if err
-		console.log new Date().getTime() + " 2"
-		query =
-			current: (m)-> m.zrange [uid, 'weiqi'].join('|'), 0, -1
-			recent_history: (m)-> m.zrevrange [uid, 'history'].join('|'), 0, 5
-			total_games: (m)-> m.get [uid, 'total_games'].join('|')
-			wins: (m)-> m.get [uid, 'wins'].join('|')
-			losses: (m)-> m.get [uid, 'losses'].join('|')
-			followed: (m)-> m.srandmember [uid, 'followed'].join('|'), 5
-			friends: (m)-> m.srandmember [uid, 'friends'].join('|'), 5
-			
-		if req.session.user
-			query.is_friend = (m)-> m.sismember [req.session.user.id, api.RELATED.FRIENDS].join('|'), uid
-			query.is_followed = (m)-> m.sismember [req.session.user.id, api.RELATED.FOLLOWED].join('|'), uid
+	query =
+		current: (m)-> m.zrange [uid, 'weiqi'].join('|'), 0, -1
+		recent_history: (m)-> m.zrevrange [uid, 'history'].join('|'), 0, 5
+		total_games: (m)-> m.get [uid, 'total_games'].join('|')
+		wins: (m)-> m.get [uid, 'wins'].join('|')
+		losses: (m)-> m.get [uid, 'losses'].join('|')
+		followed: (m)-> m.srandmember [uid, 'followed'].join('|'), 5
+		friends: (m)-> m.srandmember [uid, 'friends'].join('|'), 5
 		
-		m = api.client.multi()
-		_.chain(query).values().each (fn)-> fn m
-		m.exec (err, replies)->
+	if req.session.user
+		query.is_friend = (m)-> m.sismember [req.session.user.id, api.RELATED.FRIENDS].join('|'), uid
+		query.is_followed = (m)-> m.sismember [req.session.user.id, api.RELATED.FOLLOWED].join('|'), uid
+	
+	m = api.client.multi()
+	_.chain(query).values().each (fn)-> fn m
+	m.exec (err, replies)->
+		return next err if err
+		query = _.chain(query).keys().zip(replies).object().value()
+		async.parallel [
+			(cb)-> api.get_blogs uid, (err, blogs)-> cb err, ['blogs', blogs]
+			(cb)-> api.get_sent_invitation uid, (err, sent_invites)-> cb err, ['sent_invites', sent_invites]
+			(cb)-> api.get_received_invitation uid, (err, received_invites)-> cb err, ['received_invites', received_invites]
+		], (err, results)->
 			return next err if err
-			console.log query = _.chain(query).keys().zip(replies).object().value()
-			console.log new Date().getTime() + " 3"
-			flow.group [
-				(cb)->
-					game_ids = _.chain(query).pick('current', 'recent_history').values().flatten().value()
-					api.get_game game_ids, (err, games)->
-						return next err if err
-						console.log new Date().getTime() + " 3.1"
-						tmp = _.chain(game_ids).zip(games).object().value()
-						cb games = _.chain(query).pick('current', 'recent_history').pairs().map((x)->
-							x[1] = _.map x[1], (y)-> tmp[y]
-							x
-						).object().value()
-				(cb)->
-					api.get_blogs uid, (err, blogs)->
-						console.log new Date().getTime() + " 3.2"
-						cb blogs
-				(cb)->
-					api.get_sent_invitation uid, (err, sent_invites)->
-						console.log new Date().getTime() + " 3.3"
-						cb sent_invites
-				(cb)->
-					api.get_received_invitation uid, (err, received_invites)->
-						console.log new Date().getTime() + " 3.4"
-						cb received_invites
-			], ->
-				console.log new Date().getTime() + " 4"
-				[games, blogs, sent_invites, received_invites] = _.chain(arguments).toArray().pluck(0).value()
-				api.get_refs {
-					blogs: blogs
-					games: _.chain(games).values().flatten().pluck('id').value()
-					users: _.chain([uid, query.invite_sent, query.followed, query.friends]).flatten().uniq().value()
-				}, (err, refs)->
-					console.log new Date().getTime() + " 5"
-					res.render 'user_page', 
-						me:user
-						games: games
-						refs: refs
-						blogs: blogs
-						isFollowed: query.is_friend or query.is_followed
-						query: query
-						sent_invites: sent_invites
-						received_invites: received_invites
-
+			results = _.object results
+			api.get_refs {
+				blogs: results.blogs
+				games: _.chain(query).pick('current', 'recent_history').values().flatten().value()
+				users: _.chain([uid, query.invite_sent, query.followed, query.friends]).flatten().uniq().value()
+			}, (err, refs)->
+				return next err if err
+				res.json _.extend results, query:query, refs:refs, uid:uid, myself:req.session?.user?.id
+		
 exports.dapu = (req, res, next)->
 	opts =
 		status: 'draft'
@@ -278,25 +245,17 @@ exports.delete_blog = (req, res, next)->
 				res.json success:true
 
 exports.history = (req, res, next)->
-	api.get_user uid = req.params.id, (err, user)->
-		
-		api.client.zrevrange [[uid, 'records'].join('|'), 0, -1, 'WITHSCORES'], (err, records)->
-			return next err if err
-			console.log records = _.chain(records).map((r)-> JSON.parse r).groupBy((x,i)->Math.floor i/2).values().map((x)->
-				x[0].ts = x[1]
-				x[0]
-			).value()
-		
-			api.get_game _.pluck(records, 'gid'), (err, games)->
-				return next err if err
-				api.get_refs {games:_.pluck(games, 'id')}, (err, refs)->
-					res.render 'history',
-						me: user
-						games: _.chain(games).zip(records).map((x)->
-							x[0].record = x[1]
-							x[0]
-						).value()
-						refs: refs
+	api.client.zrevrange [[req.ref_user.id, 'records'].join('|'), 0, -1, 'WITHSCORES'], (err, records)->
+		return next err if err
+		records = _.chain(records).map((r)-> JSON.parse r).groupBy((x,i)->Math.floor i/2).values().map((x)->
+			x[0].ts = x[1]
+			x[0]
+		).value()
+		api.get_refs {games:_.pluck(records, 'gid')}, (err, refs)->
+			res.json
+				uid: req.ref_user.id
+				records: records
+				refs: refs
 
 exports.send_invite = (req, res, next)->
 	if not req.session.user

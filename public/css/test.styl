@@ -1,0 +1,54 @@
+vendor(prop, args)
+	-webkit-{prop} args
+	-moz-{prop} args
+	-ms-{prop} args
+	-o-{prop} args
+	{prop} args
+
+@import 'users_list'
+
+.thumb
+	vendor('transition', 1s)
+	margin 0 auto
+	clear both
+	background #fff
+	border 0
+	vender('box-shadow', inset 0 0px 0px #dfdfdf)
+	position relative
+	height 158px
+	width 208px
+	padding 0
+	margin 0
+	&:hover
+		vendor('box-shadow', inset 208px -158px 2px #000)
+		opacity .8
+	img
+		padding 3px
+		width 200px
+		height 150px
+		vendor('transition', 1s)
+		border 1px solid #ccc
+		vendor('border-radius', 2px)
+		background url(http://www.tmtpost.com/wp-content/themes/newskin/images/all_icon.png) no-repeat -64px -47px
+
+#drop-shadow
+	width 300px
+	height 150px
+	position relative
+	background #ccc
+.drop-shadow
+	//http://nicolasgallagher.com/css-drop-shadows-without-images/demo/
+	&:before, &:after
+		content ' '
+		position absolute
+		z-index -1
+		bottom 15px
+		left 10px
+		width 50%
+		height 20%
+		vendor('box-shadow', 0 15px 10px rgba(125,125,125,.8))
+		vendor('transform', rotate(-3deg))
+	&:after
+		right 10px
+		left auto
+		vendor('transform', rotate(3deg))

@@ -1,32 +1,29 @@
-#header_banner
-	nav.container
-		.row
-			.span10.offset1
-				ul.nav.nav-pills.inline
-					li
-						a#home(href='/', title='Home'): i.icon-home
-					
-					if !user || !user.my_new_game
-						li
-							a.item(href='/new', title=lingua.new_game)
-								i.icon-plus
-								span= lingua.new_game
-					li
-						a.item(href='/dapu', title=lingua.dapu)
-							i.icon-th
-							span= lingua.dapu
-					if user
-						li
-							a.item(href='/history/#{user.id}', title=lingua.history)
-								i.icon-flag
-								span= lingua.history
-					
-					if user
-						li.pull-right
-							a#logout(href='/logout', title=lingua.logout): i.icon-off
-						li.pull-right
-							a#mine(href='/u/#{user.id}', title=lingua.my_page): i.icon-user
-					else
-						li.pull-right: a#register(href='/register')= lingua.register
-						li.pull-right: a#login(href='/login')= lingua.login
-						
+header.container
+	nav
+		a#logo(href='/', title='logo') Shoutan
+		ul.nav
+			li: a#home(href='/', title='Home') Home
+
+script#nav-tpl(type='text/template').
+	<% if(data.myself){ %>
+		<% if(! data.refs[data.myself].my_new_game){ %>
+			<li><a href='/new' title='#{lingua.new_game}'>#{lingua.new_game}</a></li>
+			<li><a href='/dapu' title='#{lingua.dapu}'>#{lingua.dapu}</a></li>
+		<% } %>
+		<li><a id='mine' href='/u/<%=data.myself%>', title='#{lingua.my_page}'>Mine</a></li>
+	<% } else { %>
+		<li><a href='/new' title='#{lingua.new_game}'>#{lingua.new_game}</a></li>
+		<li><a href='/dapu' title='#{lingua.dapu}'>#{lingua.dapu}</a></li>
+	<% } %>
+script#login-or-register-tpl(type='text/template').
+	<div id='login-or-register'>
+		<a id='register' href='/register'><span>#{lingua.register}</span></a>
+		<a id='login' href='/login'><span>#{lingua.login}</span></a>
+	</div>
+script.
+	function init_header(data){
+		$('header nav ul.nav').append(tpl('#nav-tpl')({data:data}));
+		if(!data.myself)
+			$('header').append(tpl('#login-or-register-tpl')(data, {variable:'data'}));
+	}
+	

@@ -1,12 +1,12 @@
 #toolbox
 	div
-		a#num_btn.show-number(status='show_num', _text=JSON.stringify(_.pick(lingua, 'show_num', 'hide_num')), title=lingua.show_num): i
+		a#num_btn(status='show_num', _text=JSON.stringify(_.pick(lingua, 'show_num', 'hide_num')), title=lingua.show_num): i
 	div
-		a#back: i.icon-chevron-left
-		a#forward: i.icon-chevron-right
+		a#back back
+		a#forward forward
 	div
-		a#beginning: i.icon-step-backward
-		a#ending: i.icon-step-forward
+		a#beginning first
+		a#ending last
 	div
 		a#retract= lingua.retract
 		a#call-finishing(title=lingua.finish_game_desc)= lingua.finish_game

@@ -1,7 +1,24 @@
 //http://www.peise.net/2010/0911/1174.html
 //http://disqus.com/
+@import "header"
+@import "footer"
 body
-	background-color #a8ceff
+	margin 0
+	font-family "Microsoft Yahei", "Helvetica Neue", Helvetica, Arial, sans-serif
+	line-height 23px
+	font-size 18px
+	color #555
+	background-color #eee
+	overflow-x hidden
+
+ul
+	list-style none
+	li
+		display inline-block
+		
+.container
+	max-width 1320px
+	margin 0 auto
 	
 border-radius()
 	-webkit-border-radius arguments
@@ -14,7 +31,23 @@ vendor(prop, args)
 	-ms-{prop} args
 	-o-{prop} args
 	{prop} args
-	
+
+
+.in-range
+	overflow:hidden;
+	& > div
+		display inline-block
+		vertical-align top
+		margin-bottom -10000px
+		padding-bottom 10000px
+
+a.user
+	text-decoration none
+
+@import "game/connected"
+@import "u"
+@import "home/home"
+@import "history"
 box-shadow()
 	-webkit-box-shadow arguments
 	-moz-box-shadow arguments
@@ -86,30 +119,6 @@ input.showable
 		background rgba(255,255,255,.7) url(/img/white.svg) no-repeat
 		background-position 30% 10px
 	
-#game-view-outer
-	background-color #fffcf7
-	#game-view
-		//background-color #fffcf7
-		padding 20px 0
-aside
-	padding 20px 0		
-
-.board
-	margin-top 20px
-	.title
-		.seat
-			font-size 60%
-			&:before
-				content '('
-			&:after
-				content ')'
-	canvas
-		border 1px solid rgab(0,0,0,0)
-		-webkit-tap-highlight-color rgba(0,0,0,0)
-		background-color #e6d4c0 //#eee8aa
-	canvas.your_turn
-		border 1px solid red
-		
 #players
 	margin 5px 0
 	.player
@@ -159,94 +168,6 @@ aside
 		vendor('transform', rotate(30deg))
 	100%
 		font-size 100%
-
-			
-#toolbox
-	border-radius(10px)
-	background-color #f8efd8
-	text-align left
-	margin-top 20px
-	padding 5px
-	#num_btn
-		i
-			padding 0px 16px
-			background url(/img/icons.svg) no-repeat
-			background-position 0 -16px
-	#num_btn.show-number
-		i
-			background-position 0 0
-	a
-		display inline-block
-		padding 15px
-		cursor pointer
-		border-radius(10px)
-		&:hover
-			background-color #a8ceff
-			text-decoration none
-#game-notice
-	font-size 18px
-	background-color rgba(237, 190, 200, .8)
-	border-radius(10px)
-	text-align center
-	min-height 120px
-	margin-bottom 50px
-	width 100%
-	display table
-	& > *
-		vertical-align middle
-		display table-cell
-	a
-		cursor pointer
-
-#pendings
-	margin-top 30px
-	margin-bottom 30px
-	.view
-		display block
-		background-color rgba(0,0,0,.4)
-		color white
-		border-top-left-radius 5px
-		border-top-right-radius 5px
-		padding 5px
-		text-align center
-		height 40px
-		text-decoration none
-		&:hover
-			outline:#00FF00 dotted 1px
-	.attend
-		color white
-		text-decoration none
-		padding 5px
-		font-weight bold
-		height 20px
-		display block
-		background-color rgba(0,0,0,.2)
-		text-align center
-		border-bottom-left-radius 5px
-		border-bottom-right-radius 5px
-		&:hover
-			color #008573
-
-#user-games
-	margin-top 30px
-	margin-bottom 30px
-	padding-bottom 10px
-	.item
-		padding 5px 0
-		border 5px solid rgba(0,0,0,0)
-		border-radius 5px
-		.ts, .opponent
-			margin-left 10px
-		&:hover
-			//background-color #fff4b0
-			border-color #c3d5de
-		.status
-			margin-left 10px
-			font-style italic
-
-#live
-	#live_board
-		display none
 
 #comments
 	.step
@@ -343,11 +264,6 @@ a#go2top
 	background-color rgba(222,166,129,.5)
 	border-radius 5px 20px
 
-.thumb
-	.title
-		font-size 12px
-		font-style italic
-		color #62759e
 
 .history[result=win]
 	background-color #eee8ab
@@ -375,25 +291,3 @@ a#go2top
 	.ts
 		//margin-left 10px
 		//color #e5e7e6
-
-#rate-chart
-	height 250px
-	margin-bottom 30px
-
-.piece
-	padding 10px 0
-	border 2px dashed #d9eef2
-	//border-radius 100px
-	background-color #fffcf7
-	margin-top 40px
-
-#footer
-	height 40px
-	line-height 40px
-	background-color #74b3b8
-	text-align center
-	margin-top 40px
-	a
-		display inline-block
-		color #fff
-

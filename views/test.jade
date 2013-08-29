@@ -1,7 +1,26 @@
-extends layout
-
-block content
-	//script(src='/socket.io/socket.io.js')
-	//script(src='/js/test.js')
-	- var opts = {};
-	include widget/seats
+doctype 5
+html
+	head
+		link(rel='stylesheet', href='/css/test.css')
+		link(rel='stylesheet', href='/css/users_list.css')
+		script(type='text/javascript', src='/js/zepto.min.js')
+		script(type='text/javascript', src='/js/underscore-min.js')
+		style.
+			body > div{float:left;margin-left:20px;}
+	body
+		.thumb
+			a: img(src='http://www.tmtpost.com/wp-content/uploads/2013/08/137623521181-560x370.png')
+		
+		#drop-shadow.drop-shadow drop shadow effect
+		
+		#users_list
+		include tpls/users_list_tpl
+		
+		- console.timeEnd('a');
+		script.
+			tpl = function(selector){return _.chain($(selector).html()).unescape().template().value();}
+			lingua_tpl = function(str){return _.chain(str).unescape().template().value();}
+			player_titles = JSON.parse(_.unescape('#{JSON.stringify( _.chain(player_titles).map(function(x){return [x, lingua['title_' + x]];}).object().value() )}'));
+			player_tpl = tpl('#player_tpl');
+			
+			$('#users_list').append(tpl('#users_list_tpl')({users:[{id:'u1',nickname:'roadking',title:'J', num:3},{id:'u2',nickname:'ab',title:'B', num:4},{id:'u3',nickname:'sssss',title:'J', num:6},{id:'u4',nickname:'jjdj888',title:'I', num:12},{id:'u5',nickname:'Nobody',title:'J', num:100}]}));
