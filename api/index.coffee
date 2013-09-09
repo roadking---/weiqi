@@ -687,6 +687,7 @@ get_comments = exports.get_comments = (gid, cb)->
 						cb undefined, _.chain(replies).map((x)-> JSON.parse x).groupBy((x)->x.step).value()
 		when 6
 			[gid, tag, step, start, num, cb] = arguments
+			start = 1 if start is 0
 			client.zrevrange [gid, tag, step].join('|'), start-1, start + num-2, (err, reply)->
 				return cb err if err
 				m = client.multi()

@@ -142,6 +142,10 @@ all =
 		guess_live: '活棋'
 		guess_dead: '死棋'
 		guess_共活: '共活'
+		trying_and_next: '试摆棋，下一步<%=next_player%>'
+		try_btn: '试摆棋'
+		try_done_btn: '结束摆棋'
+		remove_snapshot: '要取消您的评论中添加截图，请点击'
 	zh_TW:
 		contact_us: '聯繫我們'
 

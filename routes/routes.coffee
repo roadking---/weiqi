@@ -27,8 +27,9 @@ exports.set = (app)->
 	app.get '/logout', routes.user.logout
 	app.get '/new', routes.new
 	app.get '/game/:gid', (req, res)->
-		res.set 'Cache-Control':"max-age=#{60*60*24*5}"
-		res.render 'game/connected'
+		api.get_refs games:[req.params.gid], (err, refs)->
+			#res.set 'Cache-Control':"max-age=#{60*60*24*5}"
+			res.render 'game/connected', game:req.game, refs:refs
 	app.get '/json/connected/:gid', routes.connected
 	app.get '/attend/:id', routes.attend
 	app.get '/quit/:id', routes.quit
@@ -44,7 +45,6 @@ exports.set = (app)->
 	
 	app.get '/delete/:gid', routes.delete
 	app.get '/dapu', routes.dapu
-	app.all '/comment', routes.comment
 	app.all '/blog', routes.blog
 	app.get '/follow/:uid', routes.follow
 	app.get '/unfollow/:uid', routes.unfollow

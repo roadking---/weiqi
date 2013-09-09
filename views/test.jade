@@ -13,8 +13,29 @@ html
 		
 		#drop-shadow.drop-shadow drop shadow effect
 		
+		.black
+		.white
+		
+		#rolling-wrap
+			#rolling
+				img(src='http://webstuffshare.com/demo/CubeInformation/images/contact.png')
+				span.info
+					strong Contact Form
+					| The easiest way to add a contact form to your shop.
+		
+		.container
+			ul.cubic.show-left
+				li.front 1
+				li.left 2
+				li.top 3
+				li.right 4
+				li.back 5
+				li.bottom 6
+		
 		#users_list
 		include tpls/users_list_tpl
+		
+		
 		
 		- console.timeEnd('a');
 		script.
@@ -24,3 +45,4 @@ html
 			player_tpl = tpl('#player_tpl');
 			
 			$('#users_list').append(tpl('#users_list_tpl')({users:[{id:'u1',nickname:'roadking',title:'J', num:3},{id:'u2',nickname:'ab',title:'B', num:4},{id:'u3',nickname:'sssss',title:'J', num:6},{id:'u4',nickname:'jjdj888',title:'I', num:12},{id:'u5',nickname:'Nobody',title:'J', num:100}]}));
+			

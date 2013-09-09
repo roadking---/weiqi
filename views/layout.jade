@@ -19,8 +19,8 @@ html
 			script(type='text/javascript', src='/js/moment.min.js')
 		else
 			include ../public/css/style.css
-			link(rel='stylesheet', href='//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.1/css/bootstrap-combined.min.css')
-			script(type='text/javascript', src='//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.1/js/bootstrap.min.js')
+			//link(rel='stylesheet', href='//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.1/css/bootstrap-combined.min.css')
+			//script(type='text/javascript', src='//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.1/js/bootstrap.min.js')
 			script(type='text/javascript', src='//cdnjs.cloudflare.com/ajax/libs/underscore.js/1.4.4/underscore-min.js')
 			script(type='text/javascript', src='//cdnjs.cloudflare.com/ajax/libs/moment.js/2.0.0/moment.min.js')
 			
@@ -31,12 +31,6 @@ html
 		block scripts
 			
 	body
-		include header
-		block content
-		a#go2top: i.icon-chevron-up
-		include footer
-		
-		include ../public/js/go2top.js
 		script#player_tpl(type='text/template').
 			<a href='/u/<%=user.id%>' class='user <%= arguments[0].clazz ? clazz : '' %>'>
 				<span class='name'><%= user.nickname %></span>
@@ -52,5 +46,8 @@ html
 				if(_tpls[selector]) return _tpls[selector];
 				return _tpls[selector] = _.bind(simple_tpl(selector), {tpl:tpl, lingua_tpl:lingua_tpl, player_titles:player_titles, player_tpl:player_tpl});
 			}
-			
-			
+		include header
+		block content
+		a#go2top: i.icon-chevron-up
+		include footer
+		include ../public/js/go2top.js			

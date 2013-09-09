@@ -1,22 +1,55 @@
 extends ../layout
 
+block title
+	if game.seats && game.seats.black && game.seats.white
+		title #{refs[game.seats.black].nickname} #{lingua['title_' + refs[game.seats.black].title]} (#{lingua.seat_black}) vs #{refs[game.seats.white].nickname} #{lingua['title_' + refs[game.seats.white].title]} (#{lingua.seat_white})
+	else
+		title Move
+
 block append scripts
 	script(src='/js/cookie.min.js')
 	script(src='/socket.io/socket.io.js')
-	script(src='/js/thumbnail.js')
 	script(type='text/javascript', src='/js/backbone-min.js')
 	script(src='/js/BoardCanvas.js')
+	script(src='/js/weiqi_rule.js')
 	script(src='/js/connected.js')
 block content
-	#game-view-outer
+	#game-view-outer.container
 		#game-view
 			header
 				h1#game-caption
 				a#details-link(href="#details"): i.icon-info-sign
-			div.in-range
-				#gaming-board
-				include toolbox
-			
+				a#try(try_btn=lingua.try_btn, try_done_btn=lingua.try_done_btn)
+					i
+					span= lingua.try_btn
+			#gaming-board
 		aside
 			include bulletin
-	
+			include bulletin_local
+			#buttons
+				a#num_btn(status='show_num', _text=JSON.stringify(_.pick(lingua, 'show_num', 'hide_num')), title=lingua.show_num): i
+				a#beginning: i
+				a#back: i
+				a#forward: i
+				a#ending: i
+			#comments
+				ul
+				a#previous_comments
+	script#publish_tpl(type='text/template').
+		<div id='pub'>
+			<textarea rows=4 cols=60 placeholder='#{lingua.publish_text}'></textarea>
+			<button id='add_chart'>#{lingua.add_chart}</button>
+			<button id='submit'>#{lingua.publish}</button>
+			<div id='ss'><em>#{lingua.remove_snapshot}</em></div>
+		</div>
+	script#comment_tpl(type='text/template').
+		<li class='comment'>
+			<%= player_tpl({user:data.refs[comment.author], clazz:'author'}) %>
+			<% if(data.myself){ %>
+				<span class='del'>&times</span>
+			<% } %>
+			<em class='step'><%= comment.step %></em>
+			<span class='ts'><%= moment(comment.ts*1000).format('YYYY/MM/DD HH:mm:ss') %></span>
+			<% if(comment.ss) _.each(comment.ss, function(x){ comment.text = comment.text.replace(x.name, '<div name="' + x.name + '"></div>') });%>
+			<article><%= comment.text %></article>
+		</li>

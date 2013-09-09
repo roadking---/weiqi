@@ -52,3 +52,190 @@ vendor(prop, args)
 		right 10px
 		left auto
 		vendor('transform', rotate(3deg))
+
+.black, .white
+	r = 25px
+	width r
+	height r
+	vendor('border-radius', r/2 + 1px)
+	//border 1px solid black
+	//position absolute
+	text-align center
+	text-indent -99999px
+	vendor('animation-name', last-stone)
+	vendor('animation-duration', 5s)
+	vendor('animation-iteration-count', infinite)
+	vendor('animation-direction', alternate)
+.black
+	//background-color #0f1926
+	background -webkit-radial-gradient(60% 40%, farthest-side, #808080, #0f1926)
+	color white
+.white
+	//background-color #fffcf7
+	background -webkit-radial-gradient(60% 40%, farthest-side, #fffcf7, #d3d3d3)
+	color black
+	
+@keyframes last-stone
+	0%
+		vendor('transform', scale(1) skew(0deg) translate(0, 0))
+	60%
+		vendor('transform', scale(1) skew(0deg) translate(0, 0))
+	61%
+		vendor('transform', scale(1.02) skew(1deg, 2deg) translate(1px, 1px))
+	62%
+		vendor('transform', skew(2deg, -2deg) translate(-1px, -1px))
+	64%
+		vendor('transform', skew(-2deg) translate(1px, 1px))
+	65%
+		vendor('transform', scale(1) skew(0deg) translate(0, 0))
+	100%
+		vendor('transform', scale(1) skew(0deg) translate(0, 0))
+
+//#rolling-wrap
+
+#rolling
+	display inline-block
+	width 310px
+	height 100px
+	margin 1em 1.5em 2em 1em
+	cursor pointer
+	vendor('perspective', 4000px)
+	vendor('transform-style', preserve-3d)
+	-webkit-transition: -webkit-transform .6s;
+	-moz-transition: -moz-transform .6s;
+	-ms-transition: -ms-transform .6s;
+	-o-transition: -o-transform .6s;
+	transition: transform .6s;
+	img
+		position absolute
+		top 0
+		display block
+		border-radius 3px
+		box-shadow 0 3px 8px rgba(0,0,0,.3)
+		vendor('transform', translateZ(50px))
+		vendor('transition', all .6s)
+	.info
+		position absolute
+		top 0px
+		display block
+		height 80px
+		width 290px
+		border-radius 15px
+		padding 10px
+		font-size 12px
+		text-shadow 1px 1px 1px rgba(255,255,255,.5)
+		box-shadow none
+		background: linear-gradient(to bottom,  rgba(236,241,244,1) 0%,rgba(190,202,217,1) 100%);
+		vendor('transform', rotateX(-90deg) translateZ(50px))
+		vendor('transition', all .6s)
+		strong
+			display block
+			margin .2em 0 .5em 0
+			font-size 20px
+			font-family 'Oleo Script'
+	//&:hover
+	vendor('transform', translateZ(-50px) rotateX(100deg))
+	img
+		box-shadow none
+		border-radius 15px
+	.info
+		box-shadow 0 3px 8px rgba(0,0,0,.3)
+		border-radius 3px
+
+size = 200px
+show-front()
+	vendor('transform', translateZ(calc(0px \- size \/ 2)))
+show-back()
+	vendor('transform', translateZ(calc(0px \- size \/ 2)) rotateX( -180deg ))
+show-right()
+	vendor('transform', translateZ(calc(0px \- size \/ 2)) rotateY( -90deg ))
+show-left()
+	vendor('transform', translateZ(calc(0px \- size \/ 2)) rotateY( 90deg ))
+show-top()
+	vendor('transform', translateZ(calc(0px \- size \/ 2)) rotateX( -90deg ))
+show-bottom()
+	vendor('transform', translateZ(calc(0px \- size \/ 2)) rotateX( 90deg ))
+border_width = 1px
+.container
+	width: calc(size \+ border_width \* 2);
+	height: calc(size \+ border_width \* 2);
+	position: relative;
+	margin: 20px auto 40px;
+	//border: 1px solid #CCC;
+	vendor('perspective', 1000px)
+	ul.cubic
+		width 100%
+		height 100%
+		position absolute
+		vendor('transform-style', preserve-3d)
+		list-style none
+		margin 0
+		padding 0
+		display block
+		vendor('perspective-origin', 50% 50%)
+		vendor('backface-visibility', hidden)
+		vendor('animation-name', rolling-cubic)
+		vendor('animation-duration', 5s)
+		vendor('animation-iteration-count', infinite)
+		//vendor('animation-direction', alternate)
+		li
+			display block
+			position absolute
+			width size
+			height size
+			border border_width solid black
+			line-height 200px
+			text-align center
+			vendor('backface-visibility', hidden)
+			border-radius 5px
+		li.front
+			vendor('transform', translateZ(calc(size \/ 2)))
+		li.back
+			vendor('transform', rotateX(180deg) translateZ(calc(size \/ 2)))
+		li.top
+			vendor('transform', rotateX(90deg) translateZ(calc(size \/ 2)))
+		li.bottom
+			vendor('transform', rotateX(-90deg) translateZ(calc(size \/ 2)))
+		li.left
+			vendor('transform', rotateY(-90deg) translateZ(calc(size \/ 2)))
+		li.right
+			vendor('transform', rotateY(90deg) translateZ(calc(size \/ 2)))
+	ul.cubic.show-front
+		show-front()
+	ul.cubic.show-back
+		show-back()
+	ul.cubic.show-right
+		show-right()
+	ul.cubic.show-left
+		show-left()
+	ul.cubic.show-top
+		show-top()
+	ul.cubic.show-bottom
+		show-bottom()
+@keyframes rolling-cubic
+	0%
+		show-front()
+	13%
+		show-front()
+	16.7%
+		show-left()
+	29.7%
+		show-left()
+	33.4%
+		show-top()
+	46.4%
+		show-top()
+	50.1%
+		show-right()
+	63.1%
+		show-right()
+	66.8%
+		show-back()
+	79.8%
+		show-back()
+	83.5%
+		show-bottom()
+	96.5%
+		show-bottom()
+	100%
+		show-front()

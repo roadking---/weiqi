@@ -80,7 +80,6 @@ exports.connected = (req, res, next)->
 				refs: refs
 				comments: comments
 				blogs: blogs
-				user: req.session.user?.id
 				myself: req.session.user?.id
 			
 exports.attend = (req, res, next)->
@@ -162,11 +161,6 @@ exports.dapu = (req, res, next)->
 		version: .1
 		next: 'black'
 	res.render 'dapu', opts:opts
-
-exports.comment = (req, res, next)->
-	if req.method is 'POST'
-		api.add_comment req.body.game, req.body.comment, ->
-			res.json success:true
 
 exports.blog = (req, res, next)->
 	if not req.session.user

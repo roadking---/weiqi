@@ -8,7 +8,9 @@
     console.log(data);
     init_header(data);
     $('nav #mine').parent().addClass('active');
-    $('#heading').append(tpl('#heading_tpl')(data));
+    $('#heading').append(tpl('#heading_tpl')({
+      data: data
+    }));
     $('#profile').append(tpl('#profile_tpl')(data));
     $('#invites #received').append(tpl('#received_invites_tpl')(data));
     $('#invites #sent').append(tpl('#sent_invites_tpl')(data));

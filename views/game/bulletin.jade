@@ -5,10 +5,17 @@
 	script(type='text/template', name='init_attending')
 		p
 			a.btn.btn-primary(href='/attend/#{gid}')= lingua.start_game
-	script(type='text/template', name='started_please_move')
-		p= lingua.started_please_move
-	script(type='text/template', name='started_please_wait')
-		p= lingua.started_please_wait
+	script(type='text/template', name='started_please_move').
+		<p>#{lingua.started_please_move}</p>
+		<% if(data.myself && _.contains(data.game.players, data.myself) && data.game.moves.length ){ %>
+			<a id='call-finishing' title='#{lingua.finish_game_desc}'>#{lingua.finish_game}</a>
+		<% } %>
+	script(type='text/template', name='started_please_wait').
+		<% if(data.myself && _.contains(data.game.players, data.myself) && data.game.moves.length ){ %>
+			<p>#{lingua.started_please_wait}</p>
+			<a id='retract'><i></i><span>#{lingua.retract}</span>?</a>
+		<% } %>
+	
 	script(type='text/template', name='retract_by_opponent')
 		p= lingua.retract_by_opponent
 	script(type='text/template', name='retract_by')

@@ -24,10 +24,10 @@ module.exports = (io, socket)->
 					cb? rlt.nickname
 		
 		socket.on 'room', (room)->
-			socket.join room
-			console.log 'room ' + room
-			socket.set 'gid', room
-		
+			socket.get 'uid', (err, uid)->
+				socket.join room
+				console.log "room #{room} <- #{uid}"
+				socket.set 'gid', room
 		
 		prepare = (cb)->
 			socket.get 'gid', (err, gid)->
@@ -70,11 +70,18 @@ module.exports = (io, socket)->
 		
 		socket.on 'comment', (gid, comment, cb)->
 			prepare (err, gid, uid)->
-				return cb? fail:err if err 
+				return cb? fail:err if err
+				comment.author ?= uid
 				api.add_comment gid, comment, ->
 					api.get_user comment.author, (err, author)->
 						comment.nickname = author.nickname
 						io.of('/weiqi').in(gid).emit 'comment', comment
+		
+		socket.on 'fetch_comment', (gid, tag, step, start, num, cb)->
+			prepare (err, gid, uid)->
+				return cb? fail:err if err
+				api.get_comments gid, (tag ? api.COMMENTS), step, start, num, (err, comments)->
+					cb comments if not err
 		
 		socket.on 'retract', (cb)->
 			prepare (err, gid, uid)->

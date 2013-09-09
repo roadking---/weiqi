@@ -53,13 +53,17 @@ block content
 				<p><%= total_games({num:refs[uid].total_games||0}) %> <%= win({num:refs[uid].wins||0}) %> <%= loss({num:refs[uid].losses||0}) %></p>
 			</div>
 		script#heading_tpl(type='text/template').
-			<% if(myself && myself != uid){ %>
-				<% if(query.is_followed){ %>
-					<a class='follow'></a>
+			<% if(data.myself){ %>
+				<% if(data.myself == data.uid){ %>
+					<a id='logout' href='/logout'>Logout</a>
 				<% } else { %>
-					<a class='unfollow'></a>
+					<% if(query.is_followed){ %>
+						<a class='follow'></a>
+					<% } else { %>
+						<a class='unfollow'></a>
+					<% } %>
+					<a class='invite' href='/invite/<%=data.uid%>'><img src='/img/icons/prayer.svg'><span>#{lingua.challenge_you}</span></a>
 				<% } %>
-				<a class='invite' href='/invite/<%=uid%>'><img src='/img/icons/prayer.svg'><span>#{lingua.challenge_you}</span></a>
 			<% } %>
 		script#current_game_tpl(type='text/template').
 			<% if(current.length) { %>

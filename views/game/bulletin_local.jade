@@ -1,0 +1,5 @@
+#bulletin-local
+#bulletin-local-tpls
+	script(type='text/template', name='start_trying').
+		<% next_player = next == 'black' ? '#{lingua.black}' : '#{lingua.white}'; %>
+		<p>#{lingua.trying_and_next}</p>

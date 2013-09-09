@@ -2,23 +2,23 @@
 (function() {
   var find, find_block, move, move_step, repeal, retract;
 
-  find = function(items, pos) {
-    return _.filter(items, function(x) {
+  find = function(stones, pos) {
+    return _.filter(stones, function(x) {
       return !x.repealed && x.pos[0] === pos[0] && x.pos[1] === pos[1];
     })[0];
   };
 
-  find_block = function(items, pos) {
-    var adjacent, block, item, liberty, newly_found, opposite;
+  find_block = function(stones, pos) {
+    var adjacent, block, liberty, newly_found, opposite, stone;
 
-    item = find(items, pos);
-    if (!item) {
+    stone = find(stones, pos);
+    if (!stone) {
       return null;
     }
-    block = [item];
+    block = [stone];
     liberty = [];
     opposite = [];
-    newly_found = [item];
+    newly_found = [stone];
     while (newly_found.length) {
       adjacent = _.chain(newly_found).map(function(x) {
         return [[x.pos[0] - 1, x.pos[1]], [x.pos[0] + 1, x.pos[1]], [x.pos[0], x.pos[1] - 1], [x.pos[0], x.pos[1] + 1]];
@@ -31,20 +31,20 @@
       }).map(function(x) {
         var _ref;
 
-        return (_ref = find(items, x)) != null ? _ref : {
+        return (_ref = find(stones, x)) != null ? _ref : {
           pos: x,
           player: 'none'
         };
       }).value();
       if (adjacent.length) {
         newly_found = _.filter(adjacent, function(x) {
-          return x.player === item.player;
+          return x.player === stone.player;
         });
         liberty.push(_.filter(adjacent, function(x) {
           return x.player === 'none';
         }));
         opposite.push(_.filter(adjacent, function(x) {
-          return x.player !== 'none' && x.player !== item.player;
+          return x.player !== 'none' && x.player !== stone.player;
         }));
         block = _.flatten([block, newly_found]);
       } else {
@@ -62,20 +62,20 @@
     };
   };
 
-  move = function(items, step, test) {
+  move = function(stones, step, test) {
     var rlt, target_block, _ref;
 
     if (test == null) {
       test = false;
     }
-    if (find(items, step.pos)) {
+    if (find(stones, step.pos)) {
       return new Error("already exists in " + step.pos);
     }
     if ((_ref = step.n) == null) {
-      step.n = items.length;
+      step.n = stones.length;
     }
-    items.push(step);
-    rlt = find_block(items, step.pos);
+    stones.push(step);
+    rlt = find_block(stones, step.pos);
     target_block = _.chain(rlt.opposite).map(function(x, i) {
       var block;
 
@@ -87,14 +87,14 @@
       }).value()) {
         return null;
       }
-      block = find_block(items, x.pos);
+      block = find_block(stones, x.pos);
       this.target_block.push(block);
       return block;
     }).compact().reject(function(x) {
       return x.liberty.length;
     }).value();
     if (test) {
-      items.pop();
+      stones.pop();
     }
     if (target_block.length) {
       return target_block;
@@ -102,38 +102,38 @@
       return null;
     } else {
       if (!test) {
-        items.pop();
+        stones.pop();
       }
       throw new Error("not allowed in " + step.pos + " " + step.player);
     }
   };
 
-  repeal = function(items, block) {
+  repeal = function(stones, block) {
     return _.each(block.block, function(x) {
-      return x.repealed = items.length - 1;
+      return x.repealed = stones.length - 1;
     });
   };
 
-  move_step = function(items, step) {
+  move_step = function(stones, step) {
     var blocks, deprecated, last, taken, try_move;
 
-    if (_.any(items, function(x) {
+    if (_.any(stones, function(x) {
       return !x.repealed && x.pos[0] === step.pos[0] && x.pos[1] === step.pos[1];
     })) {
-      throw new Error("already exists: not allowed in " + step.pos + " " + step.player);
+      throw new Error("already exists: not allowed in " + (JSON.stringify(step)));
     }
     try_move = function() {
       var blocks;
 
-      blocks = move(items, step);
+      blocks = move(stones, step);
       if (blocks) {
         _.each(blocks, function(x) {
-          return repeal(items, x);
+          return repeal(stones, x);
         });
       }
       return blocks;
     };
-    last = (items != null ? items.length : void 0) > 1 ? items[items.length - 1] : null;
+    last = (stones != null ? stones.length : void 0) > 1 ? stones[stones.length - 1] : null;
     blocks = try_move();
     taken = _.pluck(blocks, 'block');
     if (last && taken.length === 1 && taken[0].length === 1) {
@@ -141,7 +141,7 @@
       if (taken.player === last.player && _.every([0, 1], function(i) {
         return last.pos[i] === taken.pos[i];
       })) {
-        if (taken = _.where(items, {
+        if (taken = _.where(stones, {
           repealed: last.n
         })) {
           if (taken.length === 1) {
@@ -149,8 +149,8 @@
             if (taken.player === step.player && _.every([0, 1], function(i) {
               return step.pos[i] === taken.pos[i];
             })) {
-              deprecated = items.pop();
-              _.each(items, function(x) {
+              deprecated = stones.pop();
+              _.each(stones, function(x) {
                 if (x.repealed === deprecated.n) {
                   return delete x.repealed;
                 }
@@ -172,19 +172,19 @@
     window.move_step = move_step;
   }
 
-  retract = function(items) {
+  retract = function(stones) {
     var last_step;
 
-    if (!items.length) {
-      return items;
+    if (!stones.length) {
+      return stones;
     }
-    last_step = items.pop();
-    _.chain(items).where({
+    last_step = stones.pop();
+    _.chain(stones).where({
       repealed: last_step.n
     }).each(function(x) {
       return delete x.repealed;
     });
-    return items;
+    return stones;
   };
 
   if (typeof exports !== "undefined" && exports !== null) {

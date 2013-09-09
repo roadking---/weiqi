@@ -5,15 +5,37 @@ vendor(prop, args)
 	-o-{prop} args
 	{prop} args
 
+texture1(deg, clr)
+	vendor('background-size', 20px 20px)
+	background-image -webkit-linear-gradient(deg, clr 25%, transparent 25%, transparent 50%, clr 50%, clr 75%, transparent 75%, transparent)
+	background-image -moz-linear-gradient(deg, clr 25%, transparent 25%, transparent 50%, clr 50%, clr 75%, transparent 75%, transparent)
+	background-image -o-linear-gradient(deg, clr 25%, transparent 25%, transparent 50%, clr 50%, clr 75%, transparent 75%, transparent)
+	background-image linear-gradient(deg, clr 25%, transparent 25%, transparent 50%, clr 50%, clr 75%, transparent 75%, transparent)
+texture2(clr)
+	vendor('background-size', 20px 20px)
+	background-image -webkit-linear-gradient(45deg, clr 25%, transparent 25%, transparent), -webkit-linear-gradient(-45deg, clr 25%, transparent 25%, transparent), -webkit-linear-gradient(45deg, transparent 75%, clr 75%), -webkit-linear-gradient(-45deg, transparent 75%, clr 75%)
+	background-image -moz-linear-gradient(45deg, clr 25%, transparent 25%, transparent), -moz-linear-gradient(-45deg, clr 25%, transparent 25%, transparent), -moz-linear-gradient(45deg, transparent 75%, clr 75%), -moz-linear-gradient(-45deg, transparent 75%, clr 75%)
+	background-image -o-linear-gradient(45deg, clr 25%, transparent 25%, transparent), -o-linear-gradient(-45deg, clr 25%, transparent 25%, transparent), -o-linear-gradient(45deg, transparent 75%, clr 75%), -o-linear-gradient(-45deg, transparent 75%, clr 75%)
+	background-image linear-gradient(45deg, clr 25%, transparent 25%, transparent), linear-gradient(-45deg, clr 25%, transparent 25%, transparent), linear-gradient(45deg, transparent 75%, clr 75%), linear-gradient(-45deg, transparent 75%, clr 75%)
+texture3(clr)
+	vendor('background-size', 20px 20px)
+	background-image -webkit-linear-gradient(transparent 50%, clr 50%, clr), -webkit-linear-gradient(0deg, transparent 50%, clr 50%, clr)
+	background-image -moz-linear-gradient(transparent 50%, clr 50%, clr), -moz-linear-gradient(0deg, transparent 50%, clr 50%, clr)
+	background-image -o-linear-gradient(transparent 50%, clr 50%, clr), -o-linear-gradient(0deg, transparent 50%, clr 50%, clr)
+	background-image linear-gradient(transparent 50%, clr 50%, clr), linear-gradient(90deg, transparent 50%, clr 50%, clr)
+	
 body
-	background-color #f5f5f5
 	margin 0
 	font-family "Microsoft Yahei", "Helvetica Neue", Helvetica, Arial, sans-serif
 	line-height 23px
 	font-size 18px
 	color #555
 	overflow-x hidden
-
+	background-color #f5f5f5
+	//texture1(0deg, #fffafa)
+	texture2(#fffafa)
+	//texture3(#fffafa)
+	
 @import "footer"
 
 #form-signin, #form-register
