@@ -42,17 +42,26 @@ exports.set = (app)->
 	app.get '/u', (req, res)-> res.render 'u'
 	app.get '/json/u/:ref_user', routes.u
 	app.get '/json/u', routes.u
-	
 	app.get '/delete/:gid', routes.delete
+	app.get '/delete_post/:post_id', routes.delete_post
 	app.get '/dapu', routes.dapu
 	app.all '/blog', routes.blog
 	app.get '/follow/:uid', routes.follow
 	app.get '/unfollow/:uid', routes.unfollow
 	app.get '/surrender/:gid', routes.surrender
-	app.get '/delete_blog/:blog_id', routes.delete_blog
 	app.get '/history/:ref_user', (req, res)-> res.render 'history', ref_user:req.ref_user
 	app.get '/json/history/:ref_user', routes.history
 	app.get '/invite/:ref_user', routes.send_invite
 	app.post '/invite', routes.send_invite
 	app.get '/receive_invite/:ref_user', routes.receive_invite
-	
+	app.get '/xxx', (req, res)->
+		res.send """
+		<html><body>
+		<form method='post' action='/xxx'>
+			<input type='hidden' value='ok'>
+			<input type='submit'>
+		</form>
+		</body></html>
+		"""
+	app.post '/xxx', (req, res)->
+		console.log req.body

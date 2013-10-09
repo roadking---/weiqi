@@ -44,10 +44,30 @@ html
 			function tpl(selector){
 				if(!window._tpls) window._tpls = {}
 				if(_tpls[selector]) return _tpls[selector];
-				return _tpls[selector] = _.bind(simple_tpl(selector), {tpl:tpl, lingua_tpl:lingua_tpl, player_titles:player_titles, player_tpl:player_tpl});
+				return _tpls[selector] = _.bind(simple_tpl(selector), {_:_, tpl:tpl, lingua_tpl:lingua_tpl, player_titles:player_titles, player_tpl:player_tpl});
 			}
+			time_str = function(ts){
+				ts = Number(ts);
+				diff = new Date().getTime()/1000 - ts;
+				
+				if(diff >= 0 && diff < 60 * 60)
+					return _.chain('#{lingua.time_str1}').unescape().template({m:Math.ceil(diff/60)}).value();
+				else if(diff > 0 && diff < 60 * 60 * 24)
+					return _.chain('#{lingua.time_str2}').unescape().template({m:Math.ceil(diff/(60*60))}).value();
+				else if(diff > 0 && diff < 60 * 60 * 24 * 4)
+					return _.chain('#{lingua.time_str3}').unescape().template({m:Math.ceil(diff/(60*60*24))}).value();
+				else if(new Date().getFullYear() + '' == moment(ts*1000).format('YYYY'))
+					return moment(ts*1000).format('MM/DD');
+				return moment(ts*1000).format('YYYY/MM/DD');
+			}
+			setInterval(function(){
+				$('.ts').each(function(i, e){
+					$(e).text(time_str($(e).attr('ts')));
+				});
+			}, 1000*60);
+			
 		include header
 		block content
-		a#go2top: i.icon-chevron-up
+		a#go2top: i
 		include footer
 		include ../public/js/go2top.js			

@@ -1,11 +1,16 @@
 extends ../layout
 
 block title
+	- title_str = 'Move'
 	if game.seats && game.seats.black && game.seats.white
-		title #{refs[game.seats.black].nickname} #{lingua['title_' + refs[game.seats.black].title]} (#{lingua.seat_black}) vs #{refs[game.seats.white].nickname} #{lingua['title_' + refs[game.seats.white].title]} (#{lingua.seat_white})
-	else
-		title Move
-
+		title xxx
+	else if game.status == 'init'
+		title_str = _.template(lingua.game_title_1, {player1:refs[game.players[0]].nickname, player1_title:lingua['title_'+refs[game.players[0]].title]})
+	else if game.players && game.players.length == 2
+		title_str = _.template(lingua.game_title_2, {player1:refs[game.players[0]].nickname, player1_title:lingua['title_'+refs[game.players[0]].title], player2:refs[game.players[1]].nickname, player2_title:lingua['title_'+refs[game.players[1]].title]})
+	title= title_str
+		
+	
 block append scripts
 	script(src='/js/cookie.min.js')
 	script(src='/socket.io/socket.io.js')
@@ -17,12 +22,13 @@ block content
 	#game-view-outer.container
 		#game-view
 			header
-				h1#game-caption
-				a#details-link(href="#details"): i.icon-info-sign
+				h1#game-caption= title_str
 				a#try(try_btn=lingua.try_btn, try_done_btn=lingua.try_done_btn)
 					i
 					span= lingua.try_btn
 			#gaming-board
+			#about-players
+				h2= lingua.about_players
 		aside
 			include bulletin
 			include bulletin_local
@@ -34,22 +40,39 @@ block content
 				a#ending: i
 			#comments
 				ul
-				a#previous_comments
+				a#previous_comments= lingua.previous_comments
 	script#publish_tpl(type='text/template').
 		<div id='pub'>
 			<textarea rows=4 cols=60 placeholder='#{lingua.publish_text}'></textarea>
-			<button id='add_chart'>#{lingua.add_chart}</button>
-			<button id='submit'>#{lingua.publish}</button>
+			<a id='add_chart' class='btn'>#{lingua.add_chart}</a>
+			<a id='submit' class='btn'>#{lingua.publish}</a>
+			<a id='cancel' class='btn'>#{lingua.cancel}</a>
 			<div id='ss'><em>#{lingua.remove_snapshot}</em></div>
 		</div>
 	script#comment_tpl(type='text/template').
-		<li class='comment'>
+		<li class='comment' tabindex='-1'>
 			<%= player_tpl({user:data.refs[comment.author], clazz:'author'}) %>
 			<% if(data.myself){ %>
 				<span class='del'>&times</span>
 			<% } %>
 			<em class='step'><%= comment.step %></em>
-			<span class='ts'><%= moment(comment.ts*1000).format('YYYY/MM/DD HH:mm:ss') %></span>
+			<span class='ts' ts='<%=comment.ts%>'><%= time_str(comment.ts) %></span>
 			<% if(comment.ss) _.each(comment.ss, function(x){ comment.text = comment.text.replace(x.name, '<div name="' + x.name + '"></div>') });%>
 			<article><%= comment.text %></article>
 		</li>
+	script#game_caption_tpl(type='text/template').
+		<% if(game.title){ %>
+			<%= game.title %>
+		<% } else if(game.status == 'init'){ %>
+			#{lingua.game_title_0}
+		<% } else if(game.seats && game.seats.black && game.seats.white){ %>
+			<%= refs[game.seats.black].nickname %><%= player_titles[refs[game.seats.black].title] %>（#{lingua.black_short}） vs <%= refs[game.seats.white].nickname %><%= player_titles[refs[game.seats.white].title] %>（#{lingua.white_short}）
+		<% } else { %>
+			323
+		<% } %>
+	script#player_desc_tpl(type='text/template').
+		<h3><%= player_tpl({user:player}) %></h3>
+		<span>#{lingua.rate}</span>
+		<span title='#{lingua.rate}'><%= player.rate ? player.rate : 'N/A' %></span>
+		<span><% total_games = lingua_tpl('#{_.escape(lingua.total_games)}'); win = lingua_tpl('#{_.escape(lingua.win)}'); loss = lingua_tpl('#{_.escape(lingua.loss)}'); %></span>
+		<span><%= total_games({num:player.total_games||0}) %> <%= win({num:player.wins||0}) %> <%= loss({num:player.losses||0}) %></span>

@@ -18,10 +18,10 @@
 
   $.get("/json/connected/" + gid, function(data) {
     console.log(data);
-    init_header(data);
     return $(function() {
       var BackBtn, BeginningBtn, BoardView, BulletinLocalView, BulletinView, Comment, CommentChartList, CommentList, CommentPublishView, CommentView, CommentsView, EndingBtn, ForwardBtn, Game, Regiment, RegimentList, RegimentView, ShowNumBtn, Stone, StoneList, StoneView, TryBtn, back_btn, beginning_btn, board, bulletin, bulletin_local, comment_chart_list, comment_list, comment_publish, comments, ending_btn, forward_btn, game, regiment_list, show_num_btn, stone_list, try_btn;
 
+      init_header(data);
       Stone = Backbone.Model.extend({
         defaults: {
           show_num: false,
@@ -151,6 +151,15 @@
               }
             });
             _this.socket.on('comment', function(c) {
+              var _base, _name, _ref1;
+
+              if ((_ref1 = (_base = data.refs)[_name = c.author]) == null) {
+                _base[_name] = {
+                  id: c.author,
+                  title: c.author_title,
+                  nickname: c.author_nickname
+                };
+              }
               return _this.trigger('comment', c);
             });
             return typeof cb === "function" ? cb() : void 0;
@@ -377,12 +386,43 @@
         initialize: function() {
           var _this = this;
 
-          return this.listenTo(game, 'comment', function(c) {
+          this.listenTo(game, 'comment', function(c) {
+            if (c.author !== game.myself()) {
+              c.newly_received = true;
+            }
             return _this.add(c);
+          });
+          this.listenTo(stone_list, 'reset', function(stone_list) {
+            var n;
+
+            return _this.reset_comments(n = stone_list.length ? stone_list.last().get('n') : 0);
+          });
+          this.listenTo(game, 'change:show_first_n_stones', function(m, v) {
+            if (!game.get('try')) {
+              if (v == null) {
+                v = stone_list.last().get('n');
+              }
+              return _this.reset_comments(v);
+            }
+          });
+          return this.listenTo(game, 'change:next', function() {
+            var n;
+
+            if (!game.get('try')) {
+              n = stone_list.last().get('n');
+              return _this.reset_comments(n);
+            }
           });
         },
         comparator: function(c) {
           return -Number(c.get('step') + '' + c.get('ts'));
+        },
+        reset_comments: function(n) {
+          if (data.comments[n]) {
+            return this.reset(data.comments[n]);
+          } else {
+            return this.reset();
+          }
         }
       });
       comment_list = new CommentList;
@@ -394,37 +434,79 @@
           return console.log('del');
         },
         render: function() {
-          return tpl('#comment_tpl')({
+          var _ref1,
+            _this = this;
+
+          this.$el = $(tpl('#comment_tpl')({
             comment: this.model.toJSON(),
             data: data
+          }));
+          if (this.model.get('newly_received')) {
+            this.$el.addClass('newly_received');
+          }
+          if ((_ref1 = this.model.get('ss')) != null ? _ref1.length : void 0) {
+            _.each(this.model.get('ss'), function(x) {
+              var moves, ss_div;
+
+              ss_div = _this.$el.find("[name='" + x.name + "']");
+              moves = data.refs[x.gid].moves.slice(0, x.from);
+              if ((!moves || moves.length < x.from) && game.get('id') === ss.gid) {
+                moves = game.get('try') ? game.get('stones_before_try') : stone_list.map(function(s) {
+                  return s.toJSON();
+                });
+                moves = moves.slice(0, x.from);
+              }
+              moves = _.chain(moves).reject(function(z) {
+                return _.find(x.moves, function(y) {
+                  return z.n === y.n;
+                });
+              }).union(x.moves).value();
+              return new BoardCanvas(ss_div, {
+                size: 150
+              }).render(moves);
+            });
+          }
+          this.$el.click(function() {
+            return $(this).removeClass('newly_received');
           });
+          return this.$el;
         }
       });
       CommentsView = Backbone.View.extend({
         el: $('#comments'),
         events: {
-          'click a#previous_comments': 'fetch_previous_comments'
+          'click a#previous_comments': 'fetch_previous_comments',
+          'focus .comment': 'select_comment'
         },
         initialize: function() {
           var _this = this;
 
           this.listenTo(comment_list, 'reset', this.render);
           return this.listenTo(comment_list, 'add', function(model, collection) {
-            return _this.$el.find('ul').append(new CommentView({
-              model: model
-            }).render());
+            if (model.get('ts') === collection.first().get('ts')) {
+              return _this.$el.find('ul').prepend(new CommentView({
+                model: model
+              }).render());
+            } else {
+              return _this.$el.find('ul').append(new CommentView({
+                model: model
+              }).render());
+            }
           });
         },
+        select_comment: function(e) {},
         render: function() {
           var _this = this;
 
+          this.$el.find('.comment').remove();
           comment_list.sort();
           return comment_list.each(function(c) {
             var div, _ref1;
 
             div = $(new CommentView({
               model: c
-            }).render()).appendTo(_this.$el.find('ul'));
+            }).render()).appendTo(_this.$el.find('ul')).data('comment', c.toJSON());
+            return;
             if ((_ref1 = c.get('ss')) != null ? _ref1.length : void 0) {
               return _.each(c.get('ss'), function(x) {
                 var moves, ss_div;
@@ -450,31 +532,39 @@
           });
         },
         fetch_previous_comments: function() {
-          var start, step;
+          var start, step,
+            _this = this;
 
-          console.log('previous');
-          step = stone_list.last().get('n');
+          step = stone_list.length ? stone_list.last().get('n') : 0;
           start = data.comments[step] ? data.comments[step].length : 1;
           return game.fetch_previous_comments('comments', step, start, 6, function(comments) {
             comments = comments[step];
-            if (data.comments[step]) {
+            if ((comments != null ? comments.length : void 0) && data.comments[step]) {
               comments = _.reject(comments, function(c) {
                 return _.find(data.comments[step], function(cc) {
                   return c.author === cc.author && c.ts === cc.ts && c.text === cc.text;
                 });
               });
-              data.comments[step] = _.union(data.comments[step], comments);
-            } else {
-              data.comments[step];
             }
-            return _.each(comments, function(c) {
-              return comment_list.add(c);
-            });
+            if (comments != null ? comments.length : void 0) {
+              if (data.comments[step]) {
+                data.comments[step] = _.union(data.comments[step], comments);
+              } else {
+                data.comments[step] = comments;
+              }
+              return _.each(comments, function(c) {
+                return comment_list.add(c);
+              });
+            } else {
+              _this.$el.find('a#previous_comments').addClass('none');
+              return _.delay((function() {
+                return _this.$el.find('a#previous_comments').removeClass('none');
+              }), 5000);
+            }
           });
         }
       });
       comments = new CommentsView;
-      comment_list.reset(_.chain(data.comments).values().flatten().value());
       Regiment = Backbone.Model.extend({
         initialize: function() {
           var _this = this;
@@ -544,7 +634,8 @@
           return this.listenTo(this.model, 'remove_from_board', this.remove);
         },
         render: function() {
-          this.$el.html(this.model.get('n')).addClass(this.model.get('player')).attr({
+          console.log(this.model.toJSON());
+          this.$el.html(this.model.get('n') + 1).addClass(this.model.get('player')).attr({
             n: this.model.get('n'),
             x: this.model.get('pos')[0],
             y: this.model.get('pos')[1]
@@ -770,6 +861,16 @@
             top: this.board_canvas.locate(stone.get('pos')[1]) + .5 + this.$el.offset().top - t.height() / 2
           });
         },
+        reposite: function() {
+          var _this = this;
+
+          return this.$el.find('ul.stones li').each(function(i, li) {
+            return $(li).css({
+              left: _this.board_canvas.locate(Number($(li).attr('x'))) + .5 + _this.$el.offset().left - $(li).width() / 2,
+              top: _this.board_canvas.locate(Number($(li).attr('y'))) + .5 + _this.$el.offset().top - $(li).height() / 2
+            });
+          });
+        },
         show_analysis: function() {
           return stone_list.each(function(s) {
             var tmp;
@@ -823,7 +924,7 @@
           }
           step = {
             pos: pos,
-            player: game.get('next_trying') || game.get('next')
+            player: game.get('next_trying') || game.get('next') || 'black'
           };
           try {
             rlt = move_step(stone_list.map(function(s) {
@@ -953,7 +1054,8 @@
       BulletinView = Backbone.View.extend({
         el: $('#bulletin'),
         initialize: function() {
-          var _this = this;
+          var _ref1,
+            _this = this;
 
           this.listenTo(game, 'change:next', this.next_player);
           _.chain({
@@ -1023,7 +1125,24 @@
               return _this.$el.show();
             }
           });
-          return this.listenTo(regiment_list, 'change:judge', this.show_analysis_confirm);
+          this.listenTo(regiment_list, 'change:judge', this.show_analysis_confirm);
+          if (game.get('status') === 'init' && ((_ref1 = game.get('players')) != null ? _ref1.length : void 0) === 1) {
+            if (game.myself() === game.get('players')[0]) {
+              this.show_tpl('init_waiting', data);
+            } else {
+              this.show_tpl('init_attending', data);
+            }
+          }
+          if (game.get('status') === 'taking_seat') {
+            this.show_tpl('taking_seat', {
+              data: data
+            });
+          }
+          if (game.get('status') === 'ended') {
+            return this.show_tpl('status_ended', {
+              data: data
+            });
+          }
         },
         call_finishing_ask: function() {
           var _this = this;
@@ -1128,13 +1247,13 @@
             if (v) {
               _this.$el.show();
               return _this.show_tpl('start_trying', {
-                next: game.get('next')
+                next: game.get('next') || 'black'
               });
             } else {
               return _this.$el.hide();
             }
           });
-          return this.listenTo(game, 'change:next', function(m, v) {
+          return this.listenTo(game, 'change:next_trying', function(m, v) {
             return _this.show_tpl('start_trying', {
               next: v
             });
@@ -1190,32 +1309,43 @@
       });
       try_btn = new TryBtn;
       stone_list.reset(game.get('moves'));
-      game.trigger('change:next', game, game.get('next'));
-      game.connect(function(err) {
-        var cf;
+      if (game.get('status') === 'started') {
+        game.trigger('change:next', game, game.get('next'));
+      }
+      if (game.get('status') !== 'ended') {
+        game.connect(function(err) {
+          var cf;
 
-        if (err) {
-          return;
-        }
-        if (game.is_player() && (cf = game.get('calling_finishing'))) {
-          switch (cf.msg) {
-            case 'ask':
-              if (cf.uid === game.myself()) {
-                return game.trigger('call_finishing_ask');
-              } else {
-                return game.trigger('call_finishing_ask_received');
-              }
-              break;
-            case 'accept':
-              if (cf.uid === game.myself()) {
-                return game.trigger('call_finishing_accept', game.get('analysis'));
-              } else {
-                return game.trigger('call_finishing_accept_received', game.get('analysis'));
-              }
+          if (err) {
+            return;
           }
-        }
+          if (game.is_player() && (cf = game.get('calling_finishing'))) {
+            switch (cf.msg) {
+              case 'ask':
+                if (cf.uid === game.myself()) {
+                  return game.trigger('call_finishing_ask');
+                } else {
+                  return game.trigger('call_finishing_ask_received');
+                }
+                break;
+              case 'accept':
+                if (cf.uid === game.myself()) {
+                  return game.trigger('call_finishing_accept', game.get('analysis'));
+                } else {
+                  return game.trigger('call_finishing_accept_received', game.get('analysis'));
+                }
+            }
+          }
+        });
+      }
+      $(window).on('resize', function() {
+        return board.reposite();
       });
-      $(window).on('resize', function() {});
+      _.each(data.game.players, function(p) {
+        return $('#about-players').append(tpl('#player_desc_tpl')({
+          player: data.refs[p]
+        }));
+      });
       if (data.myself) {
         $('aside').append(tpl('#publish_tpl')());
         CommentChartList = Backbone.Collection.extend({
@@ -1230,25 +1360,44 @@
             this.listenTo(comment_chart_list, 'add', function(ss) {
               return _this.render_chart(ss);
             });
-            return this.listenTo(comment_chart_list, 'remove', this.remove_chart);
+            this.listenTo(comment_chart_list, 'remove', this.remove_chart);
+            return this.listenTo(comment_chart_list, 'reset', function() {
+              _this.$el.find('#ss .ss').remove();
+              return _this.$el.find('#ss em').hide();
+            });
           },
           events: {
             'click #submit': 'submit',
+            'click #cancel': 'cancel',
             'click #add_chart': 'add_chart',
             'focus textarea': 'start_commenting'
           },
           start_commenting: function() {
-            return console.log('start_commenting');
+            var step, _ref1;
+
+            if (game.get('step_to_comment') != null) {
+              return;
+            }
+            step = game.get('try') ? game.get('stones_before_try').length ? game.get('stones_before_try')[game.get('stones_before_try').length - 1].n : 0 : game.get('show_first_n_stones') || ((_ref1 = stone_list.last()) != null ? _ref1.get('n') : void 0) || 0;
+            return game.set('step_to_comment', step);
+          },
+          cancel: function(e) {
+            game.unset('step_to_comment');
+            comment_chart_list.reset();
+            return this.$el.find('textarea').val('');
           },
           submit: function(e) {
             var comment, text;
 
+            if (game.get('step_to_comment') == null) {
+              return console.log("step_to_comment n/a");
+            }
             text = this.$el.find('textarea').val();
             if (!text || text === '') {
               return;
             }
             comment = {
-              step: stone_list.last().get('n'),
+              step: game.get('step_to_comment'),
               text: text
             };
             if (comment_chart_list.length) {
@@ -1256,8 +1405,8 @@
                 return x.toJSON();
               });
             }
-            console.log(comment);
-            return game.send_comment(comment);
+            game.send_comment(comment);
+            return this.cancel();
           },
           add_chart: function(e) {
             var idx, ss;
@@ -1266,7 +1415,12 @@
             idx = this.$el.find('#ss .ss').length + 1;
             ss.name = "[" + idx + "]";
             comment_chart_list.add(ss);
-            return this.$el.find('textarea').val(this.$el.find('textarea').val() + ss.name);
+            this.$el.find('textarea').val(this.$el.find('textarea').val() + ss.name);
+            return this.$el.find('#ss em').show();
+          },
+          render: function() {
+            this.$el.find('#ss em').hide();
+            return this;
           },
           render_chart: function(ss) {
             var div, moves;
@@ -1298,13 +1452,24 @@
             }))) != null) {
               _ref1.remove();
             }
-            return this.$el.find('textarea').val(this.$el.find('textarea').val().replace(ss.get('name'), ''));
+            this.$el.find('textarea').val(this.$el.find('textarea').val().replace(ss.get('name'), ''));
+            if (!this.$el.find('#ss .ss').length) {
+              return this.$el.find('#ss em').hide();
+            }
           }
         });
-        comment_publish = new CommentPublishView;
+        comment_publish = new CommentPublishView().render();
         return;
         return _.delay(function() {
+          $('#back').click();
+          $('#back').click();
+          comment_publish.$el.find('textarea').focus();
           comment_publish.$el.find('textarea').val('test: ');
+          $('#try').click();
+          board.trying([0, 17]);
+          board.trying([0, 18]);
+          $('#add_chart').click();
+          return;
           $('#try').click();
           $('#back').click();
           $('#back').click();

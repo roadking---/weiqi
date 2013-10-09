@@ -7,9 +7,9 @@ check_tap_enalbed = (e)->
 
 $.get "/json/connected/#{gid}", (data)->
 	console.log data
-	init_header data
-	
 	$ ->
+		init_header data
+		
 		Stone = Backbone.Model.extend
 			defaults:
 				show_num: false
@@ -48,6 +48,7 @@ $.get "/json/connected/#{gid}", (data)->
 				if @is_player()
 					_.without(@get('players'), @myself())[0]
 			connect: (cb)->
+				#return @socket = null if @get('status') is 'ended'
 				@socket = io.connect "http://#{location.hostname}/weiqi"
 				_.each 'connect_failed reconnect_failed error connecting reconnecting reconnect disconnect'.split(' '), (x)=>
 					@socket.on x, => @trigger x
@@ -85,7 +86,12 @@ $.get "/json/connected/#{gid}", (data)->
 							when 'suggest'
 								[msg, stone_in_regiment, suggest] = arguments
 								@trigger 'call_finishing_suggest_received', stone_in_regiment, suggest
-					@socket.on 'comment', (c)=> @trigger 'comment', c
+					@socket.on 'comment', (c)=> 
+						data.refs[c.author] ?=
+							id: c.author
+							title: c.author_title
+							nickname: c.author_nickname
+						@trigger 'comment', c
 					cb?()
 					
 			test_connection: (cb)->
@@ -171,6 +177,7 @@ $.get "/json/connected/#{gid}", (data)->
 							x.set 'last', false
 						else if x.get('n') is v
 							x.set 'last', true
+				
 			send_comment: (c)->
 				@test_connection =>
 					@socket.emit 'comment', data.game.id, c, => @trigger 'comment', c
@@ -198,26 +205,71 @@ $.get "/json/connected/#{gid}", (data)->
 		CommentList = Backbone.Collection.extend
 			model: Comment
 			initialize: ->
-				@listenTo game, 'comment', (c)=> @add c
+				@listenTo game, 'comment', (c)=>
+					c.newly_received = true if c.author isnt game.myself()
+					@add c
+				@listenTo stone_list, 'reset', (stone_list)=>
+					@reset_comments n = if stone_list.length then stone_list.last().get('n') else 0
+				@listenTo game, 'change:show_first_n_stones', (m, v)=>
+					if not game.get 'try'
+						v ?= stone_list.last().get 'n'
+						@reset_comments v
+				@listenTo game, 'change:next', =>
+					if not game.get 'try'
+						n = stone_list.last().get 'n'
+						@reset_comments n
 			comparator: (c)-> - Number c.get('step') + '' + c.get('ts')
+			reset_comments: (n)-> 
+				if data.comments[n]
+					@reset data.comments[n]
+				else
+					@reset()
 		comment_list = new CommentList
 		CommentView = Backbone.View.extend
 			events:
 				'click .del': 'del'
+				
 			del: -> console.log 'del'
+				
 			render: ->
-				tpl('#comment_tpl') comment:@model.toJSON(), data:data
+				@$el = $( tpl('#comment_tpl') comment:@model.toJSON(), data:data )
+				@$el.addClass 'newly_received' if @model.get 'newly_received'
+				
+				if @model.get('ss')?.length
+					_.each @model.get('ss'), (x)=>
+						ss_div = @$el.find("[name='#{x.name}']")
+						moves = data.refs[x.gid].moves[0...x.from]
+						if (not moves or moves.length < x.from) and game.get('id') is ss.gid
+							moves = if game.get('try')
+								game.get('stones_before_try')
+							else
+								stone_list.map((s)->s.toJSON())
+							moves = moves[0...x.from]
+						moves = _.chain(moves).reject((z)->_.find x.moves, (y)-> z.n is y.n ).union(x.moves).value()
+						new BoardCanvas(ss_div, size:150).render(moves)
+				
+				@$el.click -> $(this).removeClass 'newly_received' 
+				@$el
 		CommentsView = Backbone.View.extend
 			el: $('#comments')
 			events:
 				'click a#previous_comments': 'fetch_previous_comments'
+				'focus .comment': 'select_comment'
 			initialize: ->
 				@listenTo comment_list, 'reset', @render
-				@listenTo comment_list, 'add', (model, collection)=> @$el.find('ul').append new CommentView(model:model).render()
+				@listenTo comment_list, 'add', (model, collection)=>
+					if model.get('ts') is collection.first().get('ts')
+						@$el.find('ul').prepend new CommentView(model:model).render()
+					else
+						@$el.find('ul').append new CommentView(model:model).render()
+			select_comment: (e)->
+				#console.log $(e.target).data('comment')
 			render: ->
+				@$el.find('.comment').remove()
 				comment_list.sort()
 				comment_list.each (c)=>
-					div = $(new CommentView(model:c).render()).appendTo(@$el.find('ul'))
+					div = $(new CommentView(model:c).render()).appendTo(@$el.find('ul')).data('comment', c.toJSON())
+					return
 					if c.get('ss')?.length
 						_.each c.get('ss'), (x)->
 							ss_div = div.find("[name='#{x.name}']")
@@ -230,21 +282,26 @@ $.get "/json/connected/#{gid}", (data)->
 								moves = moves[0...x.from]
 							moves = _.chain(moves).reject((z)->_.find x.moves, (y)-> z.n is y.n ).union(x.moves).value()
 							new BoardCanvas(ss_div, size:150).render(moves)
+			
 			fetch_previous_comments: ->
-				console.log 'previous'
-				step = stone_list.last().get('n')
+				step = if stone_list.length then stone_list.last().get('n') else 0
 				start = if data.comments[step] then data.comments[step].length else 1
-				game.fetch_previous_comments 'comments', step, start, 6, (comments)->
+				game.fetch_previous_comments 'comments', step, start, 6, (comments)=>
 					comments = comments[step]
-					if data.comments[step]
+					if comments?.length and data.comments[step]
 						comments = _.reject comments, (c)->
 							_.find data.comments[step], (cc)-> c.author is cc.author and c.ts is cc.ts and c.text is cc.text
-						data.comments[step] = _.union data.comments[step], comments
+					if comments?.length
+						if data.comments[step]
+							data.comments[step] = _.union data.comments[step], comments
+						else
+							data.comments[step] = comments
+						_.each comments, (c)-> comment_list.add c
 					else
-						data.comments[step]
-					_.each comments, (c)-> comment_list.add c
+						@$el.find('a#previous_comments').addClass('none')
+						_.delay (=>@$el.find('a#previous_comments').removeClass('none')), 5000
 		comments = new CommentsView
-		comment_list.reset _.chain(data.comments).values().flatten().value()
+		#comment_list.reset _.chain(data.comments).values().flatten().value()
 		
 		Regiment = Backbone.Model.extend 
 			initialize: ->
@@ -299,7 +356,8 @@ $.get "/json/connected/#{gid}", (data)->
 				@listenTo @model, 'clear_style', @clear_style
 				@listenTo @model, 'remove_from_board', @remove
 			render: ->
-				@$el.html(@model.get('n')).addClass(@model.get 'player').attr
+				console.log @model.toJSON()
+				@$el.html(@model.get('n') + 1).addClass(@model.get 'player').attr
 					n: @model.get('n')
 					x: @model.get('pos')[0]
 					y: @model.get('pos')[1]
@@ -445,6 +503,11 @@ $.get "/json/connected/#{gid}", (data)->
 				t.css
 					left: @board_canvas.locate(stone.get('pos')[0]) + .5 + @$el.offset().left - t.width()/2
 					top: @board_canvas.locate(stone.get('pos')[1]) + .5 + @$el.offset().top - t.height()/2
+			reposite: -> 
+				@$el.find('ul.stones li').each (i, li)=>
+					$(li).css
+						left: @board_canvas.locate( Number $(li).attr('x') ) + .5 + @$el.offset().left - $(li).width()/2
+						top: @board_canvas.locate( Number $(li).attr('y') ) + .5 + @$el.offset().top - $(li).height()/2
 			show_analysis: ->
 				stone_list.each (s)->
 					if not s.get('repealed')
@@ -473,7 +536,7 @@ $.get "/json/connected/#{gid}", (data)->
 					stone_list.pop() while stone_list.last().get('n') > show_first_n_stones
 					game.set 'show_first_n_stones', null
 					
-				step = pos: pos, player: game.get('next_trying') or game.get('next')
+				step = pos: pos, player: game.get('next_trying') or game.get('next') or 'black'
 				try
 					rlt = move_step stone_list.map((s)->s.toJSON()), step
 				catch e
@@ -609,6 +672,16 @@ $.get "/json/connected/#{gid}", (data)->
 						@$el.show()
 				@listenTo regiment_list, 'change:judge', @show_analysis_confirm
 				
+				if game.get('status') is 'init' and game.get('players')?.length is 1
+					if game.myself() is game.get('players')[0]
+						@show_tpl 'init_waiting', data
+					else
+						@show_tpl 'init_attending', data
+				if game.get('status') is 'taking_seat'
+					@show_tpl 'taking_seat', data:data
+				if game.get('status') is 'ended'
+					@show_tpl 'status_ended', data:data
+				
 			call_finishing_ask: ->
 				@show_tpl 'call_finishing_ask'
 				@$el.find('#call_finishing_cancel').click => game.call_finishing_cancel()
@@ -662,10 +735,10 @@ $.get "/json/connected/#{gid}", (data)->
 				@listenTo game, 'change:try', (m, v)=>
 					if v
 						@$el.show()
-						@show_tpl 'start_trying', next:game.get('next')
+						@show_tpl 'start_trying', next:game.get('next') or 'black'
 					else
 						@$el.hide()
-				@listenTo game, 'change:next', (m, v)=> @show_tpl 'start_trying', next:v
+				@listenTo game, 'change:next_trying', (m, v)=> @show_tpl 'start_trying', next:v
 			show_tpl: (name, params)->
 				params = if params
 					_.defaults params, data:data
@@ -706,24 +779,28 @@ $.get "/json/connected/#{gid}", (data)->
 		try_btn = new TryBtn
 		
 		stone_list.reset game.get 'moves'
-		game.trigger 'change:next', game, game.get('next')
-		game.connect (err)->
-			return if err
-			if game.is_player() and cf = game.get 'calling_finishing'
-				switch cf.msg
-					when 'ask'
-						if cf.uid is game.myself()
-							game.trigger 'call_finishing_ask'
-						else
-							game.trigger 'call_finishing_ask_received'
-					when 'accept'
-						if cf.uid is game.myself()
-							game.trigger 'call_finishing_accept', game.get('analysis')
-						else
-							game.trigger 'call_finishing_accept_received', game.get('analysis')
+		game.trigger 'change:next', game, game.get('next') if game.get('status') is 'started'
+		if game.get('status') isnt 'ended'
+			game.connect (err)->
+				return if err
+				if game.is_player() and cf = game.get 'calling_finishing'
+					switch cf.msg
+						when 'ask'
+							if cf.uid is game.myself()
+								game.trigger 'call_finishing_ask'
+							else
+								game.trigger 'call_finishing_ask_received'
+						when 'accept'
+							if cf.uid is game.myself()
+								game.trigger 'call_finishing_accept', game.get('analysis')
+							else
+								game.trigger 'call_finishing_accept_received', game.get('analysis')
 		
-		$(window).on 'resize', -> #console.log 'resize'
+		$(window).on 'resize', -> board.reposite()
 		
+		_.each data.game.players, (p)->
+			$('#about-players').append tpl('#player_desc_tpl') player:data.refs[p]
+			
 		if data.myself
 			$('aside').append tpl('#publish_tpl')()
 			CommentChartList = Backbone.Collection.extend
@@ -734,29 +811,48 @@ $.get "/json/connected/#{gid}", (data)->
 				initialize: ->
 					@listenTo comment_chart_list, 'add', (ss)=> @render_chart ss
 					@listenTo comment_chart_list, 'remove', @remove_chart
-						
+					@listenTo comment_chart_list, 'reset', => 
+						@$el.find('#ss .ss').remove()
+						@$el.find('#ss em').hide()
 				events:
 					'click #submit': 'submit'
+					'click #cancel': 'cancel'
 					'click #add_chart': 'add_chart'
 					'focus textarea': 'start_commenting'
 				start_commenting: ->
-					console.log 'start_commenting'
+					return if game.get('step_to_comment')?
+					step = \
+					if game.get 'try'
+						if game.get('stones_before_try').length then game.get('stones_before_try')[game.get('stones_before_try').length-1].n else 0
+					else
+						game.get('show_first_n_stones') or stone_list.last()?.get('n') or 0
+						
+					game.set 'step_to_comment', step
+				cancel: (e)->
+					game.unset 'step_to_comment'
+					comment_chart_list.reset()
+					@$el.find('textarea').val ''
 				submit: (e)->
+					return console.log "step_to_comment n/a" if not game.get('step_to_comment')?
 					text = @$el.find('textarea').val()
 					return if not text || text is ''
 					
 					comment =
-						step: stone_list.last().get 'n'
+						step: game.get 'step_to_comment'
 						text: text
 					comment.ss = comment_chart_list.map((x)->x.toJSON()) if comment_chart_list.length
-					console.log comment
 					game.send_comment comment
+					@cancel()
 				add_chart: (e)->
 					ss = game.snapshot()
 					idx = @$el.find('#ss .ss').length + 1
 					ss.name = "[#{idx}]"
 					comment_chart_list.add ss
 					@$el.find('textarea').val @$el.find('textarea').val() + ss.name
+					@$el.find('#ss em').show()
+				render: ->
+					@$el.find('#ss em').hide()
+					this
 				render_chart: (ss)->
 					moves = data.refs[ss.get 'gid'].moves[0...ss.get('from')]
 					if (not moves or moves.length < ss.get('from')) and game.get('id') is ss.get('gid')
@@ -775,12 +871,23 @@ $.get "/json/connected/#{gid}", (data)->
 				remove_chart: (ss)->
 					$(_.find @$el.find('#ss .ss').toArray(), (x)->$(x).data('ss') is ss)?.remove()
 					@$el.find('textarea').val @$el.find('textarea').val().replace(ss.get('name'), '')
+					if not @$el.find('#ss .ss').length
+						@$el.find('#ss em').hide()
 					
-			comment_publish = new CommentPublishView
+			comment_publish = new CommentPublishView().render()
 			return
 			_.delay ->
-				comment_publish.$el.find('textarea').val 'test: '
+				$('#back').click()
+				$('#back').click()
 				
+				comment_publish.$el.find('textarea').focus()
+				comment_publish.$el.find('textarea').val 'test: '
+				$('#try').click()
+				board.trying [0, 17]
+				board.trying [0, 18]
+				$('#add_chart').click()
+				
+				return
 				$('#try').click()
 				$('#back').click()
 				$('#back').click()

@@ -13,6 +13,7 @@ block content
 		#pendings
 		#attendings
 		#blogs
+		a#prev_blogs_btn= lingua.prev_blogs
 	
 	include ../tpls/blogs_tpl
 
@@ -28,13 +29,25 @@ block content
 	script#attendings_tpl(type='text/template').
 		<ul>
 			<% _.each(data.games.attendings, function(gid){ %>
-				<% my_seat = _.invert(data.refs[gid].seats)[data.myself]; opponent = _.without(data.refs[gid].players, data.myself)[0];  %>
-				<li>
-					<span class='caption'>
-						<%= my_seat == 'black' ? '#{lingua.seat_black}' : '#{lingua.seat_white}' %>#{lingua.with} <%= player_tpl({user:data.refs[opponent]}) %>
-					</span>
-					<a class='thumb' href='/game/<%=gid%>'/></a>
-				</li>
+				<% if(data.refs[gid].seats){ %>
+					<li>
+						<% my_seat = _.invert(data.refs[gid].seats)[data.myself]; opponent = _.without(data.refs[gid].players, data.myself)[0];  %>
+						<span class='caption'><%= my_seat == 'black' ? '#{lingua.seat_black}' : '#{lingua.seat_white}' %>#{lingua.with} <%= player_tpl({user:data.refs[opponent]}) %></span>
+						<a class='thumb' href='/game/<%=gid%>'></a>
+					</li>
+				<% } else if(data.refs[gid].players.length == 1){ %>
+					<li class='new-game'>
+						<a href='/game/<%=gid%>'>
+							<span>#{lingua.home_new_game_str1}</span>
+							<br>
+							<span>#{lingua.home_new_game_str2}</span>
+						</a>
+					</li>
+				<% } else { %>
+					<li>
+						xxx
+					</li>
+				<% } %>
 			<% }); %>
 		</ul>
 	

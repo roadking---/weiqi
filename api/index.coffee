@@ -684,7 +684,7 @@ get_comments = exports.get_comments = (gid, cb)->
 					_.chain(replies).flatten().each (x)-> m.get x
 					m.exec (err, replies)->
 						return cb err if err
-						cb undefined, _.chain(replies).map((x)-> JSON.parse x).groupBy((x)->x.step).value()
+						cb undefined, _.chain(replies).map((x)-> JSON.parse x).compact().groupBy((x)->x.step).value()
 		when 6
 			[gid, tag, step, start, num, cb] = arguments
 			start = 1 if start is 0
@@ -1115,10 +1115,19 @@ send_post_tpl = exports.send_post_tpl = ->
 					[gid, cb] = _.toArray(arguments)[2..]
 					send_post gid, {type:'init_game', gid:gid}, cb
 
-delete_post = exports.delete_post = (post_id, cb)->
+delete_post = exports.delete_post = ->
+	switch arguments.length
+		when 2
+			[post_id, cb] = arguments
+			author = null
+		when 3
+			[post_id, author, cb] = arguments
+			
 	get_blogs [post_id], (err, posts)->
 		return cb err if err
 		return cb() if not posts.length
+		if author and posts[0].author isnt author
+			return cb new Error "#{author} is not the author"
 		m = client.multi()
 		m.del post_id
 		if posts[0].author

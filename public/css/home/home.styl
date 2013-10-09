@@ -6,15 +6,30 @@
 			li
 				color #48414a
 				font-size 18px
+				width 200px
+				margin 0 30px 30px 0
 				.caption
 					line-height 30px
 					margin-bottom 10px
 					display block
 				.thumb
 					display block
-			li + li
-				margin-left 30px
-	
+			li.new-game
+				display table
+				min-height 100px
+				a
+					display table-cell	
+					vertical-align middle
+					text-decoration none
+					color hsl(200, 40%, 50%)
+					text-align center
+					span:nth-of-type(1)
+						font-size 1.8em
+						line-height 1.8em
+					span:nth-of-type(2)
+						font-size 1.2em
+						line-height 1.4em
+						
 	#pendings
 		margin-top 30px
 		margin-bottom 30px
@@ -34,6 +49,47 @@
 					font-size 1.4m
 					color #483c32
 	#blogs
+		padding 5px 20px
+		background-color #fffcf7
+		line-height 2em
 		ul
+			margin-bottom 40px
 			li
 				display block
+				border 1px solid transparent
+				padding 10px
+				vendor('border-radius', 2px)
+				&:hover
+					border-color #d9d6cf
+					header
+						.del
+							background-color #ffa07b
+							color white	
+				header
+					margin-bottom .5em
+					.del
+						float right
+						cursor pointer
+						padding 3px 8px
+						vendor('border-radius', 5px)
+					a.author
+						color hsl(160, 40%, 40%)
+						text-decoration none
+						
+				article
+					.forwarded_blog
+						margin-left 2em
+					.deleted
+						background-color #fafbfb
+				footer
+					.ts
+						font-size .6em
+			
+			li + li
+				margin-top 3px
+	#prev_blogs_btn
+		cursor pointer
+		border-bottom 1px solid black
+		margin 1em 5px 1em 20px
+		padding-bottom 2px
+		display inline-block

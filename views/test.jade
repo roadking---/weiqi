@@ -5,6 +5,7 @@ html
 		link(rel='stylesheet', href='/css/users_list.css')
 		script(type='text/javascript', src='/js/zepto.min.js')
 		script(type='text/javascript', src='/js/underscore-min.js')
+		script(type='text/javascript', src='/js/BoardCanvas.js')
 		style.
 			body > div{float:left;margin-left:20px;}
 	body
@@ -23,8 +24,8 @@ html
 					strong Contact Form
 					| The easiest way to add a contact form to your shop.
 		
-		.container
-			ul.cubic.show-left
+		.cube
+			ul.faces.show-left
 				li.front 1
 				li.left 2
 				li.top 3
@@ -46,3 +47,9 @@ html
 			
 			$('#users_list').append(tpl('#users_list_tpl')({users:[{id:'u1',nickname:'roadking',title:'J', num:3},{id:'u2',nickname:'ab',title:'B', num:4},{id:'u3',nickname:'sssss',title:'J', num:6},{id:'u4',nickname:'jjdj888',title:'I', num:12},{id:'u5',nickname:'Nobody',title:'J', num:100}]}));
 			
+			$(function(){
+				$('.cube li').each(function(i, e){
+					$(e).empty();
+					new BoardCanvas($(e), {size:200}).render([{player:'black',n:0,pos:[3,3]}]);
+				});
+			});

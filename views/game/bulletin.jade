@@ -3,8 +3,8 @@
 	script(type='text/template', name='init_waiting')
 		p= lingua.init_waiting
 	script(type='text/template', name='init_attending')
-		p
-			a.btn.btn-primary(href='/attend/#{gid}')= lingua.start_game
+		p.init_attending
+			a(href='/attend/#{game.id}')= lingua.init_attending
 	script(type='text/template', name='started_please_move').
 		<p>#{lingua.started_please_move}</p>
 		<% if(data.myself && _.contains(data.game.players, data.myself) && data.game.moves.length ){ %>
@@ -74,4 +74,15 @@
 		p= lingua.call_finishing_stop_received_move
 	script(type='text/template', name='call_finishing_stop_received_wait')
 		p= lingua.call_finishing_stop_received_wait
-	
+	script(type='text/template', name='status_ended').
+		<p>
+			<% if(data.game.result.win){ %>
+				<%= player_tpl({user:data.refs[data.game.seats[data.game.result.win]]}) %>
+				<%= data.game.result.case.indexOf('surrender') > -1 ? '#{lingua.win_in_the_middle}': '#{lingua.win_vs}' %>
+			<% } else { %>
+				#{lingua.bulletin_result_draw}
+			<% } %>
+		<p>
+	script(type='text/template', name='taking_seat').
+		<p>xxx</p>
+		<p>xxxy</p>

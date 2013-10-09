@@ -55,7 +55,7 @@ block content
 		script#heading_tpl(type='text/template').
 			<% if(data.myself){ %>
 				<% if(data.myself == data.uid){ %>
-					<a id='logout' href='/logout'>Logout</a>
+					<a id='logout' href='/logout'>#{lingua.logout}</a>
 				<% } else { %>
 					<% if(query.is_followed){ %>
 						<a class='follow'></a>
@@ -89,24 +89,38 @@ block content
 			<% if(recent_history.length) { %>
 				<% total_moves = lingua_tpl('#{_.escape(lingua.total_moves)}'); %>
 				<ul>
-					<% _.each(current, function(gid){ %>
-						<li>
+					<% _.each(recent_history, function(gid){ %>
+						<% game_result = refs[gid].result ? (
+							refs[gid].result.win ? (
+								uid == refs[gid].seats[refs[gid].result.win] ? 'win' : 'loss'
+							) : 'draw'
+						) : '' %>
+						<li class='<%= refs[gid].status %> <%= game_result %>'>
+							<a class='view' href="/game/<%=gid%>">
 							<% opponent = _.without(refs[gid].players, uid)[0]; %>
-							<% if(refs[gid].result) { %>
-								<span class="ts"><%= moment( refs[gid].result.ts *1000).format('YYYY/MM/DD HH:mm') %></span>
+							<span class='ts'><%= moment(refs[gid].init_ts*1000).format('YYYY/MM/DD HH:mm') %></span>
+							<% if(refs[gid].seats){ %>
+								<% if(refs[gid].seats.black == uid){ %>
+									<span>#{lingua.seat_black}</span>
+								<% } else if(refs[gid].seats.white == uid){ %>
+									<span>#{lingua.seat_white}</span>
+								<% } %>
 							<% } %>
-							<span class="total_moves"><%= total_moves({moves:refs[gid].moves.length}) %></span>
-							
 							<% if(refs[gid].result){ %>
 								<% if(refs[gid].result.win){ %>
-									<span><%= refs[gid].result.win == 'black' ? '#{lingua.seat_black}' : '#{lingua.seat_white}' %></span>
-									<% if(myself){ %>
-										<span><%= myself == refs[gid].seats[refs[gid].result.win] ? '#{lingua.win_vs}' : '#{lingua.fail_vs}' %></span>
+									<% if(uid == refs[gid].seats[refs[gid].result.win]){  %>
+										<%= refs[gid].result.case.indexOf('surrender') > -1 ? '#{lingua.win_in_the_middle}': '#{lingua.win_vs}' %>
+									<% } else { %>
+										<%= refs[gid].result.case.indexOf('surrender') > -1 ? '#{lingua.lose_in_the_middle}': '#{lingua.fail_vs}' %>
 									<% } %>
 								<% } %>
 							<% } %>
-							<%= player_tpl({user:refs[opponent]}) %>
-							<a href='/game/<%=gid%>')>>></a>
+							<%= refs[opponent].nickname %><%= player_titles[refs[opponent].title] %>
+							
+							<% if(refs[gid].status == 'started'){ %>
+								<div class='status'>#{lingua.status_started}<div>
+							<% } %>
+							</a>
 						</li>
 					<% }); %>
 				</ul>

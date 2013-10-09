@@ -1,4 +1,4 @@
-header
+body > header
 	border-bottom 1px dotted white
 	nav
 		nav_height = 52px
@@ -16,6 +16,7 @@ header
 			text-align center
 			text-decoration none
 			line-height nav_height
+			letter-spacing 1em
 		ul.nav
 			display block
 			float left
@@ -33,9 +34,12 @@ header
 					display block
 					font-weight bold
 					overflow hidden
+					
 					&:hover
 						background-color #72d0eb
 						color #fff
+				a#home, a#dapu
+					letter-spacing .4em
 			li.active
 				a
 					background-color #72d0eb

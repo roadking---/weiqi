@@ -18,7 +18,7 @@ body {
 }
 #wrap-foot {
   background-color: #333;
-  padding: 5px 0 10px 0;
+  padding: 2em;
 }
 #wrap-foot footer {
   color: #ccc;
@@ -29,6 +29,7 @@ body {
   font-size: 1.1em;
   font-weight: normal;
   line-height: 30px;
+  margin: 0 0 0.35em 0;
 }
 #wrap-foot footer .content {
   font-size: 0.9em;

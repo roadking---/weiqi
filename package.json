@@ -22,7 +22,8 @@
     "maxmind": "*",
     "yamljs": "*",
     "gauss": "*",
-    "async": "*"
+    "async": "*",
+    "marked": "*"
   },
   "engines": {
     "node": "0.10.*",

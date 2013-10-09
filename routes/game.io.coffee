@@ -74,7 +74,8 @@ module.exports = (io, socket)->
 				comment.author ?= uid
 				api.add_comment gid, comment, ->
 					api.get_user comment.author, (err, author)->
-						comment.nickname = author.nickname
+						comment.author_nickname = author.nickname
+						comment.author_title = author.title
 						io.of('/weiqi').in(gid).emit 'comment', comment
 		
 		socket.on 'fetch_comment', (gid, tag, step, start, num, cb)->

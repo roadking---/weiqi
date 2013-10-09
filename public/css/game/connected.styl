@@ -3,6 +3,7 @@
 
 #game-view-outer
 	background white
+	padding-bottom 5em
 	#game-view
 		display inline-block
 		width 60%
@@ -11,17 +12,22 @@
 		header
 			h1#game-caption
 				font-size 1em
-			a#try
-				cursor pointer
+				margin 1em 0 0 2em
+				display inline-block
 				
 		#gaming-board
-			//margin-left margin_left
-		a#details-link
-			padding 3px
-			margin-left 50px
+			margin 1.5em auto 0 auto
 		#details
 			margin-top 50px
 		#try
+			background-color hsl(220, 70%, 70%)
+			padding .5em
+			cursor pointer
+			margin 1em 5em 0 0
+			vertical-align middle
+			color white
+			vendor('border-radius', 3px)
+			float right
 			i	
 				width 20px
 				height 20px
@@ -29,6 +35,18 @@
 				display inline-block
 				background-repeat no-repeat
 				background-image url(/img/icons/palm.svg)
+		a#try.trying
+			background-color hsl(20, 70%, 70%)
+
+		#about-players
+			margin-left 3em
+			h3
+				font-size 1.1em
+				font-weight normal
+				a
+					color hsl(80, 30%, 20%)
+					text-decoration none
+					border-bottom 1px solid hsl(80, 30%, 20%)
 	aside
 		margin-top 1em
 		display inline-block
@@ -46,8 +64,10 @@
 					width 20px
 					height 20px
 					background-size 100% 100%
-					display inline-block
+					//display inline-block
 					background-repeat no-repeat
+					margin 5px auto
+					display block
 			a.invalid
 				color: #aaa
 				cursor auto
@@ -55,9 +75,14 @@
 				background-color #aaa
 			#num_btn
 				i
-					padding 0px 16px
+					//padding 0px 16px
 					background url(/img/icons.svg) no-repeat
 					background-position 0 -16px
+					height 16px
+					width 32px
+			#num_btn.show_num
+				i
+					background-position 0 0
 			#back
 				i
 					background-image url(/img/icons/arrow.svg)
@@ -74,34 +99,87 @@
 					vendor('transform', rotate(180deg))
 			
 		#comments
+			background-color #fafbfb
+			vendor('border-radius', 10px)
+			padding .4em
+			ul
+				min-height 10em
 			.comment
 				display inline-block
 				vertical-align top
 				margin 0 .5em .5em 0
+				padding-left 4px
 				width 10em
-				.step, .ts
+				.step
 					font-size .6em
 					display none
+				.ts
+					font-size .6em
 				.del
 					cursor pointer
 					float right
 					padding .5em
 					visibility hidden
 				.author
-					font-size .6em
+					font-size .8em
 					color #e28702
+					.title
+						font-size .6em
 				article
 					font-size 1.1em
 					div
-						margin .4em .4em .4em 0
-					
+						margin .4em .2em
+			
+			@keyframes newly_received
+				0%
+					background-color hsl(0, 80%, 100%)
+				10%
+					background-color hsl(0, 80%, 100%)
+				20%
+					background-color hsl(0, 80%, 90%)
+				30%
+					background-color hsl(0, 80%, 100%)
+				40%
+					background-color hsl(0, 80%, 90%)
+				50%
+					background-color hsl(0, 80%, 100%)
+				100%
+					background-color hsl(0, 80%, 96%)
+			.comment.newly_received
+				background-color hsl(0, 80%, 96%)
+				vendor('animation-name', 'newly_received')
+				vendor('animation-duration', 4s)
+				vendor('animation-delay', 0)
+				vendor('animation-iteration-count', 1)
+				
 			a#previous_comments
-				display block
-				height 30px
-				margin 10px auto 0 auto
-				width 80%
+				cursor pointer
+				margin .7em 0 1.2em 0
+				display inline-block
+				text-align center
+				text-decoration none
+				border-bottom 1px solid black
+			a#previous_comments.none
+				&:after
+					content '+0'
+					color hsl(0, 60%, 60%)
+					margin-left 2em
 		#pub
+			textarea
+				width 100%
+				font-size 1.1em
 			#ss
 				em
 					font-size .4em
 					color #de3263
+			a.btn
+				width 30%
+				background-color hsl(60, 60%, 50%)
+				color white
+				display inline-block
+				text-align center
+				padding 1em 0
+				cursor pointer
+			a.btn + a.btn
+				margin-left 3px
+				margin-left calc(3%)

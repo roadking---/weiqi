@@ -62,17 +62,13 @@ exports.new = (req, res, next)->
 		
 exports.connected = (req, res, next)->
 	gid = req.game.id
-	console.time 'a'
 	async.parallel [
 		(cb)->api.get_comments gid, api.COMMENTS, cb
 		(cb)->api.get_blogs gid, cb
 	], (err, results)->
-		console.timeEnd 'a'
-		console.time 'b'
 		return next err if err
 		[comments, blogs] = results
-		api.get_refs {blogs:blogs, games:[gid]}, (err, refs)->
-			console.timeEnd 'b'
+		api.get_refs {blogs:blogs, games:[gid], users:[req.session.user?.id]}, (err, refs)->
 			return next err if err
 			_.chain(comments).values().flatten().each (x)-> x.nickname = refs[x.author].nickname
 			res.json
@@ -92,7 +88,7 @@ exports.attend = (req, res, next)->
 			exports.io.of("/weiqi").in(req.params.id).emit 'attend', uid:req.session.user.id, name:req.session.user.nickname
 			if all_arrived
 				exports.io.of("/weiqi").in(req.params.id).emit 'taking_seat', 'start'
-			res.redirect "/game/weiqi/#{req.params.id}"
+			res.redirect "/game/#{req.params.id}"
 
 exports.delete = (req, res, next)->
 	return res.redirect '/login' if not req.session.user
@@ -163,25 +159,20 @@ exports.dapu = (req, res, next)->
 	res.render 'dapu', opts:opts
 
 exports.blog = (req, res, next)->
-	if not req.session.user
-		return res.json fail:true
+	return res.json fail:true if not req.session.user
 		
 	if req.method is 'POST'
-		post =
+		api.send_post req.session.user.id, {
 			text: req.body.text
 			author: req.session.user.id
-		api.send_post req.session.user.id, post, (err, pid)->
-			if err
-				res.json fail:true
-			else
-				res.json success:true
+		}, (err, pid)->
+			res.json success: not err
 	else
-		return res.json fail:true if not (req.query.tag in ['next', 'recent'])
+		return res.json success:false if not (req.query.tag in ['next', 'recent'])
 		api.get_page req.query.blog_id, req.query.tag, (err, blogs)->
-			return res.send 'error' if err
+			return res.json success:false if err
 			api.get_refs {blogs:blogs}, (err, refs)->
-				return res.send 'error' if err
-				return res.render 'widget/blogs', blogs:blogs, refs:refs
+				return res.json success:false if err
 				res.json
 					blogs:blogs
 					success:true
@@ -222,21 +213,6 @@ exports.surrender = (req, res, next)->
 			console.log players
 			exports.io.of("/weiqi").in(req.params.id).emit 'surrender', req.session.user.id
 			res.redirect "/game/weiqi/#{req.params.gid}"
-
-exports.delete_blog = (req, res, next)->
-	if not req.session.user
-		return res.json error:'please login'
-	
-	api.get_blogs [req.params.blog_id], (err, blogs)->
-		if err or not blogs.length
-			return res.json error:'failed'
-		if req.session.user.id isnt blogs[0].author
-			return res.json error:'it is not your post'
-		api.delete_post req.params.blog_id, (err)->
-			if err
-				res.json error:'failed'
-			else
-				res.json success:true
 
 exports.history = (req, res, next)->
 	api.client.zrevrange [[req.ref_user.id, 'records'].join('|'), 0, -1, 'WITHSCORES'], (err, records)->
@@ -288,3 +264,9 @@ exports.receive_invite = (req, res, next)->
 			res.render 'receive_invite',
 				sender: sender
 				invitation: invitation
+
+exports.delete_post = (req, res, next)->
+	return res.json 'please login' if not req.session.user
+	console.log req.params.post_id
+	api.delete_post req.params.post_id, req.session.user.id, (err)->
+		res.json success: not err

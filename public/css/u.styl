@@ -1,6 +1,14 @@
 #u
+	a#logout
+		border-bottom 1px solid #a2a3a2
+		padding 1px 3px
+		color #a2a3a2
+		&:hover
+			color black
+			border-color black
 	#heading
 		h1
+			margin-left 2em
 			font-size 1.5em
 			font-weight normal
 			display inline-block
@@ -32,15 +40,16 @@
 		background-color #fafbfb
 		margin 10px 0
 		#performance
-			padding 5px 0 5px 15%
+			padding 5px 0 5px 40%
 			background-image url('/img/icons/trophy.svg')
 			background-repeat no-repeat
-			background-size 10% 100%
+			//background-size 20% 100%
+			background-position 2em 100%
 			background-origin padding-box
 		
 	#current
 		background-color #fafbfb
-		padding 30px 0
+		padding 20px
 		ul
 			li
 				width 30%
@@ -52,8 +61,25 @@
 				.thumb
 					padding 5px
 					margin 5px 0
+					display inline-block
 				em
 					font-size 1.2em
 					color #1e90ff
 					text-align right
-	
+	#recent_history
+		padding 20px
+		li
+			display inline-block
+			padding .5em 2em 1em .5em
+			vendor('border-radius', 2px)
+			margin 0 0 4px 0
+			.ts
+				display block
+				font-size .9em
+			a.view
+				text-decoration none
+				color hsl(100, 10%, 10%)
+		.win
+			background-color hsl(120, 90%, 85%)
+		.loss
+			background-color hsl(0, 90%, 85%)

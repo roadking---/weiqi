@@ -56,33 +56,8 @@ box-shadow()
 	box-shadow arguments
 
 
-.player
-	font-weight bold
-
-.title
-	margin-left 2px
-	font-style italic
-	font-size 70%
-
-a.ref_user
-	color #3542f2
-	margin 0 4px
-	font-weight bold
-	&:before
-		content '@'
 
 
-input.showable
-	border 0
-	background-color rgba(0,0,0,0)
-	border-bottom 1px dotted rgba(0,0,0,.3)
-	border-radius 0
-	box-shadow rgba(0,0,0,0) 0 0 0 0 inset
-	&:focus
-		border 0
-
-#game-result
-	margin-left 60px
 #seats
 	display table
 	color #483c32
@@ -121,55 +96,6 @@ input.showable
 		background rgba(255,255,255,.7) url(/img/white.svg) no-repeat
 		background-position 30% 10px
 	
-#players
-	margin 5px 0
-	.player
-		border-radius(10px)
-		font-weight bold
-		padding 10px 10px 10px 60px
-		text-align left
-		a
-			color #acaaaf
-		.title
-			display block
-		&:hover
-			vendor('transform', scale(1.3))
-			vendor('transition-property', all)
-			vendor('transition-duration', .2s)
-			vendor('transition-timing-function', ease)
-			a
-				color #0d2b52
-				text-decoration none
-				
-				
-	.player.black
-		background url(/img/black.svg) no-repeat
-		background-position 10px 50%
-	.player.black.next
-		background rgba(69,203,170,.3) url(/img/black.svg) no-repeat
-		background-position 10px 50%
-	.player.white
-		background url(/img/white.svg) no-repeat
-		background-position 10px 50%
-	.player.white.next
-		background rgba(69,203,170,.3) url(/img/white.svg) no-repeat
-		background-position 10px 50%
-	.next
-		vendor('transition-property', background-color)
-		vendor('transition-duration', 2s)
-		vendor('animation-name', next-player)
-		vendor('animation-duration', 1s)
-		a
-			color #0f1926
-
-@keyframes next-player
-	0%
-		font-size 100%
-	50%
-		font-size 150%
-		vendor('transform', rotate(30deg))
-	100%
-		font-size 100%
 
 #comments
 	.step
@@ -185,77 +111,6 @@ input.showable
 			text-decoration none
 			margin 0 3px
 
-#blogs
-	padding-top 20px
-	padding-bottom 20px
-	background-color #fffcf7
-	.blog + .blog
-		margin-top 20px
-	.blog
-		padding 10px 30px
-		border-radius 5px
-		border 1px solid rgba(0,0,0,0)
-		&:hover
-			border 1px solid #c3d5de
-			.author
-				color #62759e
-			.del
-				color #0f1926
-				display inline-block
-				padding 2px 8px
-				cursor pointer
-				border-radius 30px
-				&:hover
-					background-color #aaa
-					color white
-		article
-			.text
-				font-size 16px
-				display inline-block
-				width 40%
-			.attached
-				padding 0 0 0 20px
-				display inline-block
-				width 50%
-				border-left 10px dashed #fcfcca
-		.ts
-			font-size 8px
-			color #999
-		.author
-			font-size 14px
-			font-weight bold
-			color #0f1926
-			margin-bottom 5px
-			display inline-block
-		.forwarded_blog
-			margin 5px 20px
-			padding 5px
-			border-radius 5px
-			background-color rgba(238,232,171,.4)
-			-webkit-box-shadow:3px 3px 1px 1px #c3d5de;
-		.step
-			margin 0 5px
-			font-weight bold
-			&:before
-				content '&'
-		.snapshots
-			display inline-block
-			.thumb
-				display inline-block
-				margin-left 10px
-	.blog[_type=plain]
-		//background-color #ebd549
-	.blog[_type=forward]
-		//background-color #d3977b
-	.blog[_type=init_game]
-		//background-color #d6b181
-	.blog[_type=player_attend]
-		//background-color #ffad81
-	.blog[_type=game_comment]
-		//background-color #b0c49f
-	
-	#prev_blogs_btn
-		margin-top 20px
 a#go2top
 	display block
 	position fixed
@@ -265,7 +120,14 @@ a#go2top
 	cursor pointer
 	background-color rgba(222,166,129,.5)
 	border-radius 5px 20px
-
+	i
+		background-image url(/img/icons/arrow3.svg)
+		width 30px
+		height 30px
+		background-size 100%
+		display block
+		background-repeat no-repeat
+		vendor('transform', rotate(-90deg))
 
 .history[result=win]
 	background-color #eee8ab
