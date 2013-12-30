@@ -1,15 +1,15 @@
 extends ../layout
 
 block zepto
-	script(type='text/javascript', src='//cdnjs.cloudflare.com/ajax/libs/jquery/2.0.0/jquery.min.js')
+	script(type='text/javascript', src='/js/jquery.min.js')
 block scripts
-	link(rel="stylesheet", href="http://cdn.oesmith.co.uk/morris-0.4.3.min.css")
-	script(src="//cdnjs.cloudflare.com/ajax/libs/raphael/2.1.0/raphael-min.js")
-	script(src="http://cdn.oesmith.co.uk/morris-0.4.3.min.js")
+	link(rel="stylesheet", href="/css/morris-0.4.3.min.css")
+	script(src="/js/raphael-min.js")
+	script(src="/js/morris-0.4.3.min.js")
 	script(src="/js/history.js")
 
 block title
-	title= lingua.title_history({name:ref_user.nickname, title:title(ref_user.title)})
+	title= lingua.title_history({name:ref_user.nickname, title:lingua['title_' + ref_user.title]})
 
 block content
 	#history
@@ -18,27 +18,44 @@ block content
 		
 	script#records-tpl(type='text/template').
 		<% if(records.length){ %>
-			<ul>
+			<table>
+				<tr>
+					<th>#{lingua.black}</th>
+					<th>#{lingua.white}</th>
+					<th>#{lingua.game_result}</th>
+					<th>#{lingua.rate}</th>
+					<th>#{lingua.time}</th>
+				</tr>
 				<% _.each(records, function(r){ %>
-					<li>
-						<h6>
-							<%= player_tpl({user:refs[refs[r.gid].seats.black]}) %>
-							<span class='seat'>#{lingua.black_short}</span>
-							<span> vs </span>
-							<%= player_tpl({user:refs[refs[r.gid].seats.white]}) %>
-							<span class='seat'>#{lingua.white_short}</span>
-							
-							<% if(refs[r.gid].result){ %>
-								<% if(refs[r.gid].result.case == 'white surrenders'){ %>
-									<span class='result'>#{lingua.black_won_without_number}</span>
-								<% } else if(refs[r.gid].result.case == 'black surrenders') { %>
-									<span class='result'>#{lingua.white_won_without_number}</span>
+					<tr>
+						<td class='black'><%= player_tpl({user:refs[refs[r.gid].seats.black]}) %></td>
+						<td class='white'><%= player_tpl({user:refs[refs[r.gid].seats.white]}) %></td>
+						
+						<% if(refs[r.gid].result){ %>
+							<% if(refs[r.gid].result.case == 'white surrenders'){ %>
+								<td class='result <%= refs[r.gid].result.players.black == uid ? 'win' : 'loss' %>'>#{lingua.black_won_without_number}</td>
+							<% } else if(refs[r.gid].result.case == 'black surrenders') { %>
+								<td class='result <%= refs[r.gid].result.players.white == uid ? 'win' : 'loss' %>'>#{lingua.white_won_without_number}</td>
+							<% } else if(m = /(black|white) win (\d+\.?\d*)(zi|mu)/.exec(refs[r.gid].result.case) ) { %>
+								<% if(m[1] == 'black' && m[3] == 'zi'){ %>
+									<td class='result <%= refs[r.gid].result.players.black == uid ? 'win' : 'loss' %>'><%= lingua_tpl('#{_.escape(lingua.black_win_num_of_stones)}')({n:m[2]}) %></td>
+								<% } else if(m[1] == 'white' && m[3] == 'zi') { %>
+									<td class='result <%= refs[r.gid].result.players.white == uid ? 'win' : 'loss' %>'><%= lingua_tpl('#{_.escape(lingua.white_win_num_of_stones)}')({n:m[2]}) %></td>
+								<% } else if(m[1] == 'black' && m[3] == 'mu') { %>
+									<td class='result <%= refs[r.gid].result.players.black == uid ? 'win' : 'loss' %>'><%= lingua_tpl('#{_.escape(lingua.black_win_num_of_mu)}')({n:m[2]}) %></td>
+								<% } else if(m[1] == 'white' && m[3] == 'mu') { %>
+									<td class='result <%= refs[r.gid].result.players.white == uid ? 'win' : 'loss' %>'><%= lingua_tpl('#{_.escape(lingua.white_win_num_of_mu)}')({n:m[2]}) %></td>
 								<% } %>
+							<% } else if(refs[r.gid].result.draw){ %>
+								<td class='result draw'>#{lingua.draw_game}</td>
 							<% } %>
-						</h6>
-						<span class='rate'><%= r.rate %></span>
-						<span class="ts"><%= moment( r.ts *1000).format('YYYY/MM/DD HH:mm') %></span>
-					</li>
+						<% } else { %>
+							<td class='result'></td>
+						<% } %>
+						
+						<td class='rate'><%= r.rate %></td>
+						<td class="ts"><%= moment((refs[r.gid].result.ts || r.ts) *1000).format('YYYY/MM/DD HH:mm') %></td>
+					</tr>
 				<% }); %>
-			</ul>
+			</table>
 		<% } %>

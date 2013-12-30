@@ -24,10 +24,10 @@ module.exports = (io, socket)->
 					cb? rlt.nickname
 		
 		socket.on 'room', (room)->
+			socket.join room
+			socket.set 'gid', room
 			socket.get 'uid', (err, uid)->
-				socket.join room
 				console.log "room #{room} <- #{uid}"
-				socket.set 'gid', room
 		
 		prepare = (cb)->
 			socket.get 'gid', (err, gid)->
@@ -44,7 +44,6 @@ module.exports = (io, socket)->
 			prepare (err, gid, uid)->
 				return cb? fail:err if err
 				api.get_game gid, (err, game)-> 
-					console.log 'move: ' + JSON.stringify step
 					if game.status isnt 'started'
 						console.error "#{gid} not started"
 						return cb? fail:"#{gid} not started"
@@ -94,28 +93,28 @@ module.exports = (io, socket)->
 						socket.broadcast.to(gid).emit 'retract', uid
 						cb 'success'
 		
-		socket.on 'taking_seat', (req, cb)->
+		socket.on 'taking_seat', (seat, cb)->
 			prepare (err, gid, uid)->
-				return cb? fail:err if err 
-				console.info "taking seat: #{uid} #{req}"
-				api.taking_seat gid, _.object([[req,uid]]), (err, seats, all_arrived)->
-					if err
-						cb? 'fail'
+				return cb? fail:err if err
+				console.info "taking seat: #{uid} #{seat}"
+				
+				api.get_game gid, (err, game)->
+					return cb success:false if game.status isnt 'taking_seat' or not (uid in game.players)
+					seats = \
+					if seat is 'black'
+						black: uid
+						white: _.without(game.players, uid)[0]
+					else if seat is 'white'
+						white: uid
+						black: _.without(game.players, uid)[0]
 					else
-						api.get_user _.values(seats), (err, users)->
-							seats = _.chain(seats).pairs().map((x)->
-								[
-									x[0]
-									_.pick users[x[1]], 'id', 'nickname', 'title'
-								]
-							).object().value()
-							cb? seats
-							socket.broadcast.to(gid).emit 'taking_seat', seats
-							if all_arrived
-								api.start_game gid, (err)->
-									if not err
-										io.of('/weiqi').in(gid).emit 'start', seats, 'black'
-											
+						_.chain(['black', 'white']).shuffle().zip(game.players).object().value()
+					api.taking_seat gid, seats, (err, seats, all_arrived)->
+						return cb? fail:err if err
+						if all_arrived
+							console.log 'start game'
+							io.of('/weiqi').in(gid).emit 'start', seats, 'black'
+		
 		socket.on 'call_finishing', (msg)->
 			if msg is 'suggest'
 				[msg, stone, suggest, cb] = arguments
@@ -131,14 +130,33 @@ module.exports = (io, socket)->
 				[msg, cb] = arguments
 				prepare (err, gid, uid)->
 					return if err
-					api.call_finishing gid, uid, msg, (err)->
-						if err
-							cb? err
-						else
-							if msg is 'accept'
-								api.analyze gid, true, (err, analysis)->
-									socket.broadcast.to(gid).emit 'call_finishing', msg, analysis
-									cb analysis
+					if msg is 'confirm'
+						api.suggest_finishing gid, uid, 'confirm', (err, rlt)->
+							return if err
+							if rlt
+								api.calc gid, (err, calc_rlt)->
+									return if err
+									api.end_game gid, calc_rlt, (err, game_rlt)->
+										return if err
+										api.game_rating game_rlt, (err, players)->
+											console.log players
+											socket.broadcast.to(gid).emit 'call_finishing', 'confirm', uid, game_rlt
+											cb game_rlt
 							else
-								socket.broadcast.to(gid).emit 'call_finishing', msg
-								cb?()
+								socket.broadcast.to(gid).emit 'call_finishing', 'confirm', uid
+								cb()
+					else
+						api.get_game gid, (err, game)->
+							return if err
+							player = _.invert(game.seats)[uid]
+							api.call_finishing gid, uid, msg, (err)->
+								if err
+									cb? err
+								else
+									if msg is 'accept'
+										api.analyze gid, true, (err, analysis)->
+											socket.broadcast.to(gid).emit 'call_finishing', msg, analysis
+											cb analysis
+									else
+										socket.broadcast.to(gid).emit 'call_finishing', msg, player
+										cb?()

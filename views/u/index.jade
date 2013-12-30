@@ -48,16 +48,18 @@ block content
 				<p>
 					<span>#{lingua.rate}</span>
 					<span title='#{lingua.rate}'><%= refs[uid].rate ? refs[uid].rate : 'N/A' %></span>
+					<% total_games = lingua_tpl('#{_.escape(lingua.total_games)}'); win = lingua_tpl('#{_.escape(lingua.win)}'); loss = lingua_tpl('#{_.escape(lingua.loss)}'); %>
+					<%= total_games({num:refs[uid].total_games||0}) %> <%= win({num:refs[uid].wins||0}) %> <%= loss({num:refs[uid].losses||0}) %>
+					<span>胜率 <%= Math.round(refs[uid].win_ratio*1000) / 10 %>%</span>
 				</p>
-				<% total_games = lingua_tpl('#{_.escape(lingua.total_games)}'); win = lingua_tpl('#{_.escape(lingua.win)}'); loss = lingua_tpl('#{_.escape(lingua.loss)}'); %>
-				<p><%= total_games({num:refs[uid].total_games||0}) %> <%= win({num:refs[uid].wins||0}) %> <%= loss({num:refs[uid].losses||0}) %></p>
+				<a id='view_history' href='/history/<%=uid%>'>#{lingua.history}</a>
 			</div>
 		script#heading_tpl(type='text/template').
 			<% if(data.myself){ %>
 				<% if(data.myself == data.uid){ %>
 					<a id='logout' href='/logout'>#{lingua.logout}</a>
 				<% } else { %>
-					<% if(query.is_followed){ %>
+					<% if(data.query.is_followed){ %>
 						<a class='follow'></a>
 					<% } else { %>
 						<a class='unfollow'></a>
@@ -74,6 +76,11 @@ block content
 								<span><%= (my_seat == 'black') ? '#{lingua.black}' : '#{lingua.white}' %></span>
 								<span>#{lingua.with}</span>
 								<%= player_tpl({user:refs[opponent]}) %>
+								<br>
+							<% } else if(opponent) { %>
+								<span>#{lingua.with}</span>
+								<%= player_tpl({user:refs[opponent]}) %>
+								<br>
 							<% } %>
 							<a href='/game/<%=gid%>'><div class='thumb'/></a>
 							<% if(myself && myself == uid) { %>
@@ -98,7 +105,7 @@ block content
 						<li class='<%= refs[gid].status %> <%= game_result %>'>
 							<a class='view' href="/game/<%=gid%>">
 							<% opponent = _.without(refs[gid].players, uid)[0]; %>
-							<span class='ts'><%= moment(refs[gid].init_ts*1000).format('YYYY/MM/DD HH:mm') %></span>
+							<span class='ts'><%= moment(refs[gid].result.ts*1000).format('YYYY/MM/DD HH:mm') %></span>
 							<% if(refs[gid].seats){ %>
 								<% if(refs[gid].seats.black == uid){ %>
 									<span>#{lingua.seat_black}</span>
@@ -108,11 +115,19 @@ block content
 							<% } %>
 							<% if(refs[gid].result){ %>
 								<% if(refs[gid].result.win){ %>
+									<% if(m = /(\d+\.?\d*)mu/.exec(refs[gid].result.case) ){ %>
+										<%= lingua_tpl('#{_.escape(lingua.num_of_mu)}')({n:m[1]}) %>
+									<% } else if( m = /(\d+\.?\d*)zi/.exec(refs[gid].result.case) ){ %>
+										<%= lingua_tpl('#{_.escape(lingua.num_of_stones)}')({n:m[1]}) %>
+									<% } %>
+									
 									<% if(uid == refs[gid].seats[refs[gid].result.win]){  %>
 										<%= refs[gid].result.case.indexOf('surrender') > -1 ? '#{lingua.win_in_the_middle}': '#{lingua.win_vs}' %>
 									<% } else { %>
 										<%= refs[gid].result.case.indexOf('surrender') > -1 ? '#{lingua.lose_in_the_middle}': '#{lingua.fail_vs}' %>
 									<% } %>
+								<% } else { %>
+									<%= '#{lingua.draw_vs}' %>
 								<% } %>
 							<% } %>
 							<%= refs[opponent].nickname %><%= player_titles[refs[opponent].title] %>

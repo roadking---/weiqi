@@ -25,7 +25,7 @@ exports.set = (app)->
 	app.all '/login', routes.user.login
 	app.all '/register', routes.user.register
 	app.get '/logout', routes.user.logout
-	app.get '/new', routes.new
+	app.all '/new', routes.new
 	app.get '/game/:gid', (req, res)->
 		api.get_refs games:[req.params.gid], (err, refs)->
 			#res.set 'Cache-Control':"max-age=#{60*60*24*5}"
@@ -65,3 +65,5 @@ exports.set = (app)->
 		"""
 	app.post '/xxx', (req, res)->
 		console.log req.body
+	app.get '/tutorials', (req, res)->res.render 'tutorials/index'
+	app.get '/docs/:doc', (req, res)->res.render 'docs/' + req.params.doc

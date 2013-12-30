@@ -39,26 +39,34 @@ exports.home = (req, res, next)->
 		return next err if err
 		results = _.chain(results).compact().object().value()
 		games = _.pick results, 'pendings', 'attendings', 'live_show'
-		api.get_refs {blogs:results.blogs, games:_.chain(games).values().flatten().compact().value()}, (err, refs)->
+		api.get_refs {games:_.chain(games).values().flatten().compact().value()}, (err, refs)->
 			return next err if err
 			res.set 'Content-Type': 'text/plain'
 			res.send 'var data = ' + JSON.stringify
 				refs: refs
 				games: games
-				blogs: results.blogs
-				blog_id: blog_id
 				myself: req.session.user?.id
 
 exports.new = (req, res, next)->
 	return res.redirect '/login' if not req.session.user
-	
-	api.init_game {initiator:req.session.user.id, type: 'weiqi', social:true, players:[req.session.user.id]}, (err, gid)->
-		next err if err
-		multi = api.client.multi()
-		multi.zadd 'weiqi_pending', new Date().getTime(), gid
-		multi.exec (err)->
+	if req.method is 'POST'
+		console.log req.body
+		api.init_game {
+			start:'auto'
+			initiator:req.session.user.id
+			type: 'weiqi'
+			players:[req.session.user.id]
+			rangzi: req.body.rangzi
+			seats: if req.body.rangzi is 'none' then null else black: req.session.user.id
+		}, (err, gid)->
 			next err if err
-			res.redirect "/game/weiqi/#{gid}"
+			multi = api.client.multi()
+			multi.zadd 'weiqi_pending', new Date().getTime(), gid
+			multi.exec (err)->
+				next err if err
+				res.redirect "/game/#{gid}"
+	else
+		res.render 'game/new_game'
 		
 exports.connected = (req, res, next)->
 	gid = req.game.id
@@ -77,18 +85,28 @@ exports.connected = (req, res, next)->
 				comments: comments
 				blogs: blogs
 				myself: req.session.user?.id
-			
+
 exports.attend = (req, res, next)->
 	return res.redirect '/login' if not req.session.user
-	api.player_attend req.params.id, req.session.user.id, (err, all_arrived)->
-		if err
-			next err
-		else
-			console.info "attend: #{req.params.id} <- #{req.session.user.id}"
-			exports.io.of("/weiqi").in(req.params.id).emit 'attend', uid:req.session.user.id, name:req.session.user.nickname
-			if all_arrived
-				exports.io.of("/weiqi").in(req.params.id).emit 'taking_seat', 'start'
-			res.redirect "/game/#{req.params.id}"
+	api.client.zcard [req.session.user.id, 'weiqi'].join('|'), (err, num_attending_games)->
+		return next err if err
+		return res.render 'error/too_many_games_attending' if num_attending_games > 5
+	
+		api.player_attend gid=req.params.id, req.session.user.id, (err, all_arrived)->
+			return next err if err
+			api.client.zrem 'weiqi_pending', gid, (err)->
+				console.info "attend: #{gid} <- #{req.session.user.id}"
+				if all_arrived
+					api.get_game gid, (err, game)->
+						return next err if err
+						if game.seats
+							exports.io.of("/weiqi").in(gid).emit 'attend', {uid:req.session.user.id, name:req.session.user.nickname}, {start:true, seats:game.seats}
+						else
+							exports.io.of("/weiqi").in(gid).emit 'attend', uid:req.session.user.id, name:req.session.user.nickname
+							exports.io.of("/weiqi").in(gid).emit 'taking_seat', 'start'
+				else
+					exports.io.of("/weiqi").in(gid).emit 'attend', uid:req.session.user.id, name:req.session.user.nickname
+				res.redirect "/game/#{gid}"
 
 exports.delete = (req, res, next)->
 	return res.redirect '/login' if not req.session.user
@@ -116,7 +134,6 @@ exports.quit = (req, res, next)->
 
 exports.u = (req, res, next)->
 	uid = req.params.ref_user
-	
 	query =
 		current: (m)-> m.zrange [uid, 'weiqi'].join('|'), 0, -1
 		recent_history: (m)-> m.zrevrange [uid, 'history'].join('|'), 0, 5
@@ -226,6 +243,7 @@ exports.history = (req, res, next)->
 				uid: req.ref_user.id
 				records: records
 				refs: refs
+				myself:req.session?.user?.id
 
 exports.send_invite = (req, res, next)->
 	if not req.session.user

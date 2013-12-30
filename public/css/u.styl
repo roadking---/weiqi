@@ -1,4 +1,5 @@
 #u
+	min-height 600px
 	a#logout
 		border-bottom 1px solid #a2a3a2
 		padding 1px 3px
@@ -46,7 +47,14 @@
 			//background-size 20% 100%
 			background-position 2em 100%
 			background-origin padding-box
-		
+		#view_history
+			font-size 1.2em
+			padding 13px 16px
+			vendor('border-radius', 5px)
+			background-color #226fbe
+			color white
+			text-decoration none
+			display inline-block
 	#current
 		background-color #fafbfb
 		padding 20px
@@ -69,6 +77,7 @@
 	#recent_history
 		padding 20px
 		li
+			width 20%
 			display inline-block
 			padding .5em 2em 1em .5em
 			vendor('border-radius', 2px)
@@ -83,3 +92,6 @@
 			background-color hsl(120, 90%, 85%)
 		.loss
 			background-color hsl(0, 90%, 85%)
+		.draw
+			background-color hsl(45, 90%, 85%)
+		

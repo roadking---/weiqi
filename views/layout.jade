@@ -62,7 +62,7 @@ html
 			}
 			setInterval(function(){
 				$('.ts').each(function(i, e){
-					$(e).text(time_str($(e).attr('ts')));
+					if($(e).attr('ts')) $(e).text(time_str($(e).attr('ts')));
 				});
 			}, 1000*60);
 			

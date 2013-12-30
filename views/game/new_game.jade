@@ -1,0 +1,39 @@
+extends ../layout
+
+block title
+	title 新建一局
+
+block content
+	#new_game
+		form(method='POST')
+			input(type='hidden', name='_csrf', value='#{csrf}')
+			ul
+				li
+					label 执黑贴目：
+					.inputs
+						input#tiemu1(type='radio', name='tiemu', value='6.5mu')
+						label(for='tiemu1') 6目半
+						br
+						input#tiemu2(type='radio', name='tiemu', value='3.75zi', checked)
+						label(for='tiemu2') 3又3/4子
+						br
+						input#tiemu3(type='radio', name='tiemu', value='8mu')
+						label(for='tiemu3') 8目
+						br
+						input#tiemu4(type='radio', name='tiemu', value='0')
+						label(for='tiemu4') 不贴目
+				li
+					label 让子：
+					.inputs
+						input#rangzi1(type='radio', name='rangzi', value='none', checked)
+						label(for='rangzi1') 不让子
+						br
+						input#rangzi2(type='radio', name='rangzi', value='2')
+						label(for='rangzi2') 让两子，本人执黑
+						br
+						input#rangzi3(type='radio', name='rangzi', value='3')
+						label(for='rangzi3') 让三子，本人执黑
+						br
+						input#rangzi4(type='radio', name='rangzi', value='4')
+						label(for='rangzi4') 让四子，本人执黑
+			input(type='submit', value='立即开局')

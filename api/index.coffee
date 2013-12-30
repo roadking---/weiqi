@@ -58,6 +58,7 @@ GAME =
 	BLOGS: 'blogs'
 	MY_BLOGS: 'my_blogs'
 
+
 exports.COMMENTS_PLAYERS = COMMENTS_PLAYERS = 'comments_players'
 #exports.COMMENTS_NONPLAYERS = COMMENTS_NONPLAYERS = 'comments'
 #exports.COMMENT_TAGS = COMMENT_TAGS = [COMMENTS_PLAYERS, COMMENTS_NONPLAYERS]
@@ -206,6 +207,22 @@ init_game = exports.init_game = (opts, cb)->
 						m.hset gid, x[0], x[1]
 			m.hset opts.initiator, 'my_new_game', gid
 			
+			if opts.rangzi and opts.rangzi isnt 'none'
+				m.hset gid, 'next', 'white'
+				switch opts.rangzi
+					when 2, '2'
+						m.zadd [gid, 'main'].join('|'), 0, JSON.stringify(n:0, player:'black', pos:[3,3])
+						m.zadd [gid, 'main'].join('|'), 1, JSON.stringify(n:1, player:'black', pos:[3,15])
+					when 3, '3'
+						m.zadd [gid, 'main'].join('|'), 0, JSON.stringify(n:0, player:'black', pos:[3,3])
+						m.zadd [gid, 'main'].join('|'), 1, JSON.stringify(n:1, player:'black', pos:[3,15])
+						m.zadd [gid, 'main'].join('|'), 2, JSON.stringify(n:2, player:'black', pos:[15,3])
+					when 4, '4'
+						m.zadd [gid, 'main'].join('|'), 0, JSON.stringify(n:0, player:'black', pos:[3,3])
+						m.zadd [gid, 'main'].join('|'), 1, JSON.stringify(n:1, player:'black', pos:[3,15])
+						m.zadd [gid, 'main'].join('|'), 2, JSON.stringify(n:2, player:'black', pos:[15,3])
+						m.zadd [gid, 'main'].join('|'), 3, JSON.stringify(n:3, player:'black', pos:[15,15])
+					
 			m.exec (err)->
 				return cb err if err
 				((social, cb)->
@@ -280,6 +297,7 @@ get_game = exports.get_game = (gid, cb)->
 			social: (m)-> m.hget gid, 'social'
 			calling_finishing: (m)-> m.hget gid, 'calling_finishing'
 			analysis: (m)-> m.hget gid, 'analysis'
+			last_action: (m)-> m.hget gid, 'last_action'
 		multi = client.multi()
 		_.chain(data).values().each (f)-> f multi
 		multi.exec (err, replies)->
@@ -293,6 +311,7 @@ get_game = exports.get_game = (gid, cb)->
 			data.contract = JSON.parse data.contract if data.contract
 			data.calling_finishing = JSON.parse data.calling_finishing if data.calling_finishing
 			data.analysis = JSON.parse data.analysis if data.analysis
+			data.last_action = JSON.parse data.last_action if data.last_action
 			cache.set gid, data
 			data.id = gid
 			return cb new Error "#{gid} not exists" if not data.status or not data.version
@@ -360,8 +379,23 @@ player_attend = exports.player_attend = (gid, uid, cb)->
 						cache.del data.initiator
 						cache.del data.initiator + '_upds'
 					cb?()
+			else if data.status is STATUS.TAKING_SEAT and data.players.length < data.player_num and not (uid in data.players)
+				m = client.multi()
+				m.sadd [gid, GAME.PLAYERS].join('|'), uid
+				m.zadd [uid, USER.CURRENT_GAME].join('|'), exports.now(), gid
+				m.exec (err)->
+					return cb err if err
+					cache.del gid
+					my_seat = if data.seats.black
+						white: uid
+					else if data.seats.white
+						black: uid
+					if my_seat
+						taking_seat gid, my_seat, (err)-> cb err, true
+					else
+						cb()
 			else
-				throw new Error "not implement player_attend #{data.status}"
+				throw new Error "not implement player_attend"
 
 taking_seat = exports.taking_seat = ->
 	switch arguments.length
@@ -377,7 +411,6 @@ taking_seat = exports.taking_seat = ->
 			[gid, user_decision, cb] = arguments # user_decision = black:some_uid
 			get_game gid, (err, data)->
 				return cb err if err
-				
 				if not (data.status in [STATUS.INIT, STATUS.TAKING_SEAT])
 					return cb new Error "taking_seat: #{gid} status #{data.status}"
 				if not _.chain(user_decision).values().every((x)-> x in data.players).value()
@@ -394,7 +427,7 @@ taking_seat = exports.taking_seat = ->
 					cache.del gid
 					all_arrived = _.keys(data.seats).length is data.player_num
 					if all_arrived and data.contract.start is 'auto'
-						start_game gid, cb
+						start_game gid, (err)-> cb err, data.seats, all_arrived
 					else
 						cb undefined, data.seats, all_arrived
 
@@ -413,7 +446,7 @@ start_game = exports.start_game = (gid, cb)->
 			
 			m = client.multi()
 			m.hset gid, 'status', STATUS.STARTED
-			m.hset gid, 'next', 'black'
+			m.hset gid, 'next', 'black' if not data.next
 			m.zadd 'weiqi_games', 0, gid
 			_.chain(users).values().each (u)->
 				m.hdel u.id, 'my_new_game' if u.my_new_game
@@ -454,7 +487,7 @@ surrender = exports.surrender = (gid, uid, cb)->
 				cb? err
 			else
 				cb? undefined, rlt
-		
+
 end_game = exports.end_game = (gid, counting, cb)->
 	get_game gid, (err, data)->
 		return cb? err if err
@@ -475,10 +508,14 @@ end_game = exports.end_game = (gid, counting, cb)->
 			players: data.seats
 			moves: data.moves?.length
 			gid: gid
+			ts: exports.now()
 			
 		m = client.multi()
 		m.hset gid, 'result', JSON.stringify(rlt)
 		m.hset gid, 'status', STATUS.ENDED
+		_.each data.players, (x)->
+			m.zrem [x, USER.CURRENT_GAME].join('|'), gid
+			m.zadd [x, USER.HISTORY].join('|'), exports.now(), gid
 		m.exec (err)->
 			cache.del gid
 			if err
@@ -651,7 +688,8 @@ add_comment = exports.add_comment = (gid, comment, cb)->
 					m.zadd [gid, COMMENTS_PLAYERS, comment.step].join('|'), exports.now(), pid
 				m.exec (err)->
 					return cb err if err
-					forward_post comment.author, null, pid, (err)-> cb undefined, pid
+					#forward_post comment.author, null, pid, (err)-> cb undefined, pid
+					cb undefined, pid
 			else
 				cb undefined, pid
 
@@ -1381,24 +1419,40 @@ suggest_finishing = exports.suggest_finishing = ->
 			).value()
 	switch arguments.length
 		when 3
+			# suggest we talk about stop the game
 			[gid, uid, cb] = arguments
+			suggest_finishing gid, uid, 'start_talking', cb
+		when 4
+			[gid, uid, action, cb] = arguments
 			get_game gid, (err, game)->
 				return cb err if err
 				return cb new Error "suggest_finishing: no analysis for #{gid}" if not game.analysis
 				return cb new Error "suggest_finishing: #{uid} is not in {gid}" if not (uid in game.players)
 				return cb new Error "suggest_finishing: unknown error" if game.players.length isnt 2
-				
-				if find_disagree(game.analysis).length
-					return cb new Error "disagreement in #{gid}"
-				
-				game.analysis[0].agree ?= []
-				game.analysis[0].agree.push uid if not (uid in game.analysis[0].agree)
-				client.hset gid, 'analysis', JSON.stringify(game.analysis), (err)->
-					if err
-						cb err
-					else
-						cb undefined, game.analysis[0].agree.length is 2
+			
+				switch action
+					when 'start_talking'
+						if find_disagree(game.analysis).length
+							return cb new Error "disagreement in #{gid}"
+						
+						game.analysis[0].agree ?= []
+						game.analysis[0].agree.push uid if not (uid in game.analysis[0].agree)
+						client.hset gid, 'analysis', JSON.stringify(game.analysis), (err)->
+							return cb err if err
+							cb undefined, game.analysis[0].agree.length is 2
+					when 'confirm'
+						player = _.invert(game.seats)[uid]
+						game.last_action ?= {}
+						game.last_action.suggest_confirm ?= {}
+						game.last_action.suggest_confirm[player] = _.map game.analysis, (x)-> stone:x.stones[0], suggest: x.suggests?[uid] or x.judge or x.guess
+						client.hset gid, 'last_action', JSON.stringify(game.last_action), (err)->
+							return cb err if err
+							if game.last_action.suggest_confirm.black and game.last_action.suggest_confirm.white
+								cb undefined, _.chain(game.last_action.suggest_confirm.black).zip(game.last_action.suggest_confirm.white).every((x)->x[0].stone is x[1].stone and x[0].suggest is x[1].suggest).value()
+							else
+								cb undefined, false
 		when 5
+			# suggest live or dead of a regiment of stones
 			[gid, uid, stone, suggest, cb] = arguments
 			get_game gid, (err, game)->
 				return cb err if err
@@ -1419,6 +1473,13 @@ suggest_finishing = exports.suggest_finishing = ->
 						game.analysis[0].agree = null
 					regiment.judge = suggest
 				m.hset gid, 'analysis', JSON.stringify(game.analysis)
+				
+				player = _.invert(game.seats)[uid]
+				if game.last_action?.suggest_confirm?[player] and suggest isnt _.where(game.last_action.suggest_confirm[player], stone:regiment.stones[0])[0]?.suggest
+					#user modifies the suggestion and cancel the confirmation
+					delete game.last_action.suggest_confirm[player]
+					m.hset gid, 'last_action', JSON.stringify(game.last_action)
+					
 				m.exec (err)->
 					cache.del gid if not err
 					cb undefined, game.analysis, find_disagree(game.analysis)
@@ -1435,8 +1496,7 @@ calc = exports.calc = (gid, cb)->
 			r.judge = x.judge or x.guess
 		nums = rule.calc regiments, game.moves
 		cb undefined,
-			black: nums.black.occupied - nums.black.repealed
-			white: nums.white.occupied - nums.white.repealed
+			black: if nums.black then nums.black.occupied - nums.black.repealed else 0
+			white: if nums.white then nums.white.occupied - nums.white.repealed else 0
 			nums: nums
-
-submit_manuscript = (moves, sb)->
+			unit: 'zi'

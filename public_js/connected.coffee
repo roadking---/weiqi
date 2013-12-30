@@ -1,7 +1,8 @@
 return if not gid = /game\/(.+)$/.exec(location.pathname)?[1]
 
 tap_enabled = false
-check_tap_enalbed = (e)->
+check_tap_enabled = (e)->
+	return tap_enabled = false if not e
 	tap_enabled = true if e.type is 'tap'
 	tap_enabled and e.type is 'click'
 
@@ -41,9 +42,9 @@ $.get "/json/connected/#{gid}", (data)->
 					show_first_n_stones: null
 			myself: -> data.myself
 			is_player: -> @myself() and @get('players') and @myself() in @get('players')
+			role_of_player: (some_uid)-> _.invert(@get('seats'))[some_uid]
 			my_role: ->
-				if @is_player() and @get('seats')
-					_.invert(@get('seats'))[@myself()]
+				@role_of_player @myself() if @is_player() and @get('seats')
 			opponent: ->
 				if @is_player()
 					_.without(@get('players'), @myself())[0]
@@ -62,7 +63,31 @@ $.get "/json/connected/#{gid}", (data)->
 				@socket.on 'disconnect', => @set 'connected', false
 				@socket.on 'reconnect', => init_socket()
 				init_socket =>
+					@socket.on 'start', (seats, next)=>
+						@set 'seats', data.game.seats = seats
+						@set 'next', data.game.next = next
+						@set 'status', data.game.status = 'started'
+					
+					@socket.on 'attend', (player, params)=>
+						console.log "#{player.name} join the game"
+						if data.game.players
+							data.game.players.push player.uid
+						else
+							data.game.players = [player.uid]
+						@set 'players', data.game.players
+						if params?.start
+							@set 'seats', data.game.seats = params.seats
+							@set 'status', data.game.status = 'started'
+							@set 'next', @get('next')
+						else if @get('players').length is @get('player_num')
+							@set 'status', 'taking_seat'
+						
+					#@socket.on 'taking_seat', (msg)=>
+					#	@set 'status', 'taking_seat'
+					#	@trigger 'taking_seat', msg
+					
 					@socket.on 'move', (next, step, taken)=>
+						data.game.moves.push step
 						@move next, step, taken
 					
 					@socket.on 'retract', (uid)=> 
@@ -72,11 +97,14 @@ $.get "/json/connected/#{gid}", (data)->
 					@socket.on 'call_finishing', (msg)=>
 						switch msg
 							when 'ask'
-								@trigger 'call_finishing_ask_received'
+								[msg, player] = arguments
+								@trigger 'call_finishing_ask_received', player
 							when 'cancel'
-								@trigger 'call_finishing_cancel_received'
+								[msg, player] = arguments
+								@trigger 'call_finishing_cancel_received', player
 							when 'reject'
-								@trigger 'call_finishing_reject_received'
+								[msg, player] = arguments
+								@trigger 'call_finishing_reject_received', player
 							when 'accept'
 								[msg, analysis] = arguments
 								@trigger 'call_finishing_accept_received', analysis
@@ -86,6 +114,11 @@ $.get "/json/connected/#{gid}", (data)->
 							when 'suggest'
 								[msg, stone_in_regiment, suggest] = arguments
 								@trigger 'call_finishing_suggest_received', stone_in_regiment, suggest
+							when 'confirm'
+								[msg, player, rlt] = arguments
+								if rlt
+									@trigger 'player_confirmed_ending', rlt
+								
 					@socket.on 'comment', (c)=> 
 						data.refs[c.author] ?=
 							id: c.author
@@ -103,13 +136,14 @@ $.get "/json/connected/#{gid}", (data)->
 				switch arguments.length
 					when 1
 						[step] = arguments
-						@test_connection (err)=>
-							@socket?.emit 'move', step, (res)=>
-								console.log 'move: ' + JSON.stringify res
-								if res.fail
-									console.log 'fail'
-								else
-									@move res.next, res.step, res.taken
+						if @my_role() is @get('next')
+							@test_connection (err)=>
+								@socket?.emit 'move', step, (res)=>
+									data.game.moves.push step
+									if res.fail
+										console.log 'fail'
+									else
+										@move res.next, res.step, res.taken
 					when 3
 						[next, step, taken] = arguments
 						@set 'next', next if next
@@ -119,18 +153,25 @@ $.get "/json/connected/#{gid}", (data)->
 						
 			retract: (direct = false)->
 				if direct
-					if stone = stone_list.pop()
-						stone.trigger 'retract'
-						stone_list.chain().filter((x)-> x.get('repealed') is stone.get('n')).each (x)->x.unset 'repealed'
-						game.set 'next', stone.get('player'), silent:true
+					if stone = stone_list.last()?.toJSON()
+						#remove the stone and trigger event
+						stone_list.pop()
+						stone_list.chain().filter((x)-> x.get('repealed') is stone.n).each (x)->x.unset 'repealed'
+						game.set 'next', stone.player, silent:true
 						@trigger 'retract', stone
 				else
 					if @is_player() and @my_role() is stone_list.last()?.get('player')
+						#retract by myself
 						@test_connection =>
 							@socket.emit 'retract', (data)=>
 								if data is 'success'
-									console.log 'retract'
 									@retract true
+			taking_seat: (seat)->
+				if 'taking_seat' is @get('status') and @myself() and @myself() in @get('players')
+					@test_connection =>
+						@socket.emit 'taking_seat', seat, (res)=>
+							console.log res
+					
 			call_finishing_ask: ->
 				@test_connection =>
 					@socket.emit 'call_finishing', 'ask', =>
@@ -155,6 +196,9 @@ $.get "/json/connected/#{gid}", (data)->
 			call_finishing_suggest: (stone_in_regiment, suggest, cb)->
 				@test_connection =>
 					@socket.emit 'call_finishing', 'suggest', stone_in_regiment, suggest, cb
+			call_finishing_confirm:(cb)->
+				@test_connection =>
+					@socket.emit 'call_finishing', 'confirm', cb
 			initialize: ->
 				@on 'change:show_num', (m, v)-> stone_list.each (x)-> x.set 'show_num', v
 				@on 'call_finishing_accept', (analysis)=> @set 'analysis', analysis
@@ -216,7 +260,7 @@ $.get "/json/connected/#{gid}", (data)->
 						@reset_comments v
 				@listenTo game, 'change:next', =>
 					if not game.get 'try'
-						n = stone_list.last().get 'n'
+						n = if stone_list.length then stone_list.last().get('n') else 0
 						@reset_comments n
 			comparator: (c)-> - Number c.get('step') + '' + c.get('ts')
 			reset_comments: (n)-> 
@@ -334,7 +378,6 @@ $.get "/json/connected/#{gid}", (data)->
 				@listenTo game, 'call_finishing_accept_received', tmp
 		regiment_list = new RegimentList
 		
-		
 		StoneView = Backbone.View.extend
 			tagName: 'li'
 			initialize: ->
@@ -356,7 +399,6 @@ $.get "/json/connected/#{gid}", (data)->
 				@listenTo @model, 'clear_style', @clear_style
 				@listenTo @model, 'remove_from_board', @remove
 			render: ->
-				console.log @model.toJSON()
 				@$el.html(@model.get('n') + 1).addClass(@model.get 'player').attr
 					n: @model.get('n')
 					x: @model.get('pos')[0]
@@ -382,22 +424,23 @@ $.get "/json/connected/#{gid}", (data)->
 			initialize: ->
 				@listenTo stone_list, 'reset', @render
 				@listenTo game, 'change:show_first_n_stones', @render
+				@start_from = if not game.get('contract').rangzi or game.get('contract').rangzi is 'none' then 0 else Number(game.get('contract').rangzi) - 1
 			events: 
 				click: 'click'
 				tap: 'click'
 			click: (e)->
-				return if check_tap_enalbed e
+				return if check_tap_enabled e
 				
 				return if @$el.hasClass 'invalid'
 				n = game.get 'show_first_n_stones'
 				n ?= stone_list.last()?.get('n')
-				if n
+				if n > @start_from
 					game.set 'show_first_n_stones', n-1
 					if game.get 'try'
 						game.set 'next_trying', stone_list.find((x)->x.get('n') is n).get 'player'
 			render: ->
 				n = game.get 'show_first_n_stones'
-				if n and n > 0 or n is null and stone_list.length > 1
+				if n and n > @start_from or n is null and stone_list.length > @start_from + 1
 					@$el.removeClass 'invalid'
 				else
 					@$el.addClass 'invalid'
@@ -413,7 +456,7 @@ $.get "/json/connected/#{gid}", (data)->
 				click: 'click'
 				tap: 'click'
 			click: (e)->
-				return if check_tap_enalbed e
+				return if check_tap_enabled e
 				
 				return if @$el.hasClass 'invalid'
 				n = game.get 'show_first_n_stones'
@@ -440,18 +483,19 @@ $.get "/json/connected/#{gid}", (data)->
 			initialize: ->
 				@listenTo stone_list, 'reset', @render
 				@listenTo game, 'change:show_first_n_stones', @render
+				@start_from = if not game.get('contract').rangzi or game.get('contract').rangzi is 'none' then 0 else Number(game.get('contract').rangzi) - 1
 			events:
 				click: 'click'
 				tap: 'click'
 			click: (e)->
-				return if check_tap_enalbed e
-				
+				return if check_tap_enabled e
 				return if @$el.hasClass 'invalid'
-				game.set 'show_first_n_stones', 0
+				game.set 'show_first_n_stones', @start_from
 				if game.get 'try'
-					game.set 'next_trying', (if stone_list.first().get('player') is 'black' then 'white' else 'black')
+					game.set 'next_trying', (if stone_list.at(@start_from).get('player') is 'black' then 'white' else 'black')
+					
 			render: ->
-				if stone_list.length > 1 and (game.get('show_first_n_stones') is null or game.get('show_first_n_stones') > 0)
+				if stone_list.length > @start_from + 1 and (game.get('show_first_n_stones') is null or game.get('show_first_n_stones') > @start_from)
 					@$el.removeClass 'invalid'
 				else
 					@$el.addClass 'invalid'
@@ -467,7 +511,7 @@ $.get "/json/connected/#{gid}", (data)->
 				click: 'click'
 				tap: 'click'
 			click: (e)->
-				return if check_tap_enalbed e
+				return if check_tap_enabled e
 				
 				return if @$el.hasClass 'invalid'
 				game.set 'show_first_n_stones', null
@@ -491,6 +535,8 @@ $.get "/json/connected/#{gid}", (data)->
 				@listenTo regiment_list, 'reset', @show_analysis
 				@listenTo game, 'call_finishing_stop', @clear_style
 				@listenTo game, 'call_finishing_stop_received', @clear_style
+				
+				@$el.addClass 'gray' if game.get('status') is 'taking_seat'
 			events:
 				'click canvas': 'click_board'
 				'tap canvas': 'click_board'
@@ -509,18 +555,20 @@ $.get "/json/connected/#{gid}", (data)->
 						left: @board_canvas.locate( Number $(li).attr('x') ) + .5 + @$el.offset().left - $(li).width()/2
 						top: @board_canvas.locate( Number $(li).attr('y') ) + .5 + @$el.offset().top - $(li).height()/2
 			show_analysis: ->
-				stone_list.each (s)->
-					if not s.get('repealed')
-						tmp = _.find regiment_list.models, (x)-> s.get('n') in x.get('stones')
-						s.set 'style', tmp.get('judge') or tmp.get('guess')
+				if game.is_player()
+					stone_list.each (s)->
+						if not s.get('repealed')
+							tmp = _.find regiment_list.models, (x)-> s.get('n') in x.get('stones')
+							s.set 'style', tmp.get('judge') or tmp.get('guess')
 				
 			click_board: (e)->
-				return if check_tap_enalbed e
+				return if check_tap_enabled e
 				
 				if game.get('show_first_n_stones') and not game.get('try')
 					forward_btn.click()
 				else if game.is_player() and game.get('calling_finishing')?.msg is 'accept'
 					@show_analysis()
+					$('#finishing #regiments li').removeClass 'selected'
 				else if e.button is 0
 					offset = $(e.target).offset()
 					pos = @board_canvas.position [e.offsetX ? e.pageX - offset.left - .5, e.offsetY ? e.pageY - offset.top - .5]
@@ -582,11 +630,12 @@ $.get "/json/connected/#{gid}", (data)->
 				'click .guess a': 'guess'
 				'tap .guess a': 'guess'
 			select_regiment: (e)->
-				return if check_tap_enalbed e
-				
+				return if check_tap_enabled e
 				stone_list.each (s)=>
 					if not s.get('repealed')
 						s.set 'style', (if s.get('n') in @model.get('stones') then "selected #{@model.status()}" else false)
+				@$el.siblings().removeClass 'selected'
+				@$el.addClass 'selected'
 			change_judge: (model, v)->
 				@render()
 				if $("ul.stones li[n='#{@model.get('stones')[0]}']").hasClass('selected')
@@ -594,7 +643,7 @@ $.get "/json/connected/#{gid}", (data)->
 				else
 					board.show_analysis()
 			guess: (e)->
-				return if check_tap_enalbed e
+				return if check_tap_enabled e
 				
 				return if $(e.target).hasClass 'selected'
 				g = $(e.target).attr 'value'
@@ -642,8 +691,10 @@ $.get "/json/connected/#{gid}", (data)->
 							, 3*1000
 				
 				@listenTo game, 'retract', @retract
-				@listenTo game, 'call_finishing_ask', @call_finishing_ask
+				@listenTo game, 'call_finishing_ask', => @show_tpl 'call_finishing_ask'
+				@listenTo game, 'player_confirmed_ending', (rlt)=> @show_tpl 'status_ended', result:rlt
 				@listenTo game, 'call_finishing_ask_received', @call_finishing_ask_received
+				#@listenTo game, 'taking_seat', (msg)=> @show_tpl 'taking_seat' if msg is 'start'
 				@listenTo regiment_list, 'reset', @show_analysis
 				@listenTo game, 'call_finishing_stop', =>
 					if game.is_player()
@@ -660,71 +711,125 @@ $.get "/json/connected/#{gid}", (data)->
 				
 				_.chain(
 					call_finishing_cancel: 'started_please_move'
-					call_finishing_cancel_received: 'call_finishing_cancel_received'
 					call_finishing_reject: 'call_finishing_reject'
-					call_finishing_reject_received: 'call_finishing_reject_received'
 				).pairs().each (x)=>
 					@listenTo game, x[0], => @show_tpl x[1]
+				
+				@listenTo game, 'call_finishing_cancel_received', (player)=> @show_tpl 'call_finishing_cancel_received', player:player
+				@listenTo game, 'call_finishing_reject_received', (player)=> 
+					if game.is_player()
+						@show_tpl 'call_finishing_reject_received'
+					else
+						@show_tpl 'call_finishing_reject_received_others', player:player
+				
+				
 				@listenTo game, 'change:try', (m, v)=>
 					if v
 						@$el.hide()
 					else
 						@$el.show()
+				@listenTo game, 'change:status', (m, v)=>
+					console.log v
+					switch v
+						when 'started'
+							@next_player game.get('next')
+						when 'taking_seat'
+							@show_tpl 'taking_seat'
+				
 				@listenTo regiment_list, 'change:judge', @show_analysis_confirm
 				
-				if game.get('status') is 'init' and game.get('players')?.length is 1
+				if game.get('status') in ['init', 'taking_seat'] and game.get('players')?.length is 1
 					if game.myself() is game.get('players')[0]
-						@show_tpl 'init_waiting', data
+						@show_tpl 'init_waiting'
 					else
-						@show_tpl 'init_attending', data
-				if game.get('status') is 'taking_seat'
-					@show_tpl 'taking_seat', data:data
-				if game.get('status') is 'ended'
-					@show_tpl 'status_ended', data:data
+						@show_tpl 'init_attending'
+				else if game.get('status') is 'taking_seat'
+					if game.myself() and game.myself() in game.get('players')
+						@show_tpl 'taking_seat'
+					else
+						@show_tpl 'taking_seat_others'
+				else if game.get('status') is 'ended'
+					@show_tpl 'status_ended', result:data.game.result
 				
-			call_finishing_ask: ->
-				@show_tpl 'call_finishing_ask'
-				@$el.find('#call_finishing_cancel').click => game.call_finishing_cancel()
-			call_finishing_ask_received: ->
-				@show_tpl 'call_finishing_ask_received'
-				@$el.find('#reject_calling_finishing').click => game.call_finishing_reject()
-				@$el.find('#accept_calling_finishing').click => game.call_finishing_accept()
+			call_finishing_ask_received: (player)->
+				if game.is_player()
+					@show_tpl 'call_finishing_ask_received'
+				else
+					@show_tpl 'call_finishing_ask_received_others', player:player
 			show_analysis: (regiment_list)->
-				@show_tpl 'call_finishing_accept'
-				@$el.find('#stop_calling_finishing').click => game.call_finishing_stop()
-				regiment_tpl =tpl '#bulletin-tpls #regiment-tpl'
-				regiment_list.each (x)=>
-					new RegimentView(
-						model: x
-						el: $(regiment_tpl data:x.toJSON(), opponent:game.opponent(), myself:game.myself()).appendTo(@$el.find('#regiments'))
-					).render()
-				@show_analysis_confirm()
+				if game.is_player()
+					@show_tpl 'call_finishing_accept'
+					@$el.find('#stop_calling_finishing').click => game.call_finishing_stop()
+					regiment_tpl = tpl '#bulletin-tpls #regiment-tpl'
+					regiment_list.each (x)=>
+						new RegimentView(
+							model: x
+							el: $(regiment_tpl data:x.toJSON(), opponent:game.opponent(), myself:game.myself()).appendTo(@$el.find('#regiments'))
+						).render()
+					@show_analysis_confirm()
+					
+					@$el.find('#confirm').click =>
+						game.call_finishing_confirm (rlt)=>
+							if rlt
+								@show_tpl 'status_ended', result:rlt
+							else
+								@$el.find('#confirm').hide()
+								@$el.find('#confirmed').show()
+					
+					if game.get('last_action')?.suggest_confirm?[game.my_role()]
+						@$el.find('#confirm').hide()
+					else
+						@$el.find('#confirmed').hide()
+				else
+					@show_tpl 'call_finishing_accept_received_others'
 			show_analysis_confirm: ->
 				if regiment_list.some((x)-> x.get('judge') is 'disagree')
 					@$el.find('#confirm').hide()
+					@$el.find('#confirmed').show()
 				else
 					@$el.find('#confirm').show()
+					@$el.find('#confirmed').hide()
 					
 			find_tpl: (name)->
 				@tpls ?= {}
 				@tpls[name] ?= tpl "#bulletin-tpls script[name='#{name}']"
-			show_tpl: (name)-> 
-				@$el.empty().append @find_tpl(name)(data:data) if @find_tpl(name)
-			next_player: (model, player)->
+			show_tpl: (name, params)-> 
+				@$el.empty().append @find_tpl(name)(_.defaults (params ? {}), data:data) if @find_tpl(name)
+				switch name
+					when 'started_please_move'
+						$('#call-finishing').click -> game.call_finishing_ask()
+					when 'started_please_wait'
+						$('#retract').click -> game.retract()
+					when 'taking_seat'
+						$('.taking_seat a').click -> 
+							game.taking_seat $(this).attr('_type')
+					when 'call_finishing_ask'
+						@$el.find('#call_finishing_cancel').click => game.call_finishing_cancel()
+					when 'call_finishing_ask_received'
+						@$el.find('#reject_calling_finishing').click => game.call_finishing_reject()
+						@$el.find('#accept_calling_finishing').click => game.call_finishing_accept()
+			next_player: ->
+				if arguments.length is 1
+					[player] = arguments
+				else
+					[model, player] = arguments
+				
 				if game.is_player()
 					if game.my_role() is player
 						@show_tpl 'started_please_move'
-						$('#call-finishing').click -> game.call_finishing_ask()
 					else
 						@show_tpl 'started_please_wait'
-						$('#retract').click -> game.retract()
+				else
+					@show_tpl 'next_player', next:player
 			retract: (stone)->
 				if game.is_player()
-					if game.my_role() is stone.get('player')
+					if game.my_role() is stone.player
 						@show_tpl 'started_please_move'
 					else
 						@show_tpl 'retract_by_opponent'
-				console.log 'on retract'
+				else
+					console.log 'retracted'
+				
 		bulletin = new BulletinView().render()
 		
 		BulletinLocalView = Backbone.View.extend
@@ -754,7 +859,7 @@ $.get "/json/connected/#{gid}", (data)->
 				click: 'show_num'
 				tap: 'show_num'
 			show_num: (e)->
-				return if check_tap_enalbed e
+				return if check_tap_enabled e
 				@$el.toggleClass 'show_num'
 				game.set 'show_num', not @$el.hasClass('show_num')
 			render: ->
@@ -783,18 +888,22 @@ $.get "/json/connected/#{gid}", (data)->
 		if game.get('status') isnt 'ended'
 			game.connect (err)->
 				return if err
-				if game.is_player() and cf = game.get 'calling_finishing'
+				
+				if cf = game.get 'calling_finishing'
 					switch cf.msg
 						when 'ask'
-							if cf.uid is game.myself()
+							if not game.is_player()
+								bulletin.call_finishing_ask_received (game.role_of_player cf.uid)
+							else if cf.uid is game.myself()
 								game.trigger 'call_finishing_ask'
 							else
 								game.trigger 'call_finishing_ask_received'
 						when 'accept'
-							if cf.uid is game.myself()
+							if game.is_player() and cf.uid is game.myself()
 								game.trigger 'call_finishing_accept', game.get('analysis')
 							else
 								game.trigger 'call_finishing_accept_received', game.get('analysis')
+				
 		
 		$(window).on 'resize', -> board.reposite()
 		

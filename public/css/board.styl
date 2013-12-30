@@ -5,50 +5,63 @@
 		margin 0
 		border 1px solid transparent
 		-webkit-tap-highlight-color rgba(0,0,0,0)
-		background-color #fff
+		//background-color #fff
 	ul.stones
 		li
 			list-style none
 		.black, .white
 			r = 25px
-			font-size 14px
+			font-size 13px
 			width r
 			height r
 			vendor('border-radius', r/2 + 1px)
-			//border 1px solid black
+			border 1px solid #0f1926
 			position absolute
 			text-align center
 			text-indent -99999px
 		.black
-			background -webkit-radial-gradient(60% 40%, farthest-side, #808080, #0f1926)
-			background -moz-radial-gradient(60% 40%, farthest-side, #808080, #0f1926)
-			background -o-radial-gradient(60% 40%, farthest-side, #808080, #0f1926)
-			background radial-gradient(60% 40%, farthest-side, #808080, #0f1926)
+			//background -webkit-radial-gradient(60% 40%, farthest-side, #808080, #0f1926)
+			//background -moz-radial-gradient(60% 40%, farthest-side, #808080, #0f1926)
+			//background -o-radial-gradient(60% 40%, farthest-side, #808080, #0f1926)
+			//background radial-gradient(60% 40%, farthest-side, #808080, #0f1926)
 			color white
+			background-color #0f1926
 		.white
-			background -webkit-radial-gradient(60% 40%, farthest-side, #fffcf7, #d3d3d3)
-			background -moz-radial-gradient(60% 40%, farthest-side, #fffcf7, #d3d3d3)
-			background -o-radial-gradient(60% 40%, farthest-side, #fffcf7, #d3d3d3)
-			background radial-gradient(60% 40%, farthest-side, #fffcf7, #d3d3d3)
+			//background -webkit-radial-gradient(60% 40%, farthest-side, #fffcf7, #d3d3d3)
+			//background -moz-radial-gradient(60% 40%, farthest-side, #fffcf7, #d3d3d3)
+			//background -o-radial-gradient(60% 40%, farthest-side, #fffcf7, #d3d3d3)
+			//background radial-gradient(60% 40%, farthest-side, #fffcf7, #d3d3d3)
 			color black
-		.show_num
-			text-indent 0
-		.selected.dead
-			vendor('box-shadow', -2px 3px 13px rgba(255,0,0,1) !important)
-		.selected.live
-			vendor('box-shadow', -2px 3px 13px rgba(0,255,128,1) !important)
-		.live
-			vendor('box-shadow', 0 0 13px rgba(0,100,0,1))
-		.dead
-			vendor('box-shadow', 0 0 13px rgba(255,0,0,1))
-		.disagree
-			vendor('box-shadow', 0 0 13px rgba(255,200,0,1))
-		.repealed
-			display none
+			background-color #fff
 		.black.last
 			vendor('box-shadow', inset 0 0 0 3px hsla(140, 90%, 80%, .9))
 		.white.last
 			vendor('box-shadow', inset 0 0 0 3px hsla(0, 90%, 20%, .9))
+		.show_num
+			text-indent 0
+		.selected.dead
+			vendor('animation-name', selected_dead)
+			vendor('animation-duration', .5s)
+			vendor('animation-iteration-count', infinite)
+			vendor('animation-direction', alternate)
+		.selected.live
+			vendor('animation-name', selected_live)
+			vendor('animation-duration', .5s)
+			vendor('animation-iteration-count', infinite)
+			vendor('animation-direction', alternate)
+		.live
+			vendor('box-shadow', 0 0 13px rgba(0,100,0,1) !important)
+		.dead
+			vendor('box-shadow', 0 0 13px rgba(255,0,0,1) !important)
+		.disagree
+			//vendor('box-shadow', 0 0 13px rgba(255,200,0,1)  !important)
+			vendor('animation-name', disagree)
+			vendor('animation-duration', .5s)
+			vendor('animation-iteration-count', infinite)
+			vendor('animation-direction', alternate)
+		.repealed
+			display none
+		
 .your_turn
 	ul.stones
 		li:last-child
@@ -56,6 +69,23 @@
 			vendor('animation-duration', 5s)
 			vendor('animation-iteration-count', infinite)
 			vendor('animation-direction', alternate)
+
+@keyframes selected_dead
+	0%
+		vendor('box-shadow', 0 0 16px rgba(255,0,0,1))
+	100%
+		vendor('box-shadow', 0 0 7px rgba(255,0,0,1))
+
+@keyframes selected_live
+	0%
+		vendor('box-shadow', 0 0 16px rgba(0,100,0,1))
+	100%
+		vendor('box-shadow', 0 0 7px rgba(0,100,0,1))
+@keyframes disagree
+	0%
+		vendor('box-shadow', 0 0 16px rgba(255,200,0,1))
+	100%
+		vendor('box-shadow', 0 0 7px rgba(255,200,0,1))
 
 @keyframes vibrate
 	0%

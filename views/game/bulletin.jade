@@ -11,11 +11,13 @@
 			<a id='call-finishing' title='#{lingua.finish_game_desc}'>#{lingua.finish_game}</a>
 		<% } %>
 	script(type='text/template', name='started_please_wait').
-		<% if(data.myself && _.contains(data.game.players, data.myself) && data.game.moves.length ){ %>
+		<% if(data.myself && _.contains(data.game.players, data.myself) ){ %>
 			<p>#{lingua.started_please_wait}</p>
 			<a id='retract'><i></i><span>#{lingua.retract}</span>?</a>
 		<% } %>
-	
+	script(type='text/template', name='next_player').
+		<p class='next_player'><%= next == 'black' ? '#{lingua.black_short}' : '#{lingua.white_short}' %> <%= player_tpl({user:data.refs[data.game.seats[next]]}) %></p>
+		
 	script(type='text/template', name='retract_by_opponent')
 		p= lingua.retract_by_opponent
 	script(type='text/template', name='retract_by')
@@ -43,22 +45,29 @@
 			a#accept_calling_finishing= lingua.accept_calling_finishing
 			span= lingua.or2
 			a#reject_calling_finishing= lingua.reject_calling_finishing
-	script(type='text/template', name='call_finishing_cancel_received')
-		p= lingua.call_finishing_cancel_received
+	script(type='text/template', name='call_finishing_cancel_received').
+		<p><%= player == 'black' ? '#{lingua.black}' : '#{lingua.white}' %>#{lingua.call_finishing_cancel_received}</p>
+	script(type='text/template', name='call_finishing_ask_received_others').
+		<p><%= player == 'black' ? '#{lingua.black}' : '#{lingua.white}' %>#{lingua.call_finishing_ask_received_others}</p>
+	script(type='text/template', name='call_finishing_reject_received_others').
+		<p><%= player == 'black' ? '#{lingua.black}' : '#{lingua.white}' %>#{lingua.call_finishing_reject_received_others}</p>
 	
 	script(type='text/template', name='call_finishing_reject')
 		p= lingua.call_finishing_reject
 	script(type='text/template', name='call_finishing_reject_received')
 		p!= lingua.call_finishing_reject_received
+	script(type='text/template', name='call_finishing_accept_received_others')
+		p!= lingua.call_finishing_accept_received_others
 	
 	script(type='text/template', name='call_finishing_accept')
 		#finishing
 			a#stop_calling_finishing= lingua.stop_calling_finishing_btn
 			ul#regiments
-			a#confirm Confirm
+			a#confirm= lingua.confirm_calcing
+			#confirmed= lingua.calcing_confirmed
 	script#regiment-tpl(type='text/template').
 		<li>
-			<span class='player'><%= data.player %></span>
+			<span class='player'><%= data.player == 'black' ? '#{lingua.black_short}' : '#{lingua.white_short}' %><%= lingua_tpl('#{_.escape(lingua.num_of_stones)}')({n:data.stones.length}) %></span>
 			<% my_guess = data.suggests && data.suggests[myself] ? data.suggests[myself] : ''; opponent_guess = data.suggests && data.suggests[opponent] ? data.suggests[opponent] : ''; %>
 			<div class='guess'>
 				<a value='live' class='live <%= opponent_guess=='live' ? 'opponent-selected' : '' %>'>#{lingua.guess_live}</a>
@@ -76,13 +85,30 @@
 		p= lingua.call_finishing_stop_received_wait
 	script(type='text/template', name='status_ended').
 		<p>
-			<% if(data.game.result.win){ %>
-				<%= player_tpl({user:data.refs[data.game.seats[data.game.result.win]]}) %>
-				<%= data.game.result.case.indexOf('surrender') > -1 ? '#{lingua.win_in_the_middle}': '#{lingua.win_vs}' %>
+			<% if(result.win){ %>
+				<%= player_tpl({user:data.refs[result.players[result.win]]}) %>
+				<% if(result.case.indexOf('surrender') > -1){ %>
+					<%= '#{lingua.win_in_the_middle}' %>
+				<% } else { %>
+					<%= '#{lingua.win_vs}' %>
+					<% if(m = /(\d+\.?\d*)mu/.exec(result.case) ){ %>
+						<%= lingua_tpl('#{_.escape(lingua.num_of_mu)}')({n:m[1]}) %>
+					<% } else if( m = /(\d+\.?\d*)zi/.exec(result.case) ){ %>
+						<%= lingua_tpl('#{_.escape(lingua.num_of_stones)}')({n:m[1]}) %>
+					<% } %>
+				<% } %>
 			<% } else { %>
 				#{lingua.bulletin_result_draw}
 			<% } %>
 		<p>
 	script(type='text/template', name='taking_seat').
-		<p>xxx</p>
-		<p>xxxy</p>
+		<div class='taking_seat'>
+			<p>#{lingua.taking_seat_please}</p>
+			<p>
+				<a _type='black'>#{lingua.black_short}</a>
+				<a _type='white'>#{lingua.white_short}</a>
+				<a _type='random'>#{lingua.random}</a>
+			</p>
+		</div>
+	script(type='text/template', name='taking_seat_others').
+		<p>#{lingua.taking_seat_waiting}</p>

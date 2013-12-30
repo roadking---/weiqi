@@ -3,6 +3,7 @@ $ ->
 	init_header data
 	$('nav #home').parent().addClass('active')
 	
+	###
 	if not data.myself
 		$('a#prev_blogs_btn').remove()
 	
@@ -25,15 +26,17 @@ $ ->
 	if data.blogs
 		$('<ul></ul>').appendTo $('#blogs')
 		_.each data.blogs, (blog)-> render_blog blog
-			
-	if data.myself && data.games.attendings.length
+	###
+	
+	if data.myself && data.games.attendings?.length
 		$(tpl('#attendings_tpl') data, {variable:'data'}).appendTo( $('#attendings') ).find('li').each (i, li)->
 			if $(li).find('.thumb').length
 				new BoardCanvas($(li).find('.thumb')).render data.refs[data.games.attendings[i]].moves
 	
-	if data.games.pendings.length
+	if data.games.pendings?.length
 		$(tpl('#pendings_tpl') data, {variable:'data'}).appendTo( $('#pendings') )
 	
+	###
 	$('#prev_blogs_btn').click ->
 		$.get "/blog?blog_id=#{data.myself}&tag=next", (res)->
 			if res.success
@@ -46,3 +49,4 @@ $ ->
 					_.each res.blogs, (blog)->
 						data.refs = _.defaults data.refs, res.refs
 						render_blog blog
+	###

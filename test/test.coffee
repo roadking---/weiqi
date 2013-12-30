@@ -231,6 +231,22 @@ describe 'game', ->
 					assert.equal game.status, 'init'
 					assert users[0] in game.players
 					done()
+		it 'rangzi 2', (done)->
+			opts = start:'auto', initiator: users[0], type: 'weiqi', players:[users[0]], rangzi:'2', seats:{black:users[0]}
+			api.init_game opts, (err, gid)->
+				assert not err
+				test_gid = gid
+				api.get_game test_gid, (err, game)->
+					assert not err
+					assert.equal game.contract.rangzi, 2
+					assert.equal game.moves.length, 2
+					api.player_attend gid, users[1], (err)->
+						assert not err
+						api.get_game test_gid, (err, game)->
+							assert not err
+							assert.equal game.status, 'started'
+							assert.equal game.next, 'white'
+							done()
 	describe 'taking_seat', ->
 		it 'auto taking_seat', (done)->
 			opts = initiator: users[0], type: 'weiqi', players:[users[0]], seats:{white:users[0]}
@@ -1485,6 +1501,87 @@ describe 'game', ->
 								api.suggest_finishing gid, users[1], (err, rlt)->
 									assert err
 									done()
+		it 'confirm ending game, the simplest case', (done)->
+			api.analyze gid, true, (err, analysis)->
+				assert not err
+				api.suggest_finishing gid, users[0], 'confirm', (err, rlt)->
+					assert not err
+					assert not rlt
+					api.get_game gid, (err, game)->
+						assert not err
+						assert game.last_action.suggest_confirm.black
+						assert.equal game.last_action.suggest_confirm.black[0].suggest, 'live'
+						api.suggest_finishing gid, users[1], 'confirm', (err, rlt)->
+							assert not err
+							assert rlt
+							api.get_game gid, (err, game)->
+								assert not err
+								assert game.last_action.suggest_confirm.black
+								assert game.last_action.suggest_confirm.white
+								done()
+		it 'confirm and cancel', (done)->
+			api.analyze gid, true, (err, analysis)->
+				assert not err
+				api.suggest_finishing gid, users[0], 'confirm', (err, rlt)->
+					assert not err
+					assert not rlt
+					api.get_game gid, (err, game)->
+						assert not err
+						assert game.last_action.suggest_confirm.black
+						api.suggest_finishing gid, users[0], 0, 'live', (err, analysis, disagree)->
+							assert not err
+							api.get_game gid, (err, game)->
+								assert not err
+								assert game.last_action.suggest_confirm.black
+								api.suggest_finishing gid, users[0], 0, 'dead', (err, analysis, disagree)->
+									assert not err
+									api.get_game gid, (err, game)->
+										assert not err
+										assert not game.last_action.suggest_confirm.black
+										done()
+		it 'confirm with suggestion modified', (done)->
+			api.analyze gid, true, (err, analysis)->
+				assert not err
+				api.suggest_finishing gid, users[0], 0, 'dead', (err, analysis, disagree)->
+					assert not err
+					api.suggest_finishing gid, users[0], 'confirm', (err, rlt)->
+						assert not err
+						assert not rlt
+						api.get_game gid, (err, game)->
+							assert not err
+							assert game.last_action.suggest_confirm.black
+							assert.equal game.last_action.suggest_confirm.black[0].suggest, 'dead'
+							api.suggest_finishing gid, users[1], 'confirm', (err, rlt)->
+								assert not err
+								assert rlt
+								api.get_game gid, (err, game)->
+									assert not err
+									assert game.last_action.suggest_confirm.white
+									assert.equal game.last_action.suggest_confirm.white[0].suggest, 'dead'
+									done()
+		it 'confirm with conflict', (done)->
+			api.analyze gid, true, (err, analysis)->
+				assert not err
+				api.suggest_finishing gid, users[0], 0, 'dead', (err, analysis, disagree)->
+					assert not err
+					api.suggest_finishing gid, users[0], 'confirm', (err, rlt)->
+						assert not err
+						assert not rlt
+						api.suggest_finishing gid, users[1], 0, 'live', (err, analysis, disagree)->
+							assert not err
+							api.suggest_finishing gid, users[1], 'confirm', (err, rlt)->
+								assert not err
+								assert not rlt
+								api.get_game gid, (err, game)->
+									assert not err
+									assert.equal game.last_action.suggest_confirm.black[0].suggest, 'dead'
+									assert.equal game.last_action.suggest_confirm.white[0].suggest, 'live'
+									api.suggest_finishing gid, users[1], 0, 'dead', (err, analysis, disagree)->
+										assert not err
+										api.suggest_finishing gid, users[1], 'confirm', (err, rlt)->
+											assert not err
+											assert rlt
+											done()
 	describe 'calc', ->
 		it 'normal', (done)->
 			api.analyze gid, true, (err, analysis)->
@@ -1502,4 +1599,6 @@ describe 'game', ->
 							api.end_game gid, rlt, (err, rlt)->
 								assert not err
 								assert rlt.draw
-								done()
+								api.game_rating rlt, (err, players)->
+									assert not err
+									done()

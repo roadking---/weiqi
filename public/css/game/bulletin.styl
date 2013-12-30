@@ -21,27 +21,58 @@
 			text-decoration none
 			border-bottom 1px solid white
 			color white
+	.taking_seat
+		a
+			padding .5em 2em
+			text-decoration none
+			background-color hsla(180, 50%, 40%, .4)
+			vendor('border-radius', 3px)
+	.next_player
+		.user
+			color white
+			border-bottom 1px solid white
 	#finishing
 		padding 20px 10px
 		ul#regiments
 			display block
+			margin 20px auto
 			li
 				display block
-				margin-bottom 15px
+				cursor pointer
+				//padding 7px 0
+				vendor('border-radius', 3px)
 				.guess
+					margin-left 3em
 					display inline-block
 					a
 						text-decoration none
+						padding .5em 1em
+						display inline-block
+						vendor('border-radius', 3px)
+						border 1px solid transparent
 					a.selected
 						background-color rgba(0,255,125,.3)
+						border-color rgba(0,255,125,.3)
 						cursor auto
 					a.opponent-selected
-						border 1px solid green
+						border-color green
 					a.default
 						background-color rgba(0,125,255,.3)
+						border-color rgba(0,125,255,.3)
+				&:hover
+					background-color white
+					span, a
+						color black
 			li.disagree
-				border 1px solid black
-	
+				background-color rgba(255,251,10,.9)
+				color #333
+			li.selected
+				background-color white
+				span, a
+					color black
+					padding-top 1em
+					padding-bottom 1em
+			
 	#retract
 		display table-cell
 		cursor pointer
@@ -53,8 +84,9 @@
 			background-repeat no-repeat
 			background-image url(/img/icons/undo.svg)
 	a.user
-		color hsl(220, 50%, 50%)
+		color white
 		text-decoration none
+		border-bottom 1px solid white
 		
 #bulletin-local
 	background-color hsla(160, 70%, 40%, .8)

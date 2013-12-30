@@ -1,13 +1,21 @@
 extends ../layout
 
 block title
-	- title_str = 'Move'
+	- title_str = '对局'
 	if game.seats && game.seats.black && game.seats.white
-		title xxx
+		title_str = _.template(lingua.game_title_3, {player1:refs[game.seats.black].nickname, player1_title:lingua['title_'+refs[game.seats.black].title], player2:refs[game.seats.white].nickname, player2_title:lingua['title_'+refs[game.seats.white].title]})
 	else if game.status == 'init'
 		title_str = _.template(lingua.game_title_1, {player1:refs[game.players[0]].nickname, player1_title:lingua['title_'+refs[game.players[0]].title]})
 	else if game.players && game.players.length == 2
 		title_str = _.template(lingua.game_title_2, {player1:refs[game.players[0]].nickname, player1_title:lingua['title_'+refs[game.players[0]].title], player2:refs[game.players[1]].nickname, player2_title:lingua['title_'+refs[game.players[1]].title]})
+	if game.contract.rangzi == '2'
+		title_str = lingua.rangzi2 + ' - ' + title_str
+	else if game.contract.rangzi == '3'
+		title_str = lingua.rangzi3 + ' - ' + title_str
+	else if game.contract.rangzi == '4'
+		title_str = lingua.rangzi4 + ' - ' + title_str
+	
+	
 	title= title_str
 		
 	

@@ -1,9 +1,11 @@
-#home
+#home-div
+	min-height 600px
 	#attendings
 		background-color #f7f7f7
 		padding 5px 20px
 		ul
 			li
+				vertical-align top
 				color #48414a
 				font-size 18px
 				width 200px
@@ -12,42 +14,67 @@
 					line-height 30px
 					margin-bottom 10px
 					display block
+					color hsl(230, 40%, 40%)
 				.thumb
 					display block
-			li.new-game
-				display table
-				min-height 100px
-				a
-					display table-cell	
-					vertical-align middle
+				a.msg
+					display table
+					height 200px
+					width 100%
 					text-decoration none
-					color hsl(200, 40%, 50%)
+					color hsl(180, 40%, 40%)
+					font-size 1.2em
+					font-weight bold
+					*
+						display table-cell
+						vertical-align middle
+						text-align center
+			li.new-game
+				a
+					text-decoration none
+				a#home_new_game_str2
+					background-color hsl(100, 80%, 80%)
+					width 200px
+					display block
 					text-align center
-					span:nth-of-type(1)
-						font-size 1.8em
-						line-height 1.8em
-					span:nth-of-type(2)
-						font-size 1.2em
-						line-height 1.4em
+					span
+						display inline-block
+						line-height 195px
+						height 195px
+						vertical-align middle
+				
 						
 	#pendings
-		margin-top 30px
-		margin-bottom 30px
+		background-color #f7f7f7
+		padding 5px 20px
 		ul
 			li
 				padding 5px
 				width 23%
 				border 1px solid #bbb
-				.user
-					font-size 1.4m
-					font-weight 100
-					padding 5px 10px
+				.left
+					display inline-block
+					overflow hidden
+					width 55%
+					.user
+						font-size 1.4m
+						font-weight 100
+						padding 5px 0
+					.rate
+						margin-top .5em
 				.attend
-					display block
-					padding 10px 20px
-					margin-left 20%
-					font-size 1.4m
+					display inline-block
+					border-left 1px solid #ddd
+					font-size 1.5em
+					font-weight bold
+					text-decoration none
 					color #483c32
+					width 42%
+					height 4em
+					line-height 4em
+					text-align center
+					vertical-align top
+					
 	#blogs
 		padding 5px 20px
 		background-color #fffcf7

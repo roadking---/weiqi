@@ -3,6 +3,7 @@ $ ->
 	return if not uid
 	$.get "/json/history/#{uid}", (data)->
 		console.log data
+		init_header data
 		$('#records').append tpl('#records-tpl') data
 		
 		new Morris.Line

@@ -9,6 +9,7 @@
     }
     $.get("/json/history/" + uid, function(data) {
       console.log(data);
+      init_header(data);
       $('#records').append(tpl('#records-tpl')(data));
       return new Morris.Line({
         element: 'rate-chart',

@@ -9,11 +9,13 @@ block append scripts
 	script(type='text/javascript', src='/js/home.js')
 	
 block content
-	#home.container
+	#home-div.container
 		#pendings
+			h2= lingua.pending_games
 		#attendings
-		#blogs
-		a#prev_blogs_btn= lingua.prev_blogs
+			
+		//#blogs
+		//a#prev_blogs_btn= lingua.prev_blogs
 	
 	include ../tpls/blogs_tpl
 
@@ -21,12 +23,18 @@ block content
 		<ul>
 			<% _.each(data.games.pendings, function(gid){ %>
 				<li>
-					<% p = refs[gid].players[0] %><%= player_tpl({user:refs[p]}) %>
-					<a class='attend' title='#{lingua.start_game}' href='/attend/<%=gid%>'>Attend</a>
+					<div class='left'>
+						<% p = refs[gid].players[0] %><%= player_tpl({user:refs[p]}) %>
+						<div class='rate'>+<%= refs[p].rate %></div>
+						<div>胜<%= refs[p].wins || 0 %>负<%= refs[p].losses || 0 %>平<%= refs[p].draws || 0 %></div>
+						<div>胜率 <%= Math.round(refs[p].win_ratio*1000) / 10 %>%</div>
+					</div>
+					<a class='attend' title='#{lingua.start_game}' href='/attend/<%=gid%>'>#{lingua.attend}</a>
 				</li>
 			<% }); %>
 		</ul>
 	script#attendings_tpl(type='text/template').
+		<h2>#{lingua.my_attending_games}</h2>
 		<ul>
 			<% _.each(data.games.attendings, function(gid){ %>
 				<% if(data.refs[gid].seats){ %>
@@ -37,10 +45,15 @@ block content
 					</li>
 				<% } else if(data.refs[gid].players.length == 1){ %>
 					<li class='new-game'>
-						<a href='/game/<%=gid%>'>
-							<span>#{lingua.home_new_game_str1}</span>
-							<br>
-							<span>#{lingua.home_new_game_str2}</span>
+						<a id='home_new_game_str1' href='/game/<%=gid%>'><span class='caption'>#{lingua.home_new_game_str1}</span></a>
+						<a id='home_new_game_str2' href='/game/<%=gid%>'><span>#{lingua.home_new_game_str2}<span></a>
+					</li>
+				<% } else if(data.refs[gid].players.length == 2){ %>
+					<li>
+						<% opponent = _.without(data.refs[gid].players, data.myself)[0]; %>
+						<span class='caption'>#{lingua.with} <%= player_tpl({user:data.refs[opponent]}) %></span>
+						<a class='msg' href='/game/<%=gid%>'>
+							<span><%= !data.refs[gid].seats || !_.chain(data.refs[gid].seats).values().contains(data.myself).value() ? '#{lingua.taking_seat_please}' : 'ddd' %></span>
 						</a>
 					</li>
 				<% } else { %>
